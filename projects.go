@@ -47,7 +47,7 @@ func (c Cx1Client) CreateProject(projectname string, cx1_group_ids []string, tag
 	return project, err
 }
 
-func (c Cx1Client) CreateProjectInApplication(projectname string, cx1_group_ids []string, tags map[string]string, applicationId string) (Project, error) {
+func (c Cx1Client) CreateProjectInApplicationWOPolling(projectname string, cx1_group_ids []string, tags map[string]string, applicationId string) (Project, error) {
 	c.logger.Debugf("Create Project %v in applicationId %v", projectname, applicationId)
 	data := map[string]interface{}{
 		"name":        projectname,
@@ -100,7 +100,14 @@ func (c Cx1Client) CreateProjectInApplication(projectname string, cx1_group_ids 
 	if err != nil {
 		return Project{}, err
 	}
+	return project, nil
+}
 
+func (c Cx1Client) CreateProjectInApplication(projectname string, cx1_group_ids []string, tags map[string]string, applicationId string) (Project, error) {
+	project, err := c.CreateProjectInApplicationWOPolling(projectname, cx1_group_ids, tags, applicationId)
+	if err != nil {
+		return project, err
+	}
 	return c.ProjectInApplicationPollingByID(project.ProjectID, applicationId)
 }
 
