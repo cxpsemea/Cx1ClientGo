@@ -555,6 +555,30 @@ type Project struct {
 	Configuration        []ConfigurationSetting `json:"-"`
 }
 
+type ProjectOverview struct {
+	ProjectID    string            `json:"projectId"`
+	Name         string            `json:"projectName"`
+	Origin       string            `json:"sourceOrigin"`
+	LastScanDate time.Time         `json:"lastScanDate"`
+	SourceType   string            `json:"sourceType"`
+	Tags         map[string]string `json:"tags"`
+	GroupIDs     []string          `json:"groupIds"`
+	RiskLevel    string            `json:"riskLevel"`
+	RepoID       uint64            `json:"repoId"`
+	SCMRepoID    string            `json:"scmRepoId"`
+	//TotalCounters  TODO
+	//EnginesData TODO
+	IsDeployed          bool   `json:"isDeployed"`
+	IsPublic            bool   `json:"isPublic"`
+	ImportedProjectName string `json:"importedProjName"`
+	ProjectOrigin       string `json:"projectOrigin"`
+
+	ApplicationIDs []struct {
+		Id   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"applications"`
+}
+
 type ProjectFilter struct {
 	BaseFilter
 	ProjectIDs []string `url:"ids,omitempty"`
@@ -573,6 +597,25 @@ type ProjectBranchFilter struct {
 	BaseFilter
 	ProjectID string `url:"project-id,omitempty"`
 	Name      string `url:"branch-name,omitempty"`
+}
+
+type ProjectOverviewFilter struct { // max limit = 100
+	BaseFilter
+	Name           string   `url:"name,omitempty"`
+	Origin         []string `url:"scan-origin,omitempty"`
+	SourceType     []string `url:"source-type,omitempty"`
+	GroupIDs       []string `url:"group-ids,omitempty"`
+	ApplicationIDs []string `url:"applications,omitempty"`
+	TagKeys        []string `url:"tag-keys,omitempty"`
+	TagValues      []string `url:"tag-values,omitempty"`
+	EmptyTags      bool     `url:"empty-tags,omitempty"`
+	RiskLevel      []string `url:"risk-level,omitempty"`
+	FromDate       string   `url:"from-date,omitempty"`
+	ToDate         string   `url:"to-date,omitempty"`
+	IsDeployed     bool     `url:"is-deployed,omitempty"`
+	IsPublic       bool     `url:"is-public,omitempty"`
+	Search         string   `url:"search,omitempty"`
+	Sort           []string `url:"sort,omitempty"` //  name, scan-origin, last-scan-date, source-type, risk-level, is-public, applications
 }
 
 type ProjectScanSchedule struct {
