@@ -264,7 +264,7 @@ func (c Cx1Client) UpdateQueriesMetadata_v310(level, levelid string, queries []Q
 		})
 	}
 
-	jsonBody, _ := json.Marshal(queries)
+	jsonBody, _ := json.Marshal(updates)
 	if levelid == "Tenant" {
 		levelid = "Corp"
 	}
