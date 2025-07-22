@@ -33,13 +33,14 @@ type Cx1Client struct {
 	client *OIDCClient
 	IsUser bool
 
-	version      *VersionInfo
-	astAppID     string
-	tenantID     string
-	cx1UserAgent string
-	tenantOwner  *TenantOwner
-	maxRetries   int
-	retryDelay   int
+	version         *VersionInfo
+	astAppID        string
+	tenantID        string
+	cx1UserAgent    string
+	tenantOwner     *TenantOwner
+	maxRetries      int
+	retryDelay      int
+	suppressdepwarn bool
 }
 
 type Cx1ClientAuth struct {

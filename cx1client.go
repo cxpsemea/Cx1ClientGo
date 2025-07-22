@@ -427,3 +427,7 @@ func (c *Cx1Client) SetLogger(logger Logger) {
 func (c Cx1Client) Clone() Cx1Client {
 	return c
 }
+
+func (c *Cx1Client) SetDeprecationWarning(logged bool) {
+	c.suppressdepwarn = !logged
+}
