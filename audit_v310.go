@@ -62,7 +62,7 @@ func (q SASTQuery) ToAuditQuery_v310() AuditQuery_v310 {
 }
 
 func (q AuditQuery_v310) String() string {
-	return fmt.Sprintf("[%d] %v: %v", q.QueryID, q.Level, q.Path)
+	return fmt.Sprintf("[%d] %v %v: %v", q.QueryID, q.Level, q.LevelID, q.Path)
 }
 
 func (q AuditQuery_v310) ToQuery() SASTQuery {
