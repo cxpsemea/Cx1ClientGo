@@ -235,7 +235,7 @@ func (c Cx1Client) GetProjectsByNameAndGroupID(projectName string, groupID strin
 	return projects, err
 }
 
-// Underlying function used by many GetApplications* calls
+// Underlying function used by many GetProject* calls
 // Returns the total number of matching results plus an array of projects with
 // one page of results (from filter.Offset to filter.Offset+filter.Limit)
 func (c Cx1Client) GetProjectsFiltered(filter ProjectFilter) (uint64, []Project, error) {

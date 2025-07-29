@@ -153,8 +153,6 @@ func (c Cx1Client) AuditNewQuery_v310(language, group, name string) (AuditQuery_
 	return newQuery, nil
 }
 
-// updating queries via PUT is possible, but only allows changing the source code, not metadata around each query.
-// this will be fixed in the future
 // PUT is the only option to create an override on the project-level (and maybe in the future on application-level)
 func (c Cx1Client) UpdateQuery_v310(query AuditQuery_v310) error {
 	c.depwarn("UpdateQuery_v310", "UpdateQuery*")
@@ -177,6 +175,96 @@ func (c Cx1Client) UpdateQuery_v310(query AuditQuery_v310) error {
 func (c Cx1Client) UpdateQueries_v310(level, levelid string, queries []QueryUpdate_v310) error {
 	c.depwarn("UpdateQuery_v310/UpdateQueries_v310", "UpdateQuery*")
 	jsonBody, _ := json.Marshal(queries)
+	if levelid == "Tenant" {
+		levelid = "Corp"
+	}
+
+	response, err := c.sendRequest(http.MethodPut, fmt.Sprintf("/cx-audit/queries/%v", levelid), bytes.NewReader(jsonBody), nil)
+	if err != nil {
+		if err.Error()[0:8] == "HTTP 405" {
+			return fmt.Errorf("this endpoint is no longer available - please use UpdateQuery* instead")
+		} else {
+			// Workaround to fix issue in CX1: sometimes the query is saved but still throws a 500 error
+			c.logger.Warnf("Query update failed with %s but it's buggy, checking if the query was updated anyway", err)
+
+			allqueries, err := c.GetQueriesByLevelID_v310(level, levelid)
+			if err != nil {
+				return err
+			}
+
+			for _, q := range queries {
+				aq, err2 := FindQueryByName_v310(allqueries, levelid, q.Language, q.Group, q.Name)
+				if err2 != nil {
+					return fmt.Errorf("failed to update query %v (%v) %v -> %v -> %v: %s", level, levelid, q.Language, q.Group, q.Name, err2)
+				}
+
+				if aq.Source != q.Source {
+					return fmt.Errorf("query %v on %v source was not updated", q.Path, level)
+				}
+
+				c.logger.Infof("Query %v on %v was successfully updated despite the error", q.Path, level)
+			}
+			return nil
+		}
+	}
+	if string(response) == "" {
+		return nil
+	}
+
+	var responseStruct struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+	}
+
+	err = json.Unmarshal(response, &responseStruct)
+	if err != nil {
+		return err
+	}
+
+	if responseStruct.Type == "ERROR" {
+		return fmt.Errorf("error while saving queries: %v", responseStruct.Message)
+	} else {
+		return nil
+	}
+}
+
+func (c Cx1Client) UpdateQueryMetadata_v310(query AuditQuery_v310) error {
+	c.depwarn("UpdateQueryMetadata_v310", "UpdateQuery*Metadata")
+	c.logger.Debugf("Saving query %v on level %v", query.Path, query.Level)
+
+	q := QueryUpdate_v310{
+		Name:     query.Name,
+		Path:     query.Path,
+		Source:   query.Source,
+		Language: query.Language,
+		Group:    query.Group,
+		Metadata: QueryUpdateMetadata_v310{
+			Severity: GetSeverityID(query.Severity),
+		},
+	}
+
+	return c.UpdateQueriesMetadata_v310(query.Level, query.LevelID, []QueryUpdate_v310{q})
+}
+
+func (c Cx1Client) UpdateQueriesMetadata_v310(level, levelid string, queries []QueryUpdate_v310) error {
+	c.depwarn("UpdateQueriesMetadata_v310", "UpdateQuery*Metadata")
+
+	type QueryUpdateMetadataOnly struct {
+		Name     string                   `json:"name"`
+		Path     string                   `json:"path"`
+		Metadata QueryUpdateMetadata_v310 `json:"metadata"`
+	}
+
+	var updates []QueryUpdateMetadataOnly
+	for _, q := range queries {
+		updates = append(updates, QueryUpdateMetadataOnly{
+			Name:     q.Name,
+			Path:     q.Path,
+			Metadata: q.Metadata,
+		})
+	}
+
+	jsonBody, _ := json.Marshal(updates)
 	if levelid == "Tenant" {
 		levelid = "Corp"
 	}

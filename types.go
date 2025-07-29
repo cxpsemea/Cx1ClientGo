@@ -33,13 +33,14 @@ type Cx1Client struct {
 	client *OIDCClient
 	IsUser bool
 
-	version      *VersionInfo
-	astAppID     string
-	tenantID     string
-	cx1UserAgent string
-	tenantOwner  *TenantOwner
-	maxRetries   int
-	retryDelay   int
+	version         *VersionInfo
+	astAppID        string
+	tenantID        string
+	cx1UserAgent    string
+	tenantOwner     *TenantOwner
+	maxRetries      int
+	retryDelay      int
+	suppressdepwarn bool
 }
 
 type Cx1ClientAuth struct {
@@ -201,6 +202,24 @@ type AnalyticsDistributionStats struct {
 	Total        uint64                       `json:"total"`
 }
 
+type AnalyticsIDEStatEntry struct {
+	Label      string  `json:"label"`
+	Scans      float32 `json:"scans"`
+	Developers float32 `json:"developers"`
+}
+
+type AnalyticsIDEOverTimeEntry struct {
+	Label      string        `json:"label"`
+	Scans      float32       `json:"scans"`
+	Developers float32       `json:"developers"`
+	Date       AnalyticsTime `json:"date"`
+}
+
+type AnalyticsIDEOverTimeDistribution struct {
+	Label  string                      `json:"label"`
+	Values []AnalyticsIDEOverTimeEntry `json:"values"`
+}
+
 type AnalyticsOverTimeEntry struct {
 	Time  uint64        `json:"time"`
 	Value float32       `json:"value"`
@@ -211,14 +230,19 @@ type AnalyticsOverTimeStats struct {
 	Values []AnalyticsOverTimeEntry `json:"values"`
 }
 
-type AnalyticsSeverityAndStateEntry struct {
+type AnalyticsLabeledResultsCountEntry struct {
 	Label   string `json:"label"`
 	Results int64  `json:"results"`
 }
-type AnalyticsSeverityAndstateStats struct {
-	Label      string                           `json:"label"`
-	Results    int64                            `json:"results"`
-	Severities []AnalyticsSeverityAndStateEntry `json:"severities"`
+type AnalyticsSeverityAndStateStats struct {
+	Label      string                              `json:"label"`
+	Results    int64                               `json:"results"`
+	Severities []AnalyticsLabeledResultsCountEntry `json:"severities"`
+}
+type AnalyticsAgingStats struct { // identical structure to AnalyticsSeverityAndStateStats
+	Label      string                              `json:"label"`
+	Results    int64                               `json:"results"`
+	Severities []AnalyticsLabeledResultsCountEntry `json:"severities"`
 }
 
 type AnalyticsMeanTimeEntry struct {
@@ -233,9 +257,9 @@ type AnalyticsMeanTimeStats struct {
 }
 
 type AnalyticsVulnerabilitiesStats struct {
-	VulnerabilityName string                           `json:"vulnerabilityName"`
-	Total             int64                            `json:"total"`
-	Severities        []AnalyticsSeverityAndStateEntry `json:"severities"`
+	VulnerabilityName string                              `json:"vulnerabilityName"`
+	Total             int64                               `json:"total"`
+	Severities        []AnalyticsLabeledResultsCountEntry `json:"severities"`
 }
 
 type Application struct {
@@ -555,6 +579,30 @@ type Project struct {
 	Configuration        []ConfigurationSetting `json:"-"`
 }
 
+type ProjectOverview struct {
+	ProjectID    string            `json:"projectId"`
+	Name         string            `json:"projectName"`
+	Origin       string            `json:"sourceOrigin"`
+	LastScanDate string            `json:"lastScanDate"` // can be an empty string
+	SourceType   string            `json:"sourceType"`
+	Tags         map[string]string `json:"tags"`
+	GroupIDs     []string          `json:"groupIds"`
+	RiskLevel    string            `json:"riskLevel"`
+	RepoID       uint64            `json:"repoId"`
+	SCMRepoID    string            `json:"scmRepoId"`
+	//TotalCounters  TODO
+	//EnginesData TODO
+	IsDeployed          bool   `json:"isDeployed"`
+	IsPublic            bool   `json:"isPublic"`
+	ImportedProjectName string `json:"importedProjName"`
+	ProjectOrigin       string `json:"projectOrigin"`
+
+	ApplicationIDs []struct {
+		Id   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"applications"`
+}
+
 type ProjectFilter struct {
 	BaseFilter
 	ProjectIDs []string `url:"ids,omitempty"`
@@ -573,6 +621,25 @@ type ProjectBranchFilter struct {
 	BaseFilter
 	ProjectID string `url:"project-id,omitempty"`
 	Name      string `url:"branch-name,omitempty"`
+}
+
+type ProjectOverviewFilter struct { // max limit = 100
+	BaseFilter
+	Name           string   `url:"name,omitempty"`
+	Origin         []string `url:"scan-origin,omitempty"`
+	SourceType     []string `url:"source-type,omitempty"`
+	GroupIDs       []string `url:"group-ids,omitempty"`
+	ApplicationIDs []string `url:"applications,omitempty"`
+	TagKeys        []string `url:"tag-keys,omitempty"`
+	TagValues      []string `url:"tag-values,omitempty"`
+	EmptyTags      bool     `url:"empty-tags,omitempty"`
+	RiskLevel      []string `url:"risk-level,omitempty"`
+	FromDate       string   `url:"from-date,omitempty"`
+	ToDate         string   `url:"to-date,omitempty"`
+	IsDeployed     bool     `url:"is-deployed,omitempty"`
+	IsPublic       bool     `url:"is-public,omitempty"`
+	Search         string   `url:"search,omitempty"`
+	Sort           []string `url:"sort,omitempty"` //  name, scan-origin, last-scan-date, source-type, risk-level, is-public, applications
 }
 
 type ProjectScanSchedule struct {
