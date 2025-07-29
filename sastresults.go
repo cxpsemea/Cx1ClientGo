@@ -72,6 +72,10 @@ func (c Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (uin
 		SimilarityID    int64
 		State           string
 		Status          string
+		CVSSScore       float64
+		ProjectID       string
+		ScanID          string
+		SourceFileName  string
 	}
 
 	var results []ScanSASTResult
@@ -107,6 +111,10 @@ func (c Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (uin
 				FoundAt:         r.FoundAt,
 				FirstScanId:     r.FirstScanId,
 				Description:     "",
+				CVSSScore:       r.CVSSScore,
+				ProjectID:       r.ProjectID,
+				ScanID:          r.ScanID,
+				SourceFileName:  r.SourceFileName,
 			},
 			Data: ScanSASTResultData{
 				QueryID:      r.QueryID,
