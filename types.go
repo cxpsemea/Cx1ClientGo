@@ -202,6 +202,24 @@ type AnalyticsDistributionStats struct {
 	Total        uint64                       `json:"total"`
 }
 
+type AnalyticsIDEStatEntry struct {
+	Label      string  `json:"label"`
+	Scans      float32 `json:"scans"`
+	Developers float32 `json:"developers"`
+}
+
+type AnalyticsIDEOverTimeEntry struct {
+	Label      string        `json:"label"`
+	Scans      float32       `json:"scans"`
+	Developers float32       `json:"developers"`
+	Date       AnalyticsTime `json:"date"`
+}
+
+type AnalyticsIDEOverTimeDistribution struct {
+	Label  string                      `json:"label"`
+	Values []AnalyticsIDEOverTimeEntry `json:"values"`
+}
+
 type AnalyticsOverTimeEntry struct {
 	Time  uint64        `json:"time"`
 	Value float32       `json:"value"`
@@ -212,14 +230,19 @@ type AnalyticsOverTimeStats struct {
 	Values []AnalyticsOverTimeEntry `json:"values"`
 }
 
-type AnalyticsSeverityAndStateEntry struct {
+type AnalyticsLabeledResultsCountEntry struct {
 	Label   string `json:"label"`
 	Results int64  `json:"results"`
 }
-type AnalyticsSeverityAndstateStats struct {
-	Label      string                           `json:"label"`
-	Results    int64                            `json:"results"`
-	Severities []AnalyticsSeverityAndStateEntry `json:"severities"`
+type AnalyticsSeverityAndStateStats struct {
+	Label      string                              `json:"label"`
+	Results    int64                               `json:"results"`
+	Severities []AnalyticsLabeledResultsCountEntry `json:"severities"`
+}
+type AnalyticsAgingStats struct { // identical structure to AnalyticsSeverityAndStateStats
+	Label      string                              `json:"label"`
+	Results    int64                               `json:"results"`
+	Severities []AnalyticsLabeledResultsCountEntry `json:"severities"`
 }
 
 type AnalyticsMeanTimeEntry struct {
@@ -234,9 +257,9 @@ type AnalyticsMeanTimeStats struct {
 }
 
 type AnalyticsVulnerabilitiesStats struct {
-	VulnerabilityName string                           `json:"vulnerabilityName"`
-	Total             int64                            `json:"total"`
-	Severities        []AnalyticsSeverityAndStateEntry `json:"severities"`
+	VulnerabilityName string                              `json:"vulnerabilityName"`
+	Total             int64                               `json:"total"`
+	Severities        []AnalyticsLabeledResultsCountEntry `json:"severities"`
 }
 
 type Application struct {
