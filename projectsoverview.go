@@ -67,3 +67,26 @@ func (c Cx1Client) GetProjectOverviewCountFiltered(filter ProjectOverviewFilter)
 	count, _, err := c.GetProjectOverviewsFiltered(filter)
 	return count, err
 }
+
+func (o ProjectOverview) String() string {
+	src := o.SourceType
+	if src == "" {
+		src = "Empty"
+	}
+
+	last_scan := ""
+	if o.LastScanDate == "" {
+		last_scan = "never scanned"
+	} else {
+		last_scan = fmt.Sprintf("last scanned %v", o.LastScanDate)
+	}
+
+	application := "Tenant-level"
+	if len(o.ApplicationIDs) == 1 {
+		application = fmt.Sprintf("app: [%v] %v", ShortenGUID(o.ApplicationIDs[0].Id), o.ApplicationIDs[0].Name)
+	} else if len(o.ApplicationIDs) > 1 {
+		application = fmt.Sprintf("%d apps", len(o.ApplicationIDs))
+	}
+
+	return fmt.Sprintf("%v project [%v] %v (%v) - %v", src, ShortenGUID(o.ProjectID), o.Name, application, last_scan)
+}

@@ -560,7 +560,7 @@ type ProjectOverview struct {
 	ProjectID    string            `json:"projectId"`
 	Name         string            `json:"projectName"`
 	Origin       string            `json:"sourceOrigin"`
-	LastScanDate time.Time         `json:"lastScanDate"`
+	LastScanDate string            `json:"lastScanDate"` // can be an empty string
 	SourceType   string            `json:"sourceType"`
 	Tags         map[string]string `json:"tags"`
 	GroupIDs     []string          `json:"groupIds"`

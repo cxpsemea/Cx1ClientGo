@@ -250,10 +250,14 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 		if !c.IsUser {
 			oidcclient, err := c.GetClientByName(c.claims.ClientID)
 			if err != nil {
-				c.logger.Warnf("Failed to retrieve information for OIDC Client %v", c.claims.ClientID)
+				c.logger.Warnf("Insufficient permissions to retrieve details for current OIDC Client %v: %v", c.claims.ClientID, err)
 			} else {
-				user, _ := c.GetServiceAccountByID(oidcclient.ID)
-				c.user = &user
+				user, err := c.GetServiceAccountByID(oidcclient.ID)
+				if err != nil {
+					c.logger.Warnf("Insufficient permissions to retrieve details for user behind OIDC Client %v: %v", c.claims.ClientID, err)
+				} else {
+					c.user = &user
+				}
 			}
 		} else {
 			_, _ = c.GetCurrentUser()
