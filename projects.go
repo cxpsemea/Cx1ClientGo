@@ -548,7 +548,28 @@ func (c Cx1Client) RemoveProjectFromApplicationsByIDs(projectId string, applicat
 	return err
 }
 
-// This updates a project, including any changes in Application membership
+// This function patches a project, changing only the fields supplied to the function.
+// The project behind the supplied pointer is not changed
+// For CheckmarxOne v3.41+
+func (c Cx1Client) PatchProject(project *Project, update ProjectPatch) error {
+	return c.PatchProjectByID(project.ProjectID, update)
+}
+
+// This function patches a project, changing only the fields supplied to the function.
+// For CheckmarxOne v3.41+
+func (c Cx1Client) PatchProjectByID(projectId string, update ProjectPatch) error {
+	jsonBody, err := json.Marshal(update)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.sendRequest(http.MethodPatch, fmt.Sprintf("/projects/%v", projectId), bytes.NewReader(jsonBody), nil)
+	return err
+}
+
+// This updates a project, including any changes in Application membership. All fields are updated based on the provided data.
+// The project behind the supplied pointer is not changed
+// For partial updates use PatchProject
 func (c Cx1Client) UpdateProject(project *Project) error {
 	c.logger.Debugf("Updating project %v", project.String())
 
