@@ -275,6 +275,13 @@ type Application struct {
 	UpdatedAt          string            `json:"updatedAt"`
 }
 
+type ApplicationPatch struct {
+	Name        *string            `json:"name,omitempty"`
+	Description *string            `json:"description,omitempty"`
+	Criticality *uint              `json:"criticality,omitempty"`
+	Tags        *map[string]string `json:"tags,omitempty"`
+}
+
 type ApplicationFilter struct {
 	BaseFilter
 	Name       string   `url:"name,omitempty"`
@@ -577,6 +584,15 @@ type Project struct {
 	Origin               string                 `json:"origin"`
 	Criticality          uint                   `json:"criticality"`
 	Configuration        []ConfigurationSetting `json:"-"`
+}
+
+type ProjectPatch struct {
+	Name        *string            `json:"name,omitempty"`
+	RepoUrl     *string            `json:"repoUrl,omitempty"`
+	MainBranch  *string            `json:"mainBranch,omitempty"`
+	Criticality *uint              `json:"criticality,omitempty"`
+	Tags        *map[string]string `json:"tags,omitempty"`
+	Groups      *[]string          `json:"groups,omitempty"`
 }
 
 type ProjectOverview struct {

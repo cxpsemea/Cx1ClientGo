@@ -276,6 +276,27 @@ func (c Cx1Client) RemoveApplicationFromProjectsByIDs(applicationId string, proj
 	return nil
 }
 
+// This function patches a application, changing only the fields supplied to the function.
+// The application behind the supplied pointer is not changed
+// For CheckmarxOne v3.41+
+func (c Cx1Client) PatchApplication(application *Application, update ApplicationPatch) error {
+	return c.PatchApplicationByID(application.ApplicationID, update)
+}
+
+// This function patches a application, changing only the fields supplied to the function.
+// For CheckmarxOne v3.41+
+func (c Cx1Client) PatchApplicationByID(applicationId string, update ApplicationPatch) error {
+	jsonBody, err := json.Marshal(update)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.sendRequest(http.MethodPatch, fmt.Sprintf("/applications/%v", applicationId), bytes.NewReader(jsonBody), nil)
+	return err
+}
+
+// This updates all fields of the application based on the content of the Application object.
+// The passed-in application object is not modified, you must GetApplication* again for an updated object
 func (c Cx1Client) UpdateApplication(app *Application) error {
 	c.logger.Debugf("Update application: %v", app.String())
 
