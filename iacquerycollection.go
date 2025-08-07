@@ -495,6 +495,11 @@ func (q IACQuery) MarshalJSON() ([]byte, error) {
 			m["cloudprovider"] = val
 			delete(m, "group")
 		}
+
+		if val, ok := m["descriptionurl"]; ok {
+			m["descriptionUrl"] = val
+			delete(m, "descriptionurl")
+		}
 	}
 
 	return json.Marshal(m)
@@ -509,6 +514,10 @@ func (q *IACQuery) UnmarshalJSON(data []byte) error {
 	if val, ok := m["cloudprovider"]; ok {
 		m["group"] = val
 		delete(m, "cloudprovider")
+	}
+	if val, ok := m["descriptionUrl"]; ok {
+		m["descriptionurl"] = val
+		delete(m, "descriptionUrl")
 	}
 
 	b, err := json.Marshal(m)
