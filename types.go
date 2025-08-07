@@ -311,7 +311,7 @@ type AuditIACQueryMetadata struct {
 	Cwe            string `json:"cwe,omitempty"`
 	Description    string `json:"description,omitempty"`
 	DescriptionID  string `json:"descriptionId,omitempty"`
-	DescriptionURL string `json:"descriptionUrl,omitempty"`
+	DescriptionURL string `json:"descriptionurl,omitempty"`
 	OldSeverity    string `json:"oldseverity,omitempty"`
 	Platform       string `json:"platform"`
 	QueryID        string `json:"queryId"`
@@ -498,7 +498,7 @@ type IACQuery struct {
 	Name           string `json:"name"`
 	Description    string `json:"description"`
 	DescriptionID  string `json:"descriptionId"`
-	DescriptionURL string `json:"descriptionurl"`
+	DescriptionURL string `json:"descriptionUrl"`
 	Platform       string `json:"platform"`
 	Group          string `json:"group"`
 	Category       string `json:"category"`
