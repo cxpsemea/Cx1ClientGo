@@ -476,35 +476,6 @@ func treeToIACQueries(querytree *[]AuditQueryTree) []IACQuery {
 }
 */
 
-func (q IACQuery) MarshalJSON() ([]byte, error) {
-	type Alias IACQuery
-	aux := Alias(q)
-
-	data, err := json.Marshal(aux)
-	if err != nil {
-		return nil, err
-	}
-
-	var m map[string]interface{}
-	if err := json.Unmarshal(data, &m); err != nil {
-		return nil, err
-	}
-
-	if cmp, err := cxVersion.CheckCxOne("3.43.0"); err == nil && cmp >= 0 { // current version is 3.43+
-		if val, ok := m["group"]; ok {
-			m["cloudprovider"] = val
-			delete(m, "group")
-		}
-
-		if val, ok := m["descriptionurl"]; ok {
-			m["descriptionUrl"] = val
-			delete(m, "descriptionurl")
-		}
-	}
-
-	return json.Marshal(m)
-}
-
 func (q *IACQuery) UnmarshalJSON(data []byte) error {
 	var m map[string]interface{}
 	if err := json.Unmarshal(data, &m); err != nil {
