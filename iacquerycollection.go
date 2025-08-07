@@ -497,7 +497,6 @@ func (q IACQuery) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	// Step 4: Marshal the modified map back to JSON
 	return json.Marshal(m)
 }
 
