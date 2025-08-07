@@ -1,6 +1,7 @@
 package Cx1ClientGo
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -474,3 +475,48 @@ func treeToIACQueries(querytree *[]AuditQueryTree) []IACQuery {
 	return queries
 }
 */
+
+func (q IACQuery) MarshalJSON() ([]byte, error) {
+	type Alias IACQuery
+	aux := Alias(q)
+
+	data, err := json.Marshal(aux)
+	if err != nil {
+		return nil, err
+	}
+
+	var m map[string]interface{}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, err
+	}
+
+	if cmp, err := cxVersion.CheckCxOne("3.43.0"); err == nil && cmp >= 0 { // current version is 3.43+
+		if val, ok := m["group"]; ok {
+			m["cloudprovider"] = val
+			delete(m, "group")
+		}
+	}
+
+	// Step 4: Marshal the modified map back to JSON
+	return json.Marshal(m)
+}
+
+func (q *IACQuery) UnmarshalJSON(data []byte) error {
+	var m map[string]interface{}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+
+	if val, ok := m["cloudprovider"]; ok {
+		m["group"] = val
+		delete(m, "cloudprovider")
+	}
+
+	b, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	type Alias IACQuery
+	return json.Unmarshal(b, (*Alias)(q))
+}

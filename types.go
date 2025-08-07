@@ -311,7 +311,7 @@ type AuditIACQueryMetadata struct {
 	Cwe            string `json:"cwe,omitempty"`
 	Description    string `json:"description,omitempty"`
 	DescriptionID  string `json:"descriptionId,omitempty"`
-	DescriptionURL string `json:"descriptionurl,omitempty"`
+	DescriptionURL string `json:"descriptionUrl,omitempty"`
 	OldSeverity    string `json:"oldseverity,omitempty"`
 	Platform       string `json:"platform"`
 	QueryID        string `json:"queryId"`
@@ -942,6 +942,7 @@ type ScanResultBase struct {
 	Type            string
 	ResultID        string `json:"id"`
 	SimilarityID    string `json:"similarityId"`
+	AlternateID     string `json:"alternateId"`
 	Status          string
 	State           string
 	Severity        string
