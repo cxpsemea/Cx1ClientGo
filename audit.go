@@ -758,6 +758,7 @@ func (c Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery)
 	c.logger.Debugf("Creating new query %v under %v", query.String(), auditSession.String())
 	type NewQuery struct {
 		Category       string `json:"category"`
+		CloudProvider  string `json:"cloudprovider"`
 		CWE            string `json:"cwe"`
 		Description    string `json:"description"`
 		DescriptionUrl string `json:"descriptionurl"`
@@ -768,6 +769,7 @@ func (c Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery)
 
 	newQueryData := NewQuery{
 		Category:       query.Category,
+		CloudProvider:  query.Group,
 		CWE:            query.CWE,
 		Description:    query.Description,
 		DescriptionUrl: query.DescriptionURL,
