@@ -758,7 +758,7 @@ func (c Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery)
 	c.logger.Debugf("Creating new query %v under %v", query.String(), auditSession.String())
 	type NewQuery struct {
 		Category       string `json:"category"`
-		CloudProvider  string `json:"cloudprovider"`
+		CloudProvider  string `json:"cloudprovider,omitempty"`
 		CWE            string `json:"cwe"`
 		Description    string `json:"description"`
 		DescriptionUrl string `json:"descriptionurl"`
@@ -776,6 +776,10 @@ func (c Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery)
 		Platform:       query.Platform,
 		Name:           query.Name,
 		Severity:       query.Severity,
+	}
+
+	if cmp, err := cxVersion.CheckCxOne("3.43.0"); err == nil && cmp < 0 { // current version is below 3.43
+		newQueryData.CloudProvider = ""
 	}
 
 	var queryFail []QueryFailure
