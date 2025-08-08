@@ -28,6 +28,13 @@ type requestIDBody struct {
 	Id      string `json:"id"`
 }
 
+type newIACQuery struct {
+	IACQuery
+	ID          string `json:"id"`
+	QueryName   string `json:"queryname"`
+	OldSeverity string `json:"oldseverity"`
+}
+
 /*
 type requestQueryStatus struct {
 	AlreadyExists bool   `json:"alreadyExists"`
@@ -623,14 +630,7 @@ func (c Cx1Client) CreateIACQueryOverride(auditSession *AuditSession, level stri
 		baseQuery.MergeQuery(q)
 	}
 
-	type NewQuery struct {
-		IACQuery
-		ID          string `json:"id"`
-		QueryName   string `json:"queryname"`
-		OldSeverity string `json:"oldseverity"`
-	}
-
-	newQueryData := NewQuery{
+	newQueryData := newIACQuery{
 		IACQuery:    *baseQuery,
 		ID:          baseQuery.QueryID,
 		QueryName:   baseQuery.Name,
@@ -758,6 +758,7 @@ func (c Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery)
 	c.logger.Debugf("Creating new query %v under %v", query.String(), auditSession.String())
 	type NewQuery struct {
 		Category       string `json:"category"`
+		CloudProvider  string `json:"cloudprovider,omitempty"`
 		CWE            string `json:"cwe"`
 		Description    string `json:"description"`
 		DescriptionUrl string `json:"descriptionurl"`
@@ -768,12 +769,17 @@ func (c Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery)
 
 	newQueryData := NewQuery{
 		Category:       query.Category,
+		CloudProvider:  query.Group,
 		CWE:            query.CWE,
 		Description:    query.Description,
 		DescriptionUrl: query.DescriptionURL,
 		Platform:       query.Platform,
 		Name:           query.Name,
 		Severity:       query.Severity,
+	}
+
+	if cmp, err := cxVersion.CheckCxOne("3.43.0"); err == nil && cmp < 0 { // current version is below 3.43
+		newQueryData.CloudProvider = ""
 	}
 
 	var queryFail []QueryFailure
@@ -1368,4 +1374,33 @@ func (q AuditIACQuery) ToIACQuery() IACQuery {
 		CWE:            q.Metadata.Cwe,
 		Key:            q.Key,
 	}
+}
+
+func (q newIACQuery) MarshalJSON() ([]byte, error) {
+	type Alias newIACQuery
+	aux := Alias(q)
+
+	data, err := json.Marshal(aux)
+	if err != nil {
+		return nil, err
+	}
+
+	var m map[string]interface{}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, err
+	}
+
+	if cmp, err := cxVersion.CheckCxOne("3.43.0"); err == nil && cmp >= 0 { // current version is 3.43+
+		if val, ok := m["group"]; ok {
+			m["cloudprovider"] = val
+			delete(m, "group")
+		}
+
+		if val, ok := m["descriptionurl"]; ok {
+			m["descriptionUrl"] = val
+			delete(m, "descriptionurl")
+		}
+	}
+
+	return json.Marshal(m)
 }

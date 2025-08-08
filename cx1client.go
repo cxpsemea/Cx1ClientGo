@@ -30,10 +30,11 @@ var scanEngineLicenseMap = map[string]string{
 	//"?":            "SCS",
 }
 
-//var astAppID string
-//var tenantID string
-//var tenantOwner *TenantOwner
-// var cxVersion VersionInfo
+// var astAppID string
+// var tenantID string
+// var tenantOwner *TenantOwner
+var cxVersion VersionInfo
+
 //var cx1UserAgent string = "Cx1ClientGo"
 
 // Main entry for users of this client when using OAuth Client ID & Client Secret:
@@ -263,7 +264,8 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 			_, _ = c.GetCurrentUser()
 		}
 	}
-	cxVersion, err := c.GetVersion()
+	var err error
+	cxVersion, err = c.GetVersion()
 	if err != nil {
 		return fmt.Errorf("failed to retrieve cx1 version: %s", err)
 	}

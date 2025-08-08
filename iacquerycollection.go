@@ -1,6 +1,7 @@
 package Cx1ClientGo
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -474,3 +475,27 @@ func treeToIACQueries(querytree *[]AuditQueryTree) []IACQuery {
 	return queries
 }
 */
+
+func (q *IACQuery) UnmarshalJSON(data []byte) error {
+	var m map[string]interface{}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+
+	if val, ok := m["cloudprovider"]; ok {
+		m["group"] = val
+		delete(m, "cloudprovider")
+	}
+	if val, ok := m["descriptionUrl"]; ok {
+		m["descriptionurl"] = val
+		delete(m, "descriptionUrl")
+	}
+
+	b, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	type Alias IACQuery
+	return json.Unmarshal(b, (*Alias)(q))
+}

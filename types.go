@@ -942,6 +942,7 @@ type ScanResultBase struct {
 	Type            string
 	ResultID        string `json:"id"`
 	SimilarityID    string `json:"similarityId"`
+	AlternateID     string `json:"alternateId"`
 	Status          string
 	State           string
 	Severity        string
