@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -133,4 +135,144 @@ func (c Cx1Client) DeleteAccessAssignmentByID(entityId, resourceId string) error
 	c.logger.Debugf("Deleting access assignment between entity %v and resource %v", entityId, resourceId)
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/access-management?resource-id=%v&entity-id=%v", resourceId, entityId), nil, nil)
 	return err
+}
+
+// IAM phase2?
+func (c Cx1Client) GetMyGroups(search string, subgroups bool, limit, offset uint64) ([]Group, error) {
+	params := url.Values{}
+	params.Add("search", search)
+	params.Add("subgroups", strconv.FormatBool(subgroups))
+	params.Add("limit", strconv.FormatUint(limit, 10))
+	params.Add("offset", strconv.FormatUint(offset, 10))
+	var groups []Group
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/my-groups?%v", params.Encode()), nil, nil)
+	if err != nil {
+		return groups, err
+	}
+
+	err = json.Unmarshal(response, &groups)
+	return groups, err
+}
+
+func (c Cx1Client) GetAvailableGroups(search string, projectId string, limit, offset uint64) ([]Group, error) {
+	params := url.Values{}
+	params.Add("search", search)
+	params.Add("project-id", projectId)
+	params.Add("limit", strconv.FormatUint(limit, 10))
+	params.Add("offset", strconv.FormatUint(offset, 10))
+
+	responseBody := struct {
+		Total  uint64  `json:"total"`
+		Groups []Group `json:"groups"`
+	}{}
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/available-groups?%v", params.Encode()), nil, nil)
+	if err != nil {
+		return responseBody.Groups, err
+	}
+
+	err = json.Unmarshal(response, &responseBody)
+	return responseBody.Groups, err
+}
+
+// These functions will eventually replace the existing Keycloak-backed ones.
+
+// Get groups (from access-management)
+func (c Cx1Client) GetAMGroups(search string, groupIds []string, limit, offset uint64) ([]Group, error) {
+	params := url.Values{}
+	params.Add("search", search)
+	params.Add("ids", strings.Join(groupIds, ","))
+	params.Add("limit", strconv.FormatUint(limit, 10))
+	params.Add("offset", strconv.FormatUint(offset, 10))
+
+	var groups []Group
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/available-groups?%v", params.Encode()), nil, nil)
+	if err != nil {
+		return groups, err
+	}
+
+	err = json.Unmarshal(response, &groups)
+	return groups, err
+}
+
+// Get users (from access-management)
+func (c Cx1Client) GetAMUsers(search string, limit, offset uint64) ([]User, error) {
+	params := url.Values{}
+	params.Add("search", search)
+	params.Add("limit", strconv.FormatUint(limit, 10))
+	params.Add("offset", strconv.FormatUint(offset, 10))
+
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/users?%v", params.Encode()), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var users []User
+	err = json.Unmarshal(response, &users)
+	return users, err
+}
+
+// Get clients (from access-management)
+// IAM phase2?
+func (c Cx1Client) GetAMClients(search string, limit, offset uint64) ([]OIDCClient, error) {
+	params := url.Values{}
+	params.Add("search", search)
+	params.Add("limit", strconv.FormatUint(limit, 10))
+	params.Add("offset", strconv.FormatUint(offset, 10))
+
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/clients?%v", params.Encode()), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var clients []OIDCClient
+	err = json.Unmarshal(response, &clients)
+	return clients, err
+}
+
+func (c Cx1Client) GetAMApplications(action string, name string, tagsKeys []string, tagsValues []string, limit, offset uint64) ([]Application, error) {
+	params := url.Values{}
+	params.Add("action", action)
+	params.Add("name", name)
+	params.Add("tagsKeys", strings.Join(tagsKeys, ","))
+	params.Add("tagsValues", strings.Join(tagsValues, ","))
+	params.Add("limit", strconv.FormatUint(limit, 10))
+	params.Add("offset", strconv.FormatUint(offset, 10))
+
+	responseBody := struct {
+		Total         uint64        `json:"totalCount"`
+		FilteredTotal uint64        `json:"filteredTotalCount"`
+		Applications  []Application `json:"applications"`
+	}{}
+
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/applications?%v", params.Encode()), nil, nil)
+	if err != nil {
+		return responseBody.Applications, err
+	}
+
+	err = json.Unmarshal(response, &responseBody)
+	return responseBody.Applications, err
+}
+
+func (c Cx1Client) GetAMProjects(action string, name string, tagsKeys []string, tagsValues []string, limit, offset uint64) ([]Project, error) {
+	params := url.Values{}
+	params.Add("action", action)
+	params.Add("name", name)
+	params.Add("tagsKeys", strings.Join(tagsKeys, ","))
+	params.Add("tagsValues", strings.Join(tagsValues, ","))
+	params.Add("limit", strconv.FormatUint(limit, 10))
+	params.Add("offset", strconv.FormatUint(offset, 10))
+
+	responseBody := struct {
+		Total         uint64    `json:"totalCount"`
+		FilteredTotal uint64    `json:"filteredTotalCount"`
+		Projects      []Project `json:"projects"`
+	}{}
+
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/projects?%v", params.Encode()), nil, nil)
+	if err != nil {
+		return responseBody.Projects, err
+	}
+
+	err = json.Unmarshal(response, &responseBody)
+	return responseBody.Projects, err
 }
