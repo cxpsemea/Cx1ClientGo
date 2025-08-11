@@ -295,6 +295,27 @@ type ApplicationRule struct {
 	Value string `json:"value"`
 }
 
+type ApplicationOverview struct {
+	ApplicationID string            `json:"applicationId"`
+	Name          string            `json:"applicationName"`
+	Criticality   uint64            `json:"criticality"`
+	ProjectNumber uint64            `json:"projectNumber"`
+	RiskLevel     string            `json:"riskLevel"`
+	Tags          map[string]string `json:"tags"`
+	TotalCounters struct {
+		SeverityCounters []ScanSummarySeverityCounter `json:"severityCounters"`
+	} `json:"totalCounters"`
+}
+
+type ApplicationOverviewFilter struct { // max limit = 100
+	BaseFilter
+	Name        []string `url:"name,omitempty"`
+	RiskLevel   []string `url:"risk-level,omitempty"`
+	EmptyTags   bool     `url:"empty-tags,omitempty"`
+	Criticality []uint64 `url:"criticality"`
+	Sort        []string `url:"sort,omitempty"` //  nname, criticality, num-of-projects, risk-level
+}
+
 type AuditIACQuery struct {
 	QueryID  string `json:"id"`
 	Key      string `json:"-"`
@@ -595,6 +616,26 @@ type ProjectPatch struct {
 	Groups      *[]string          `json:"groups,omitempty"`
 }
 
+type ProjectFilter struct {
+	BaseFilter
+	ProjectIDs []string `url:"ids,omitempty"`
+	Names      []string `url:"names,omitempty"`
+	Name       string   `url:"name,omitempty"`
+	NameRegex  string   `url:"name-regex,omitempty"`
+	Groups     []string `url:"groups,omitempty"`
+	Origins    []string `url:"origins,omitempty"`
+	TagsKeys   []string `url:"tags-keys,omitempty"`
+	TagsValues []string `url:"tags-values,omitempty"`
+	EmptyTags  bool     `url:"empty-tags,omitempty"`
+	RepoURL    string   `url:"repo-url,omitempty"`
+}
+
+type ProjectBranchFilter struct {
+	BaseFilter
+	ProjectID string `url:"project-id,omitempty"`
+	Name      string `url:"branch-name,omitempty"`
+}
+
 type ProjectOverview struct {
 	ProjectID    string            `json:"projectId"`
 	Name         string            `json:"projectName"`
@@ -617,26 +658,6 @@ type ProjectOverview struct {
 		Id   string `json:"id"`
 		Name string `json:"name"`
 	} `json:"applications"`
-}
-
-type ProjectFilter struct {
-	BaseFilter
-	ProjectIDs []string `url:"ids,omitempty"`
-	Names      []string `url:"names,omitempty"`
-	Name       string   `url:"name,omitempty"`
-	NameRegex  string   `url:"name-regex,omitempty"`
-	Groups     []string `url:"groups,omitempty"`
-	Origins    []string `url:"origins,omitempty"`
-	TagsKeys   []string `url:"tags-keys,omitempty"`
-	TagsValues []string `url:"tags-values,omitempty"`
-	EmptyTags  bool     `url:"empty-tags,omitempty"`
-	RepoURL    string   `url:"repo-url,omitempty"`
-}
-
-type ProjectBranchFilter struct {
-	BaseFilter
-	ProjectID string `url:"project-id,omitempty"`
-	Name      string `url:"branch-name,omitempty"`
 }
 
 type ProjectOverviewFilter struct { // max limit = 100
