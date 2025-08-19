@@ -201,6 +201,9 @@ func (c Cx1Client) UpdateQueries_v310(level, levelid string, queries []QueryUpda
 				if aq.Source != q.Source {
 					return fmt.Errorf("query %v on %v source was not updated", q.Path, level)
 				}
+				if c.GetSeverityID(aq.Severity) != q.Metadata.Severity {
+					return fmt.Errorf("query %v on %v severity was not updated", q.Path, level)
+				}
 
 				c.logger.Infof("Query %v on %v was successfully updated despite the error", q.Path, level)
 			}
