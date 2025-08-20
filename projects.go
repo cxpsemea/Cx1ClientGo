@@ -660,7 +660,7 @@ func (c Cx1Client) GetScanSchedulesByID(projectId string) ([]ProjectScanSchedule
 	}
 
 	for id := range schedules { // should only be one
-		schedules[id].StartTime = schedules[id].NextStartTime.Format("HH:MM")
+		schedules[id].StartTime = schedules[id].NextStartTime.Format("15:04")
 	}
 
 	return schedules, nil
