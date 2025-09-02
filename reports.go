@@ -173,3 +173,79 @@ func (c Cx1Client) ReportPollingByIDWithTimeout(reportID string, delaySeconds, m
 		pollingCounter += delaySeconds
 	}
 }
+
+// SCA-specific Export for SBOM
+// formats: CycloneDxjson, CycloneDxxml, Spdxjson
+func (c Cx1Client) RequestNewExportByID(scanId, format string, hidePrivatePackages, hideDevAndTestDependencies, showOnlyEffectiveLicenses bool) (string, error) {
+	jsonData := map[string]interface{}{
+		"ScanId":     scanId,
+		"FileFormat": format,
+		"ExportParameters": map[string]interface{}{
+			"hidePrivatePackages":        hidePrivatePackages,
+			"hideDevAndTestDependencies": hideDevAndTestDependencies,
+			"showOnlyEffectiveLicenses":  showOnlyEffectiveLicenses,
+		},
+	}
+
+	jsonValue, _ := json.Marshal(jsonData)
+
+	data, err := c.sendRequest(http.MethodPost, "/sca/export/requests", bytes.NewReader(jsonValue), nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to trigger %v export generation for scan %v: %s", format, scanId, err)
+	}
+
+	var exportResponse struct {
+		ExportId string
+	}
+	err = json.Unmarshal(data, &exportResponse)
+	return exportResponse.ExportId, err
+}
+
+func (c Cx1Client) GetExportStatusByID(exportID string) (ExportStatus, error) {
+	var response ExportStatus
+
+	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/sca/export/requests?exportId=%v", exportID), nil, nil)
+	if err != nil {
+		c.logger.Tracef("Failed to fetch export status for exportID %v: %s", exportID, err)
+		return response, fmt.Errorf("failed to fetch export status for exportID %v: %s", exportID, err)
+	}
+
+	err = json.Unmarshal([]byte(data), &response)
+	return response, err
+}
+
+func (c Cx1Client) DownloadExport(exportUrl string) ([]byte, error) {
+	data, err := c.sendRequestInternal(http.MethodGet, exportUrl, nil, nil)
+	if err != nil {
+		return []byte{}, fmt.Errorf("failed to download export from url %v: %s", exportUrl, err)
+	}
+	return data, nil
+}
+
+// convenience function, polls and returns the URL to download the export
+func (c Cx1Client) ExportPollingByID(exportID string) (string, error) {
+	return c.ExportPollingByIDWithTimeout(exportID, c.consts.ExportPollingDelaySeconds, c.consts.ExportPollingMaxSeconds)
+}
+
+func (c Cx1Client) ExportPollingByIDWithTimeout(exportID string, delaySeconds, maxSeconds int) (string, error) {
+	pollingCounter := 0
+	for {
+		status, err := c.GetExportStatusByID(exportID)
+		if err != nil {
+			return "", err
+		}
+
+		if strings.EqualFold(status.Status, "completed") {
+			return status.ExportURL, nil
+		} else if strings.EqualFold(status.Status, "failed") {
+			return "", fmt.Errorf("export generation failed")
+		}
+
+		if maxSeconds != 0 && pollingCounter > maxSeconds {
+			return "", fmt.Errorf("export %v polling reached %d seconds, aborting - use cx1client.get/setclientvars to change", ShortenGUID(exportID), pollingCounter)
+		}
+
+		time.Sleep(time.Duration(delaySeconds) * time.Second)
+		pollingCounter += delaySeconds
+	}
+}
