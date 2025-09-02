@@ -548,6 +548,37 @@ func (c Cx1Client) ScanProjectGitByIDWithHandler(projectID string, handler ScanH
 	return scan, err
 }
 
+// After uploading an SBOM to cx1 via UploadBytes, supply the URL here.
+// filetype can be json or xml, using SBOM exported via RequestNewExportByID (format: CycloneDxjson, CycloneDxxml, Spdxjson)
+func (c Cx1Client) ScanProjectSBOMByID(projectID, sourceUrl, branch, fileType string, tags map[string]string) (Scan, error) {
+	jsonBody := map[string]interface{}{
+		"project": map[string]interface{}{"id": projectID},
+		"type":    "upload",
+		"tags":    tags,
+		"handler": map[string]interface{}{
+			"uploadurl":    sourceUrl,
+			"branch":       branch,
+			"uploadFormat": "single",
+			"uploadName":   "sbom." + strings.ToLower(fileType),
+		},
+		"config": []ScanConfiguration{
+			{
+				ScanType: "sca",
+				Values: map[string]string{
+					"enableContainersScan": "false",
+					"sbom":                 "true",
+				},
+			},
+		},
+	}
+
+	scan, err := c.scanProject(jsonBody)
+	if err != nil {
+		return scan, fmt.Errorf("failed to start an sbom scan for project %v: %s", projectID, err)
+	}
+	return scan, err
+}
+
 // convenience function
 func (c Cx1Client) ScanProjectByID(projectID, sourceUrl, branch, scanType string, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
 	if scanType == "upload" {

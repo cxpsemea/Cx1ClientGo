@@ -108,6 +108,8 @@ type ClientVars struct {
 	AuditLanguagePollingDelaySeconds          int
 	ReportPollingMaxSeconds                   int
 	ReportPollingDelaySeconds                 int
+	ExportPollingMaxSeconds                   int
+	ExportPollingDelaySeconds                 int
 	ScanPollingMaxSeconds                     int
 	ScanPollingDelaySeconds                   int
 	ProjectApplicationLinkPollingMaxSeconds   int
@@ -176,7 +178,7 @@ type AnalyticsFilter struct {
 	ApplicationTags []string       `json:"applicationTags,omitempty"`
 	ProjectTags     []string       `json:"projectTags,omitempty"`
 	ScanTags        []string       `json:"scanTags,omitempty"`
-	States          []string       `json:"states,omitempty"`
+	States          []string       `json:"states,omitempty"` // toVerify,notExploitable,proposedNotExploitable,confirmed,urgent
 	Status          []string       `json:"status,omitempty"`
 	Severities      []string       `json:"severities,omitempty"`
 	BranchNames     []string       `json:"branchNames,omitempty"`
@@ -477,6 +479,12 @@ type DataImportStatus struct {
 	Error   string `json:"error"`
 	Worker  string `json:"worker"`
 	RawLog  string `json:"raw_log"`
+}
+
+type ExportStatus struct {
+	ExportID  string `json:"exportId"`
+	Status    string `json:"exportStatus"`
+	ExportURL string `json:"fileUrl"`
 }
 
 type Group struct {

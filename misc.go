@@ -30,6 +30,8 @@ func (c *Cx1Client) InitializeClientVars() {
 		AuditLanguagePollingDelaySeconds:          30,
 		ReportPollingMaxSeconds:                   300,
 		ReportPollingDelaySeconds:                 30,
+		ExportPollingMaxSeconds:                   300,
+		ExportPollingDelaySeconds:                 30,
 		ScanPollingMaxSeconds:                     0,
 		ScanPollingDelaySeconds:                   30,
 		ProjectApplicationLinkPollingMaxSeconds:   300,
