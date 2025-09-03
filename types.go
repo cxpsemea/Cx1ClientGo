@@ -120,6 +120,7 @@ type ClientVars struct {
 type PaginationSettings struct {
 	Applications  uint64
 	Branches      uint64
+	CxLinks       uint64
 	Groups        uint64
 	GroupMembers  uint64
 	Projects      uint64
@@ -464,6 +465,27 @@ type ConfigurationSetting struct {
 	ValueType       string `json:"valuetype"`
 	ValueTypeParams string `json:"valuetypeparams"`
 	AllowOverride   bool   `json:"allowOverride"`
+}
+
+type CxLink struct {
+	LinkID      string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	PrivateURL  string    `json:"privateUrl"`
+	LinkURL     string    `json:"linkUrl"`
+	TunnelName  string    `json:"tunnelName"` // unique tunnel name
+	State       string    `json:"state"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
+type CxLinkResponse struct {
+	Link      CxLink `json:"link"`
+	Token     string `json:"token"`
+	ServerURL string `json:"tunnelServerUrl"`
+}
+
+type CxLinkFilter struct {
+	BaseFilter
 }
 
 type DataImport struct {
