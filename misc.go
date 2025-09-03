@@ -56,6 +56,7 @@ func (c *Cx1Client) GetPaginationDefaultsSingleTenant() PaginationSettings {
 	return PaginationSettings{
 		Applications:  500,
 		Branches:      100,
+		CxLinks:       100,
 		Groups:        200,
 		GroupMembers:  100,
 		Projects:      500,
@@ -70,6 +71,7 @@ func (c *Cx1Client) GetPaginationDefaultsMultiTenant() PaginationSettings {
 	return PaginationSettings{
 		Applications:  50,
 		Branches:      100,
+		CxLinks:       100,
 		Groups:        100,
 		GroupMembers:  50,
 		Projects:      50,
