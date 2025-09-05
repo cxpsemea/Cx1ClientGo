@@ -626,27 +626,36 @@ func (c Cx1Client) DeleteProject(p *Project) error {
 
 // Get scan schedules for project p, or get all scan schedules if p == nil
 func (c Cx1Client) GetScanSchedules(project *Project) ([]ProjectScanSchedule, error) {
-	schedules := []ProjectScanSchedule{}
-
 	if project == nil {
-		response, err := c.sendRequest(http.MethodGet, "/projects/schedules", nil, nil)
-		if err != nil {
-			return schedules, err
-		}
-		err = json.Unmarshal(response, &schedules)
-		if err != nil {
-			return schedules, err
-		}
-
-		for id := range schedules {
-			schedules[id].StartTime = schedules[id].NextStartTime.Format("HH:MM")
-		}
-
-		return schedules, nil
+		return c.GetAllScanSchedules()
 	}
 
 	return c.GetScanSchedulesByID(project.ProjectID)
 }
+
+// Get all scan schedules
+func (c Cx1Client) GetAllScanSchedules() ([]ProjectScanSchedule, error) {
+	var scheduleResponse struct {
+		Schedules []ProjectScanSchedule `json:"schedules"`
+	}
+	response, err := c.sendRequest(http.MethodGet, "/projects/schedules", nil, nil)
+	if err != nil {
+		return scheduleResponse.Schedules, err
+	}
+
+	err = json.Unmarshal(response, &scheduleResponse)
+	if err != nil {
+		return scheduleResponse.Schedules, err
+	}
+
+	for id := range scheduleResponse.Schedules {
+		scheduleResponse.Schedules[id].StartTime = scheduleResponse.Schedules[id].NextStartTime.Format("15:04")
+	}
+
+	return scheduleResponse.Schedules, nil
+}
+
+// Get scan schedules for a project
 func (c Cx1Client) GetScanSchedulesByID(projectId string) ([]ProjectScanSchedule, error) {
 	schedules := []ProjectScanSchedule{}
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/projects/schedules/%v", projectId), nil, nil)
@@ -659,7 +668,7 @@ func (c Cx1Client) GetScanSchedulesByID(projectId string) ([]ProjectScanSchedule
 		return schedules, err
 	}
 
-	for id := range schedules { // should only be one
+	for id := range schedules {
 		schedules[id].StartTime = schedules[id].NextStartTime.Format("15:04")
 	}
 
