@@ -126,6 +126,7 @@ type PaginationSettings struct {
 	Projects      uint64
 	Results       uint64
 	Scans         uint64
+	ScanSchedules uint64
 	SASTAggregate uint64
 	Users         uint64
 }
@@ -457,14 +458,14 @@ type AuthenticationProviderMapperConfig struct {
 }
 
 type ConfigurationSetting struct {
-	Key             string `json:"key"`
-	Name            string `json:"name"`
-	Category        string `json:"category"`
-	OriginLevel     string `json:"originLevel"`
-	Value           string `json:"value"`
-	ValueType       string `json:"valuetype"`
-	ValueTypeParams string `json:"valuetypeparams"`
-	AllowOverride   bool   `json:"allowOverride"`
+	Key             string `json:"key,omitempty"`
+	Name            string `json:"name,omitempty"`
+	Category        string `json:"category,omitempty"`
+	OriginLevel     string `json:"originLevel,omitempty"`
+	Value           string `json:"value,omitempty"`
+	ValueType       string `json:"valuetype,omitempty"`
+	ValueTypeParams string `json:"valuetypeparams,omitempty"`
+	AllowOverride   bool   `json:"allowOverride,omitempty"`
 }
 
 type CxLink struct {
@@ -711,6 +712,7 @@ type ProjectOverviewFilter struct { // max limit = 100
 
 type ProjectScanSchedule struct {
 	ID            string            `json:"id"`
+	Name          string            `json:"name"`
 	ProjectID     string            `json:"projectID"`
 	NextStartTime time.Time         `json:"start_time"`
 	StartTime     string            `json:"-"`
@@ -722,6 +724,19 @@ type ProjectScanSchedule struct {
 	Engines       []string          `json:"engines"`
 	Branch        string            `json:"branch"`
 	Tags          map[string]string `json:"tags"`
+}
+
+type ProjectScanScheduleFilter struct {
+	BaseFilter
+	Search           string     `url:"string,omitempty"`
+	Name             string     `url:"name,omitempty"`
+	Active           *bool      `url:"active,omitempty"`
+	Frequency        []string   `url:"frequency,omitempty"`
+	FromCreationDate *time.Time `url:"from-creation-date,omitempty"`
+	ToCreationDate   *time.Time `url:"to-creation-date,omitempty"`
+	FromTriggerDate  *time.Time `url:"from-trigger-date,omitempty"`
+	ToTriggerDate    *time.Time `url:"to-trigger-date,omitempty"`
+	Sort             []string   `url:"sort,omitempty"` //  -created_at, +created_at, -status, +status, +name, -name, +trigger_time, -trigger_time
 }
 
 type QueryError struct {
