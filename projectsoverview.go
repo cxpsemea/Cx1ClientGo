@@ -8,6 +8,14 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
+func (c Cx1Client) GetAllProjectOverviews() ([]ProjectOverview, error) {
+	c.logger.Debugf("Get All Cx1 Projects")
+	_, projects, err := c.GetAllProjectOverviewsFiltered(ProjectOverviewFilter{
+		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
+	})
+	return projects, err
+}
+
 // Returns the total number of matching results plus an array of projects with
 // one page of results (from filter.Offset to filter.Offset+filter.Limit)
 func (c Cx1Client) GetProjectOverviewsFiltered(filter ProjectOverviewFilter) (uint64, []ProjectOverview, error) {

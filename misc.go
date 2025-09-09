@@ -62,6 +62,7 @@ func (c *Cx1Client) GetPaginationDefaultsSingleTenant() PaginationSettings {
 		Projects:      500,
 		Results:       200,
 		Scans:         200,
+		ScanSchedules: 200,
 		SASTAggregate: 10000,
 		Users:         200,
 	}
@@ -77,6 +78,7 @@ func (c *Cx1Client) GetPaginationDefaultsMultiTenant() PaginationSettings {
 		Projects:      50,
 		Results:       100,
 		Scans:         50,
+		ScanSchedules: 50,
 		SASTAggregate: 10000,
 		Users:         100,
 	}

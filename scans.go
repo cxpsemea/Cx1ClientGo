@@ -90,6 +90,18 @@ func (c Cx1Client) GetScansByStatus(status []string) ([]Scan, error) {
 	return scans, err
 }
 
+func (c Cx1Client) GetLastScanByID(projectID string) (Scan, error) {
+	_, scans, err := c.GetScansFiltered(ScanFilter{
+		BaseFilter: BaseFilter{Limit: 1},
+		ProjectID:  projectID,
+		Sort:       []string{ScanSortCreatedDescending},
+	})
+	if len(scans) > 0 {
+		return scans[0], err
+	}
+	return Scan{}, fmt.Errorf("no scans run")
+}
+
 func (c Cx1Client) GetLastScansByID(projectID string, limit uint64) ([]Scan, error) {
 	_, scans, err := c.GetXScansFiltered(ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},

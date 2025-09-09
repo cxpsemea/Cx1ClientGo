@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/google/go-querystring/query"
@@ -622,127 +621,6 @@ func (c Cx1Client) DeleteProject(p *Project) error {
 	}
 
 	return nil
-}
-
-// Get scan schedules for project p, or get all scan schedules if p == nil
-func (c Cx1Client) GetScanSchedules(project *Project) ([]ProjectScanSchedule, error) {
-	if project == nil {
-		return c.GetAllScanSchedules()
-	}
-
-	return c.GetScanSchedulesByID(project.ProjectID)
-}
-
-// Get all scan schedules
-func (c Cx1Client) GetAllScanSchedules() ([]ProjectScanSchedule, error) {
-	var scheduleResponse struct {
-		Schedules []ProjectScanSchedule `json:"schedules"`
-	}
-	response, err := c.sendRequest(http.MethodGet, "/projects/schedules", nil, nil)
-	if err != nil {
-		return scheduleResponse.Schedules, err
-	}
-
-	err = json.Unmarshal(response, &scheduleResponse)
-	if err != nil {
-		return scheduleResponse.Schedules, err
-	}
-
-	for id := range scheduleResponse.Schedules {
-		scheduleResponse.Schedules[id].StartTime = scheduleResponse.Schedules[id].NextStartTime.Format("15:04")
-	}
-
-	return scheduleResponse.Schedules, nil
-}
-
-// Get scan schedules for a project
-func (c Cx1Client) GetScanSchedulesByID(projectId string) ([]ProjectScanSchedule, error) {
-	schedules := []ProjectScanSchedule{}
-	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/projects/schedules/%v", projectId), nil, nil)
-	if err != nil {
-		return schedules, err
-	}
-
-	err = json.Unmarshal(response, &schedules)
-	if err != nil {
-		return schedules, err
-	}
-
-	for id := range schedules {
-		schedules[id].StartTime = schedules[id].NextStartTime.Format("15:04")
-	}
-
-	return schedules, nil
-}
-
-// helper
-func prepareScanScheduleBody(s ProjectScanSchedule) ([]byte, error) {
-	type ProjectScanScheduleBody struct {
-		StartTime string            `json:"start_time"`
-		Frequency string            `json:"frequency"`
-		Days      []string          `json:"days,omitempty"`
-		Active    bool              `json:"active"`
-		Engines   []string          `json:"engines"`
-		Branch    string            `json:"branch"`
-		Tags      map[string]string `json:"tags"`
-	}
-
-	schedule := ProjectScanScheduleBody{
-		StartTime: s.StartTime,
-		Frequency: s.Frequency,
-		Days:      s.Days,
-		Active:    s.Active,
-		Engines:   s.Engines,
-		Branch:    s.Branch,
-		Tags:      s.Tags,
-	}
-	return json.Marshal(schedule)
-}
-
-func (c Cx1Client) CreateScanSchedule(project *Project, s ProjectScanSchedule) error {
-	if project == nil {
-		return fmt.Errorf("project cannot be nil")
-	}
-	return c.CreateScanScheduleByID(project.ProjectID, s)
-}
-func (c Cx1Client) CreateScanScheduleByID(projectId string, s ProjectScanSchedule) error {
-	jsonBody, err := prepareScanScheduleBody(s)
-	if err != nil {
-		return err
-	}
-	_, err = c.sendRequest(http.MethodPost, fmt.Sprintf("/projects/schedules/%v", projectId), bytes.NewReader(jsonBody), nil)
-	return err
-}
-
-func (c Cx1Client) UpdateScanSchedule(project *Project, schedule ProjectScanSchedule) error {
-	if project == nil {
-		return fmt.Errorf("project cannot be nil")
-	}
-	return c.UpdateScanScheduleByID(project.ProjectID, schedule)
-}
-func (c Cx1Client) UpdateScanScheduleByID(projectId string, schedule ProjectScanSchedule) error {
-	jsonBody, err := prepareScanScheduleBody(schedule)
-	if err != nil {
-		return err
-	}
-	_, err = c.sendRequest(http.MethodPatch, fmt.Sprintf("/projects/schedules/%v", projectId), bytes.NewReader(jsonBody), nil)
-	return err
-}
-
-func (c Cx1Client) DeleteScanSchedules(project *Project) error {
-	return c.DeleteScanSchedulesByID(project.ProjectID)
-}
-func (c Cx1Client) DeleteScanSchedulesByID(projectId string) error {
-	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/projects/schedules/%v", projectId), nil, nil)
-	return err
-}
-
-func (s ProjectScanSchedule) String() string {
-	if s.Frequency == "weekly" {
-		return fmt.Sprintf("Project %v scan: weekly on %v at %v", s.ProjectID, strings.Join(s.Days, ","), s.StartTime)
-	} else {
-		return fmt.Sprintf("Project %v scan: daily at %v", s.ProjectID, s.StartTime)
-	}
 }
 
 // Assign a project to a group. You must call UpdateProject() on this project to save the changes.
