@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
-// Get all scan schedules
+// Get all scan schedules - v3.44+
 func (c Cx1Client) GetAllScanSchedules() ([]ProjectScanSchedule, error) {
 	_, schedules, err := c.GetAllScanSchedulesFiltered(ProjectScanScheduleFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.ScanSchedules},
