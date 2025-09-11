@@ -482,7 +482,7 @@ func (c Cx1Client) GetUserAssignedRoles(user *User) ([]Role, error) {
 }
 
 // this returns the roles inherited from groups to which the user belongs
-func (c Cx1Client) GetUserInheritedRoles(user *User) ([]Role, error) {
+func (c Cx1Client) GetUserInheritedRoles(user *User) (roles []Role, err error) {
 	c.logger.Debugf("Get user inherited roles for user %v", user.String())
 	// get user's groups
 	// get all roles from user's groups
@@ -493,15 +493,15 @@ func (c Cx1Client) GetUserInheritedRoles(user *User) ([]Role, error) {
 			return []Role{}, err
 		}
 	}
-	realmRoles := make(map[string]struct{})
-	clientRoles := make(map[string]map[string]struct{})
+	realmRolesMap := make(map[string]struct{})
+	clientRolesMap := make(map[string]map[string]struct{})
 	for _, g := range user.Groups {
 		//c.logger.Infof("User is in group: %v", g.String())
 		fullGroup, err := c.GetGroupByID(g.GroupID)
 		if err != nil {
 			return []Role{}, err
 		}
-		groupRealmRoles, groupClientRoles, err := c.GetGroupInheritedRoles(&fullGroup)
+		groupRealmRoles, groupClientRoles, err := c.getGroupInheritedRoleStrings(&fullGroup)
 		if err != nil {
 			return []Role{}, err
 		}
@@ -509,41 +509,62 @@ func (c Cx1Client) GetUserInheritedRoles(user *User) ([]Role, error) {
 		//c.logger.Infof("User belongs to group %v with realm roles %v, client roles %v", fullGroup.String(), groupRealmRoles, groupClientRoles)
 
 		for _, role := range groupRealmRoles {
-			realmRoles[role] = struct{}{}
+			realmRolesMap[role] = struct{}{}
 		}
 		for client, roles := range groupClientRoles {
-			if _, ok := clientRoles[client]; !ok {
-				clientRoles[client] = make(map[string]struct{})
+			if _, ok := clientRolesMap[client]; !ok {
+				clientRolesMap[client] = make(map[string]struct{})
 			}
 			for _, role := range roles {
-				clientRoles[client][role] = struct{}{}
+				clientRolesMap[client][role] = struct{}{}
 			}
 		}
 	}
 
-	roles := []Role{}
-
-	for r := range realmRoles {
-		role, err := c.GetIAMRoleByName(r)
-		if err != nil {
-			return []Role{}, err
-		}
-		roles = append(roles, role)
+	realmRoleList := []string{}
+	for r := range realmRolesMap {
+		realmRoleList = append(realmRoleList, r)
 	}
 
+	clientRoleList := make(map[string][]string)
+	for client := range clientRolesMap {
+		clientRoleList[client] = []string{}
+		for r := range clientRolesMap[client] {
+			clientRoleList[client] = append(clientRoleList[client], r)
+		}
+	}
+
+	realmRoles, clientRoles, err := c.resolveRealmAndClientRoleLists(&realmRoleList, &clientRoleList)
+	roles = append(realmRoles, clientRoles...)
+	return roles, err
+}
+
+// internal function used by Get*InheritedRoles calls
+func (c Cx1Client) resolveRealmAndClientRoleLists(realmRoles *[]string, clientRoles *map[string][]string) (realmRoleList []Role, clientRoleList []Role, err error) {
+	realmRoleList = []Role{}
+
+	for _, r := range *realmRoles {
+		role, err := c.GetIAMRoleByName(r)
+		if err != nil {
+			return nil, []Role{}, err
+		}
+		realmRoleList = append(realmRoleList, role)
+	}
+
+	clientRoleList = []Role{}
 	clientRoleMap := make(map[string]Role)
-	for client := range clientRoles {
+	for client := range *clientRoles {
 		if client == "ast-app" {
-			for r := range clientRoles[client] {
+			for _, r := range (*clientRoles)[client] {
 				if val, ok := clientRoleMap[r]; ok {
-					roles = append(roles, val)
+					clientRoleList = append(clientRoleList, val)
 				} else {
 					role, err := c.GetAppRoleByName(r)
 
 					if err != nil {
-						return []Role{}, err
+						return nil, []Role{}, err
 					}
-					roles = append(roles, role)
+					clientRoleList = append(clientRoleList, role)
 					clientRoleMap[r] = role
 				}
 			}
@@ -551,8 +572,7 @@ func (c Cx1Client) GetUserInheritedRoles(user *User) ([]Role, error) {
 			c.logger.Warnf("Client roles for clients other than ast-app are not supported - current client is %v", client)
 		}
 	}
-	//c.logger.Infof("GetUserInheritedRoles returns: %v", roles)
-	return roles, nil
+	return realmRoleList, clientRoleList, nil
 }
 
 func (c Cx1Client) AddUserRoles(user *User, roles *[]Role) error {

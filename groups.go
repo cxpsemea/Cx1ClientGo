@@ -331,11 +331,21 @@ func (c Cx1Client) GetGroupChildrenByID(groupID string, first, max uint64) ([]Gr
 // this includes the roles assigned directly to the group (group.RealmRoles & group.ClientRoles)
 // as well as the roles from up the group hierarchy
 // this function expects a group retrieved by a GetGroup* call, user-groups returned from a GetUser* call do not include role information.
-func (c Cx1Client) GetGroupInheritedRoles(group *Group) ([]string, map[string][]string, error) {
+func (c Cx1Client) GetGroupInheritedRoles(group *Group) (roles []Role, err error) {
 	// get all roles for this group
 	// go up the group hierarchy
 	c.logger.Debugf("Get group inherited roles for group %v", group.String())
+	realmRoleList, clientRoleList, err := c.getGroupInheritedRoleStrings(group)
+	if err != nil {
+		return nil, err
+	}
 
+	realmRoles, clientRoles, err := c.resolveRealmAndClientRoleLists(&realmRoleList, &clientRoleList)
+	roles = append(realmRoles, clientRoles...)
+	return roles, err
+}
+
+func (c Cx1Client) getGroupInheritedRoleStrings(group *Group) (realmRoleList []string, clientRoleList map[string][]string, err error) {
 	realmRoles := make(map[string]struct{})
 	clientRoles := make(map[string]map[string]struct{})
 
@@ -364,7 +374,7 @@ func (c Cx1Client) GetGroupInheritedRoles(group *Group) ([]string, map[string][]
 			return nil, nil, err
 		}
 
-		parentRealmRoles, parentClientRoles, err := c.GetGroupInheritedRoles(&parentGroup)
+		parentRealmRoles, parentClientRoles, err := c.getGroupInheritedRoleStrings(&parentGroup)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -382,11 +392,11 @@ func (c Cx1Client) GetGroupInheritedRoles(group *Group) ([]string, map[string][]
 		}
 	}
 
-	reamRoleList := []string{}
+	realmRoleList = []string{}
 	for rr := range realmRoles {
-		reamRoleList = append(reamRoleList, rr)
+		realmRoleList = append(realmRoleList, rr)
 	}
-	clientRoleList := make(map[string][]string)
+	clientRoleList = make(map[string][]string)
 	for client, crlist := range clientRoles {
 		clientRoleList[client] = []string{}
 		for cr := range crlist {
@@ -394,7 +404,7 @@ func (c Cx1Client) GetGroupInheritedRoles(group *Group) ([]string, map[string][]
 		}
 	}
 
-	return reamRoleList, clientRoleList, nil
+	return realmRoleList, clientRoleList, nil
 }
 
 // this function returns a group matching a path, however as of keycloak 23.0.7 this endpoint

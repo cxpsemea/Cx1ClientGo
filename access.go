@@ -372,11 +372,16 @@ func (c Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string) ([]Acces
 	}
 
 	//c.logger.Infof("Group %v has parent: %v", group.String(), group.ParentID)
-	croles := []string{}
-	for client, roles := range group.ClientRoles {
-		croles = append(croles, fmt.Sprintf("%v: %v", client, strings.Join(roles, ",")))
+
+	groupRoles, err := c.GetGroupInheritedRoles(&group)
+	if err != nil {
+		return resources, err
 	}
-	//c.logger.Infof("Group %v has roles: %v", group.String(), strings.Join(croles, " & "))
+	all_roles := []string{}
+	for _, r := range groupRoles {
+		all_roles = append(all_roles, r.Name)
+	}
+	slices.Sort(all_roles)
 
 	resourceTypes := []string{"tenant", "project", "application"}
 	group_resources, err := c.GetResourcesAccessibleToEntityByID(groupID, "group", resourceTypes)
@@ -385,10 +390,6 @@ func (c Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string) ([]Acces
 	}
 
 	resources = convertAssignmentsToResources(group_resources)
-	//c.logger.Infof("Resources directly accessible to group %v:", groupID)
-	for _, r := range resources {
-		c.logger.Infof("- %v", r.String())
-	}
 
 	if group.ParentID != "" {
 		parent_resources, err := c.GetAllResourcesAccessibleToGroupByID(group.ParentID)
@@ -398,6 +399,9 @@ func (c Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string) ([]Acces
 		resources = mergeAccessibleResources(resources, parent_resources, 1)
 	}
 
+	for id := range resources {
+		resources[id].Roles = all_roles
+	}
 	// + projects inside accessible apps?
 
 	return resources, nil
