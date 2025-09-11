@@ -166,6 +166,7 @@ type AccessAssignedRole struct {
 type AccessibleResource struct {
 	ResourceID   string   `json:"resourceId"`
 	ResourceType string   `json:"resourceType"`
+	ResourceName string   `json:"resourceName"`
 	Roles        []string `json:"roles"`
 }
 
@@ -519,15 +520,16 @@ type Group struct {
 	SubGroupCount   uint64              `json:"subGroupCount"`
 	DescendentCount uint64              `json:"-"`
 	ClientRoles     map[string][]string `json:"clientRoles"`
+	RealmRoles      []string            `json:"realmRoles"`
 	Filled          bool                `json:"-"`
 }
 
 type GroupFilter struct {
 	BaseIAMFilter
-	BriefRepresentation bool   `url:"briefRepresentation,omitempty"`
-	Exact               bool   `url:"exact,omitempty"`
-	PopulateHierarchy   bool   `url:"populateHierarchy,omitempty"`
-	Q                   bool   `url:"q,omitempty"`
+	BriefRepresentation *bool  `url:"briefRepresentation,omitempty"`
+	Exact               *bool  `url:"exact,omitempty"`
+	PopulateHierarchy   *bool  `url:"populateHierarchy,omitempty"`
+	Q                   *bool  `url:"q,omitempty"`
 	Search              string `url:"search,omitempty"` // used in both GetGroup and GetGroupCount
 	Top                 bool   `url:"-"`                // used only in GetGroupCount
 }

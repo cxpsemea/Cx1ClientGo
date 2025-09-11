@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"golang.org/x/exp/slices"
 )
 
 func (c Cx1Client) GetAccessAssignmentByID(entityId, resourceId string) (AccessAssignment, error) {
@@ -229,6 +231,8 @@ func (c Cx1Client) GetAMClients(search string, limit, offset uint64) ([]OIDCClie
 	return clients, err
 }
 
+// Get applications (from access-management)
+// IAM phase2?
 func (c Cx1Client) GetAMApplications(action string, name string, tagsKeys []string, tagsValues []string, limit, offset uint64) ([]Application, error) {
 	params := url.Values{}
 	params.Add("action", action)
@@ -253,6 +257,8 @@ func (c Cx1Client) GetAMApplications(action string, name string, tagsKeys []stri
 	return responseBody.Applications, err
 }
 
+// Get projects (from access-management)
+// IAM phase2?
 func (c Cx1Client) GetAMProjects(action string, name string, tagsKeys []string, tagsValues []string, limit, offset uint64) ([]Project, error) {
 	params := url.Values{}
 	params.Add("action", action)
@@ -275,4 +281,241 @@ func (c Cx1Client) GetAMProjects(action string, name string, tagsKeys []string, 
 
 	err = json.Unmarshal(response, &responseBody)
 	return responseBody.Projects, err
+}
+
+// Convenience functions
+
+// Get all resources accessible to a user (IAM Phase1 & 2)
+func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string) ([]AccessibleResource, error) {
+	resources := []AccessibleResource{}
+	if err := c.isIAMVersion(1); err != nil {
+		return resources, err
+	}
+
+	user, err := c.GetUserByID(userID)
+	if err != nil {
+		return resources, err
+	}
+	_, err = c.GetUserGroups(&user)
+	if err != nil {
+		return resources, err
+	}
+	allUserRoles, err := c.GetAllUserRoles(&user)
+	if err != nil {
+		return resources, err
+	}
+
+	usergroups := []string{}
+	for _, g := range user.Groups {
+		usergroups = append(usergroups, g.String())
+	}
+	//c.logger.Infof("GetAllResourcesAccessibleToUserByID User %v belongs to groups: %v", user.String(), strings.Join(usergroups, ", "))
+	userroles := []string{}
+	for _, r := range allUserRoles {
+		userroles = append(userroles, r.Name)
+	}
+	//c.logger.Infof("GetAllResourcesAccessibleToUserByID User %v has roles: %v", user.String(), strings.Join(userroles, ", "))
+
+	resourceTypes := []string{"tenant", "project", "application"}
+	user_resources, err := c.GetResourcesAccessibleToEntityByID(userID, "user", resourceTypes)
+	if err != nil {
+		return resources, err
+	}
+	resources = convertAssignmentsToResources(user_resources)
+	//c.logger.Infof("GetAllResourcesAccessibleToUserByID Resources directly accessible to user %v:", userID)
+	for _, r := range resources {
+		c.logger.Infof("- %v", r.String())
+	}
+
+	for _, g := range user.Groups {
+		group_resources, err := c.GetAllResourcesAccessibleToGroupByID(g.GroupID)
+		if err != nil {
+			return resources, err
+		}
+		resources = mergeAccessibleResources(resources, group_resources, 1)
+	}
+
+	// this is IAM phase1 behavior
+	grouproles := getDistinctRoles(resources)
+
+	seen := make(map[string]struct{})
+	for _, r := range grouproles {
+		seen[r] = struct{}{}
+	}
+	for _, r := range userroles {
+		seen[r] = struct{}{}
+	}
+
+	all_roles := []string{}
+	for r := range seen {
+		all_roles = append(all_roles, r)
+	}
+	slices.Sort(all_roles)
+	//c.logger.Infof("GetAllResourcesAccessibleToUserByID All roles combined: %v", strings.Join(all_roles, ", "))
+
+	for id := range resources {
+		resources[id].Roles = all_roles
+	}
+
+	return resources, nil
+}
+
+func (c Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string) ([]AccessibleResource, error) {
+	resources := []AccessibleResource{}
+	if err := c.isIAMVersion(1); err != nil {
+		return resources, err
+	}
+
+	group, err := c.GetGroupByID(groupID)
+	if err != nil {
+		return resources, err
+	}
+
+	//c.logger.Infof("Group %v has parent: %v", group.String(), group.ParentID)
+	croles := []string{}
+	for client, roles := range group.ClientRoles {
+		croles = append(croles, fmt.Sprintf("%v: %v", client, strings.Join(roles, ",")))
+	}
+	//c.logger.Infof("Group %v has roles: %v", group.String(), strings.Join(croles, " & "))
+
+	resourceTypes := []string{"tenant", "project", "application"}
+	group_resources, err := c.GetResourcesAccessibleToEntityByID(groupID, "group", resourceTypes)
+	if err != nil {
+		return resources, err
+	}
+
+	resources = convertAssignmentsToResources(group_resources)
+	//c.logger.Infof("Resources directly accessible to group %v:", groupID)
+	for _, r := range resources {
+		c.logger.Infof("- %v", r.String())
+	}
+
+	if group.ParentID != "" {
+		parent_resources, err := c.GetAllResourcesAccessibleToGroupByID(group.ParentID)
+		if err != nil {
+			return resources, err
+		}
+		resources = mergeAccessibleResources(resources, parent_resources, 1)
+	}
+
+	// + projects inside accessible apps?
+
+	return resources, nil
+}
+
+func (c Cx1Client) CheckIAMVersion() (int, error) {
+	flag, err := c.CheckFlag("ACCESS_MANAGEMENT_ENABLED")
+	if err != nil {
+		return -1, err
+	}
+	if !flag {
+		return -1, nil
+	}
+
+	flag, err = c.CheckFlag("ACCESS_MANAGEMENT_PHASE_2")
+	if err != nil {
+		return 0, err
+	}
+	if flag {
+		return 2, nil
+	}
+	return 1, nil
+}
+
+func (c Cx1Client) isIAMVersion(version int) error {
+	iamversion, err := c.CheckIAMVersion()
+	if err != nil {
+		return err
+	}
+	if version != iamversion {
+		return fmt.Errorf("iam version is %d and not expected %d", iamversion, version)
+	}
+	return nil
+}
+
+func getDistinctRoles(list []AccessibleResource) []string {
+	roles := []string{}
+	for _, r := range list {
+		for _, role := range r.Roles {
+			if !slices.Contains(roles, role) {
+				roles = append(roles, role)
+			}
+		}
+	}
+	slices.Sort(roles)
+	return roles
+}
+
+func mergeAccessibleResources(list1 []AccessibleResource, list2 []AccessibleResource, _ int) []AccessibleResource {
+	merged := []AccessibleResource{}
+
+	for _, r1 := range list1 {
+		var matched *AccessibleResource
+		for _, r2 := range list2 {
+			if r1.ResourceID == r2.ResourceID {
+				matched = &r2
+				break
+			}
+		}
+		if matched != nil {
+			merged = append(merged, mergeAccessibleResourceRoles(r1, *matched))
+		} else {
+			merged = append(merged, r1)
+		}
+	}
+
+	for _, r2 := range list2 {
+		matched := false
+		for _, r1 := range list1 {
+			if r1.ResourceID == r2.ResourceID {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			merged = append(merged, r2)
+		}
+	}
+
+	return merged
+}
+
+func mergeAccessibleResourceRoles(r1, r2 AccessibleResource) AccessibleResource {
+	merged := r1
+
+	for _, role := range r2.Roles {
+		if !slices.Contains(merged.Roles, role) {
+			merged.Roles = append(merged.Roles, role)
+		}
+	}
+
+	slices.Sort(merged.Roles)
+
+	return merged
+}
+
+func convertAssignmentsToResources(assignments []AccessAssignment) []AccessibleResource {
+	resources := []AccessibleResource{}
+	for _, a := range assignments {
+		resources = append(resources, a.ToResource())
+	}
+	return resources
+}
+
+func (a AccessAssignment) ToResource() AccessibleResource {
+	ar := AccessibleResource{
+		ResourceID:   a.ResourceID,
+		ResourceType: a.ResourceType,
+		ResourceName: a.ResourceName,
+	}
+
+	for _, r := range a.EntityRoles {
+		ar.Roles = append(ar.Roles, r.Name)
+	}
+
+	return ar
+}
+
+func (a AccessibleResource) String() string {
+	return fmt.Sprintf("%v [%v] %v: %v", a.ResourceType, ShortenGUID(a.ResourceID), a.ResourceName, strings.Join(a.Roles, ", "))
 }

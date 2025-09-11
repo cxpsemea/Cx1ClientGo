@@ -423,7 +423,48 @@ func (c Cx1Client) RemoveUserFromGroupByID(user *User, groupId string) error {
 }
 
 // New generic functions for roles for convenience
+
+// Get all roles for the user - those directly assigned, and those inherited from group membership & hierarchy
+// Unlike GetUserRoles, this does not update the user.Roles list
+func (c Cx1Client) GetAllUserRoles(user *User) ([]Role, error) {
+	roles, err := c.GetUserRoles(user)
+	if err != nil {
+		return []Role{}, fmt.Errorf("failed to get user's assigned roles: %v", err)
+	}
+
+	inheritedRoles, err := c.GetUserInheritedRoles(user)
+	if err != nil {
+		return []Role{}, fmt.Errorf("failed to get user's inherited roles: %v", err)
+	}
+
+	for _, ir := range inheritedRoles {
+		match := false
+		for _, ur := range roles {
+			if ir.RoleID == ur.RoleID {
+				match = true
+				break
+			}
+		}
+		if !match {
+			roles = append(roles, ir)
+		}
+	}
+
+	return roles, nil
+}
+
+// this function was ambiguous (returned only directly-assigned roles)
+// now you can use GetUserAssignedRoles (roles assigned directly to user),
+// GetUserInheritedRoles (roles inherited from group membership) or
+// GetAllUserRoles (GetUserAssignedRoles + GetUserInheritedRoles)
 func (c Cx1Client) GetUserRoles(user *User) ([]Role, error) {
+	c.depwarn("GetUserRoles", "GetAllUserRoles, GetUserAssignedRoles, or GetUserInheritedRoles")
+	return c.GetUserAssignedRoles(user)
+}
+
+// this returns the roles that are directly assigned to the user
+// does not include roles inherited from group membership
+func (c Cx1Client) GetUserAssignedRoles(user *User) ([]Role, error) {
 	appRoles, err := c.getUserRolesByClientID(user.UserID, c.GetASTAppID())
 	if err != nil {
 		return []Role{}, nil
@@ -438,6 +479,80 @@ func (c Cx1Client) GetUserRoles(user *User) ([]Role, error) {
 	user.FilledRoles = true
 
 	return user.Roles, nil
+}
+
+// this returns the roles inherited from groups to which the user belongs
+func (c Cx1Client) GetUserInheritedRoles(user *User) ([]Role, error) {
+	c.logger.Debugf("Get user inherited roles for user %v", user.String())
+	// get user's groups
+	// get all roles from user's groups
+	// go up the group hierarchy
+	if !user.FilledGroups {
+		_, err := c.GetUserGroups(user)
+		if err != nil {
+			return []Role{}, err
+		}
+	}
+	realmRoles := make(map[string]struct{})
+	clientRoles := make(map[string]map[string]struct{})
+	for _, g := range user.Groups {
+		//c.logger.Infof("User is in group: %v", g.String())
+		fullGroup, err := c.GetGroupByID(g.GroupID)
+		if err != nil {
+			return []Role{}, err
+		}
+		groupRealmRoles, groupClientRoles, err := c.GetGroupInheritedRoles(&fullGroup)
+		if err != nil {
+			return []Role{}, err
+		}
+
+		//c.logger.Infof("User belongs to group %v with realm roles %v, client roles %v", fullGroup.String(), groupRealmRoles, groupClientRoles)
+
+		for _, role := range groupRealmRoles {
+			realmRoles[role] = struct{}{}
+		}
+		for client, roles := range groupClientRoles {
+			if _, ok := clientRoles[client]; !ok {
+				clientRoles[client] = make(map[string]struct{})
+			}
+			for _, role := range roles {
+				clientRoles[client][role] = struct{}{}
+			}
+		}
+	}
+
+	roles := []Role{}
+
+	for r := range realmRoles {
+		role, err := c.GetIAMRoleByName(r)
+		if err != nil {
+			return []Role{}, err
+		}
+		roles = append(roles, role)
+	}
+
+	clientRoleMap := make(map[string]Role)
+	for client := range clientRoles {
+		if client == "ast-app" {
+			for r := range clientRoles[client] {
+				if val, ok := clientRoleMap[r]; ok {
+					roles = append(roles, val)
+				} else {
+					role, err := c.GetAppRoleByName(r)
+
+					if err != nil {
+						return []Role{}, err
+					}
+					roles = append(roles, role)
+					clientRoleMap[r] = role
+				}
+			}
+		} else {
+			c.logger.Warnf("Client roles for clients other than ast-app are not supported - current client is %v", client)
+		}
+	}
+	//c.logger.Infof("GetUserInheritedRoles returns: %v", roles)
+	return roles, nil
 }
 
 func (c Cx1Client) AddUserRoles(user *User, roles *[]Role) error {

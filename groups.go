@@ -104,8 +104,8 @@ func (c Cx1Client) GetGroupPIPByName(groupname string) (Group, error) {
 func (c Cx1Client) GetGroups() ([]Group, error) {
 	c.logger.Debugf("Get Cx1 Groups")
 	_, groups, err := c.GetAllGroupsFiltered(GroupFilter{
-		BriefRepresentation: false,
-		PopulateHierarchy:   false,
+		BriefRepresentation: boolPtr(false),
+		PopulateHierarchy:   boolPtr(false),
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Groups},
 	}, true)
 	return groups, err
@@ -120,10 +120,10 @@ func (c Cx1Client) GetAllGroups() ([]Group, error) {
 func (c Cx1Client) GetGroupByName(groupname string) (Group, error) {
 	c.logger.Debugf("Get Cx1 Group by name: %v", groupname)
 	_, groups, err := c.GetAllGroupsFiltered(GroupFilter{
-		BriefRepresentation: false,
-		PopulateHierarchy:   false,
+		BriefRepresentation: boolPtr(false),
+		PopulateHierarchy:   boolPtr(false),
 		Search:              groupname,
-		Exact:               true,
+		Exact:               boolPtr(true),
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Groups},
 	}, false)
 
@@ -154,8 +154,8 @@ func (c Cx1Client) GetGroupByName(groupname string) (Group, error) {
 func (c Cx1Client) GetGroupsByName(groupname string) ([]Group, error) {
 	c.logger.Debugf("Get Cx1 Groups by name: %v", groupname)
 	_, groups, err := c.GetAllGroupsFiltered(GroupFilter{
-		BriefRepresentation: false,
-		PopulateHierarchy:   true,
+		BriefRepresentation: boolPtr(false),
+		PopulateHierarchy:   boolPtr(true),
 		Search:              groupname,
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Groups},
 	}, false)
@@ -241,14 +241,12 @@ func (c Cx1Client) DeleteGroup(group *Group) error {
 }
 
 // this will return the specific group matching this ID
-// before cx1 version 3.20.0, the group was 'filled' (including subgroups)
-// on/after cx1 version 3.20.0, the group is not filled, use FillGroup/GetGroupChildren
 func (c Cx1Client) GetGroupByID(groupID string) (Group, error) {
 	c.logger.Debugf("Getting Group with ID %v...", groupID)
 	var group Group
 
 	body := url.Values{
-		"briefRepresentation": {"true"},
+		"briefRepresentation": {"false"}, // ensure the group includes roles
 	}
 
 	data, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/groups/%v?%v", groupID, body.Encode()), nil, http.Header{})
@@ -327,6 +325,76 @@ func (c Cx1Client) GetGroupChildrenByID(groupID string, first, max uint64) ([]Gr
 
 	err = json.Unmarshal(data, &groups)
 	return groups, err
+}
+
+// this returns all roles a user would inherit from membership in this group
+// this includes the roles assigned directly to the group (group.RealmRoles & group.ClientRoles)
+// as well as the roles from up the group hierarchy
+// this function expects a group retrieved by a GetGroup* call, user-groups returned from a GetUser* call do not include role information.
+func (c Cx1Client) GetGroupInheritedRoles(group *Group) ([]string, map[string][]string, error) {
+	// get all roles for this group
+	// go up the group hierarchy
+	c.logger.Debugf("Get group inherited roles for group %v", group.String())
+
+	realmRoles := make(map[string]struct{})
+	clientRoles := make(map[string]map[string]struct{})
+
+	if version, err := c.CheckIAMVersion(); err != nil {
+		return nil, nil, err
+	} else if version >= 2 {
+		c.logger.Debugf("Users globally inherit roles from group membership only in old-IAM and IAM Phase1, this tenant is IAM Phase2")
+		return nil, nil, nil
+	}
+
+	for _, rr := range group.RealmRoles {
+		realmRoles[rr] = struct{}{}
+	}
+	for client, crlist := range group.ClientRoles {
+		if _, ok := clientRoles[client]; !ok {
+			clientRoles[client] = make(map[string]struct{})
+		}
+		for _, cr := range crlist {
+			clientRoles[client][cr] = struct{}{}
+		}
+	}
+
+	if group.ParentID != "" {
+		parentGroup, err := c.GetGroupByID(group.ParentID)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		parentRealmRoles, parentClientRoles, err := c.GetGroupInheritedRoles(&parentGroup)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		for _, rr := range parentRealmRoles {
+			realmRoles[rr] = struct{}{}
+		}
+		for client, crlist := range parentClientRoles {
+			if _, ok := clientRoles[client]; !ok {
+				clientRoles[client] = make(map[string]struct{})
+			}
+			for _, cr := range crlist {
+				clientRoles[client][cr] = struct{}{}
+			}
+		}
+	}
+
+	reamRoleList := []string{}
+	for rr := range realmRoles {
+		reamRoleList = append(reamRoleList, rr)
+	}
+	clientRoleList := make(map[string][]string)
+	for client, crlist := range clientRoles {
+		clientRoleList[client] = []string{}
+		for cr := range crlist {
+			clientRoleList[client] = append(clientRoleList[client], cr)
+		}
+	}
+
+	return reamRoleList, clientRoleList, nil
 }
 
 // this function returns a group matching a path, however as of keycloak 23.0.7 this endpoint
