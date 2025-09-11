@@ -427,7 +427,7 @@ func (c Cx1Client) RemoveUserFromGroupByID(user *User, groupId string) error {
 // Get all roles for the user - those directly assigned, and those inherited from group membership & hierarchy
 // Unlike GetUserRoles, this does not update the user.Roles list
 func (c Cx1Client) GetAllUserRoles(user *User) ([]Role, error) {
-	roles, err := c.GetUserRoles(user)
+	roles, err := c.GetUserAssignedRoles(user)
 	if err != nil {
 		return []Role{}, fmt.Errorf("failed to get user's assigned roles: %v", err)
 	}

@@ -305,10 +305,6 @@ func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string) ([]Accessi
 		return resources, err
 	}
 
-	usergroups := []string{}
-	for _, g := range user.Groups {
-		usergroups = append(usergroups, g.String())
-	}
 	//c.logger.Infof("GetAllResourcesAccessibleToUserByID User %v belongs to groups: %v", user.String(), strings.Join(usergroups, ", "))
 	userroles := []string{}
 	for _, r := range allUserRoles {
@@ -322,10 +318,6 @@ func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string) ([]Accessi
 		return resources, err
 	}
 	resources = convertAssignmentsToResources(user_resources)
-	//c.logger.Infof("GetAllResourcesAccessibleToUserByID Resources directly accessible to user %v:", userID)
-	for _, r := range resources {
-		c.logger.Infof("- %v", r.String())
-	}
 
 	for _, g := range user.Groups {
 		group_resources, err := c.GetAllResourcesAccessibleToGroupByID(g.GroupID)
