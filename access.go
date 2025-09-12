@@ -12,6 +12,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+var IAMResourceTypes = []string{"tenant", "application", "project"}
+
 func (c Cx1Client) GetAccessAssignmentByID(entityId, resourceId string) (AccessAssignment, error) {
 	c.logger.Debugf("Getting access assignment for entityId %v and resourceId %v", entityId, resourceId)
 	var aa AccessAssignment
@@ -285,24 +287,29 @@ func (c Cx1Client) GetAMProjects(action string, name string, tagsKeys []string, 
 
 // Convenience functions
 
-// Get all resources accessible to a user (IAM Phase1 & 2)
-func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string) ([]AccessibleResource, error) {
+// Get all resources accessible to a user (IAM Phase1)
+// type can be tenant, application, or project
+// includeImplied:
+//
+//	if true, access to an application will return application+projects in app
+//	if false, will not list projects in the app (unless those are explicitly assigned)
+func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string, types []string, includeImplied bool) ([]AccessibleResource, error) {
 	resources := []AccessibleResource{}
 	if err := c.isIAMVersion(1); err != nil {
-		return resources, err
+		return []AccessibleResource{}, err
 	}
 
 	user, err := c.GetUserByID(userID)
 	if err != nil {
-		return resources, err
+		return []AccessibleResource{}, err
 	}
 	_, err = c.GetUserGroups(&user)
 	if err != nil {
-		return resources, err
+		return []AccessibleResource{}, err
 	}
 	allUserRoles, err := c.GetAllUserRoles(&user)
 	if err != nil {
-		return resources, err
+		return []AccessibleResource{}, err
 	}
 
 	//c.logger.Infof("GetAllResourcesAccessibleToUserByID User %v belongs to groups: %v", user.String(), strings.Join(usergroups, ", "))
@@ -315,14 +322,14 @@ func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string) ([]Accessi
 	resourceTypes := []string{"tenant", "project", "application"}
 	user_resources, err := c.GetResourcesAccessibleToEntityByID(userID, "user", resourceTypes)
 	if err != nil {
-		return resources, err
+		return []AccessibleResource{}, err
 	}
 	resources = convertAssignmentsToResources(user_resources)
 
 	for _, g := range user.Groups {
-		group_resources, err := c.GetAllResourcesAccessibleToGroupByID(g.GroupID)
+		group_resources, err := c.GetAllResourcesAccessibleToGroupByID(g.GroupID, IAMResourceTypes, false)
 		if err != nil {
-			return resources, err
+			return []AccessibleResource{}, err
 		}
 		resources = mergeAccessibleResources(resources, group_resources, 1)
 	}
@@ -345,6 +352,22 @@ func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string) ([]Accessi
 	slices.Sort(all_roles)
 	//c.logger.Infof("GetAllResourcesAccessibleToUserByID All roles combined: %v", strings.Join(all_roles, ", "))
 
+	if includeImplied {
+		missing_applications, err := c.fillMissingApplicationResources(resources)
+		if err != nil {
+			return resources, err
+		}
+		resources = append(resources, missing_applications...)
+
+		missing_projects, err := c.fillMissingProjectResources(&resources)
+		if err != nil {
+			return []AccessibleResource{}, err
+		}
+		resources = append(resources, missing_projects...)
+	}
+
+	resources = *filterResourcesByType(&resources, types)
+
 	for id := range resources {
 		resources[id].Roles = all_roles
 	}
@@ -352,7 +375,13 @@ func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string) ([]Accessi
 	return resources, nil
 }
 
-func (c Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string) ([]AccessibleResource, error) {
+// Get all resources accessible to a group (IAM Phase1)
+// type can be tenant, application, or project
+// includeImplied:
+//
+//	if true, access to an application will return application+projects in app
+//	if false, will not list projects in the app (unless those are explicitly assigned)
+func (c Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string, types []string, includeImplied bool) ([]AccessibleResource, error) {
 	resources := []AccessibleResource{}
 	if err := c.isIAMVersion(1); err != nil {
 		return resources, err
@@ -384,12 +413,28 @@ func (c Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string) ([]Acces
 	resources = convertAssignmentsToResources(group_resources)
 
 	if group.ParentID != "" {
-		parent_resources, err := c.GetAllResourcesAccessibleToGroupByID(group.ParentID)
+		parent_resources, err := c.GetAllResourcesAccessibleToGroupByID(group.ParentID, IAMResourceTypes, false)
 		if err != nil {
 			return resources, err
 		}
 		resources = mergeAccessibleResources(resources, parent_resources, 1)
 	}
+
+	if includeImplied {
+		missing_applications, err := c.fillMissingApplicationResources(resources)
+		if err != nil {
+			return resources, err
+		}
+		resources = append(resources, missing_applications...)
+
+		missing_projects, err := c.fillMissingProjectResources(&resources)
+		if err != nil {
+			return []AccessibleResource{}, err
+		}
+		resources = append(resources, missing_projects...)
+	}
+
+	resources = *filterResourcesByType(&resources, types)
 
 	for id := range resources {
 		resources[id].Roles = all_roles
@@ -488,6 +533,111 @@ func mergeAccessibleResourceRoles(r1, r2 AccessibleResource) AccessibleResource 
 	slices.Sort(merged.Roles)
 
 	return merged
+}
+
+func (c Cx1Client) fillMissingApplicationResources(resources []AccessibleResource) ([]AccessibleResource, error) {
+	// first check there is any tenant access
+	var tenantAccess *AccessibleResource
+	for _, r := range resources {
+		if r.ResourceType == "tenant" {
+			tenantAccess = &r
+			break
+		}
+	}
+	if tenantAccess == nil {
+		return []AccessibleResource{}, nil
+	}
+
+	seen_applications := make(map[string]struct{})
+	missing_applications := []AccessibleResource{}
+
+	for _, r := range resources {
+		if r.ResourceType == "application" {
+			seen_applications[r.ResourceID] = struct{}{}
+		}
+	}
+
+	applications, err := c.GetAllApplications()
+	if err != nil {
+		return []AccessibleResource{}, err
+	}
+
+	for _, app := range applications {
+		if _, ok := seen_applications[app.ApplicationID]; !ok {
+			application, err := c.GetProjectByID(app.ApplicationID)
+			if err != nil {
+				return []AccessibleResource{}, err
+			}
+			missing_applications = append(missing_applications, AccessibleResource{
+				ResourceID:   app.ApplicationID,
+				ResourceType: "application",
+				ResourceName: application.Name,
+				Roles:        tenantAccess.Roles,
+			})
+			seen_applications[app.ApplicationID] = struct{}{}
+		}
+	}
+
+	return missing_applications, nil
+}
+
+func (c Cx1Client) fillMissingProjectResources(resources *[]AccessibleResource) ([]AccessibleResource, error) {
+	seen_projects := make(map[string]struct{})
+	missing_projects := []AccessibleResource{}
+
+	for _, r := range *resources {
+		if r.ResourceType == "project" {
+			seen_projects[r.ResourceID] = struct{}{}
+		}
+	}
+
+	for _, r := range *resources {
+		if r.ResourceType == "application" {
+			app, err := c.GetApplicationByID(r.ResourceID)
+			if err != nil {
+				return []AccessibleResource{}, err
+			}
+
+			for _, projectId := range *app.ProjectIds {
+				if _, ok := seen_projects[projectId]; !ok {
+					project, err := c.GetProjectByID(projectId)
+					if err != nil {
+						return []AccessibleResource{}, err
+					}
+					missing_projects = append(missing_projects, AccessibleResource{
+						ResourceID:   projectId,
+						ResourceType: "project",
+						ResourceName: project.Name,
+						Roles:        r.Roles,
+					})
+					seen_projects[projectId] = struct{}{}
+				}
+			}
+		}
+	}
+
+	return missing_projects, nil
+}
+
+func filterResourcesByType(resources *[]AccessibleResource, types []string) *[]AccessibleResource {
+	same := true
+	for _, a := range IAMResourceTypes {
+		if !slices.Contains(types, a) {
+			same = false
+			break
+		}
+	}
+	if same {
+		return resources
+	}
+
+	filtered := []AccessibleResource{}
+	for _, r := range *resources {
+		if slices.Contains(types, r.ResourceType) {
+			filtered = append(filtered, r)
+		}
+	}
+	return &filtered
 }
 
 func convertAssignmentsToResources(assignments []AccessAssignment) []AccessibleResource {
