@@ -548,12 +548,13 @@ func (c Cx1Client) fillMissingApplicationResources(resources []AccessibleResourc
 		return []AccessibleResource{}, nil
 	}
 
-	seen_applications := make(map[string]struct{})
+	seen_applications := make(map[string]*AccessibleResource)
 	missing_applications := []AccessibleResource{}
 
 	for _, r := range resources {
 		if r.ResourceType == "application" {
-			seen_applications[r.ResourceID] = struct{}{}
+			merged_resource := mergeAccessibleResourceRoles(r, *tenantAccess)
+			seen_applications[r.ResourceID] = &merged_resource
 		}
 	}
 
@@ -561,20 +562,64 @@ func (c Cx1Client) fillMissingApplicationResources(resources []AccessibleResourc
 	if err != nil {
 		return []AccessibleResource{}, err
 	}
+	applicationMap := make(map[string]Application)
+	for _, a := range applications {
+		applicationMap[a.ApplicationID] = a
+	}
 
 	for _, app := range applications {
-		if _, ok := seen_applications[app.ApplicationID]; !ok {
-			application, err := c.GetProjectByID(app.ApplicationID)
-			if err != nil {
-				return []AccessibleResource{}, err
-			}
-			missing_applications = append(missing_applications, AccessibleResource{
+		var app_resource AccessibleResource
+		application := applicationMap[app.ApplicationID]
+
+		if assigned_application, ok := seen_applications[app.ApplicationID]; !ok {
+			app_resource = AccessibleResource{
 				ResourceID:   app.ApplicationID,
 				ResourceType: "application",
 				ResourceName: application.Name,
+			}
+			app_resource.Roles = tenantAccess.Roles
+			missing_applications = append(missing_applications, app_resource)
+			seen_applications[app.ApplicationID] = &app_resource
+		} else {
+			app_resource = mergeAccessibleResourceRoles(*assigned_application, *tenantAccess)
+		}
+	}
+
+	// in progress, to do
+	projects, err := c.GetAllProjects()
+	if err != nil {
+		return []AccessibleResource{}, err
+	}
+
+	seen_projects := make(map[string]*AccessibleResource)
+	missing_projects := []AccessibleResource{}
+
+	for _, r := range resources {
+		if r.ResourceType == "application" {
+			merged_resource := mergeAccessibleResourceRoles(r, *tenantAccess)
+			seen_applications[r.ResourceID] = &merged_resource
+		}
+	}
+
+	for _, project := range projects {
+		if assigned_project, ok := seen_projects[projectId]; !ok {
+			var project Project
+			if p, ok := projectMap[projectId]; ok {
+				project = p
+			} else {
+				project, err = c.GetProjectByID(projectId)
+				if err != nil {
+					return []AccessibleResource{}, err
+				}
+			}
+
+			missing_projects = append(missing_projects, AccessibleResource{
+				ResourceID:   projectId,
+				ResourceType: "project",
+				ResourceName: project.Name,
 				Roles:        tenantAccess.Roles,
 			})
-			seen_applications[app.ApplicationID] = struct{}{}
+			seen_projects[projectId] = struct{}{}
 		}
 	}
 
