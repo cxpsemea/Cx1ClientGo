@@ -659,7 +659,7 @@ type ProjectFilter struct {
 	Origins    []string `url:"origins,omitempty"`
 	TagsKeys   []string `url:"tags-keys,omitempty"`
 	TagsValues []string `url:"tags-values,omitempty"`
-	EmptyTags  bool     `url:"empty-tags,omitempty"`
+	EmptyTags  *bool    `url:"empty-tags,omitempty"`
 	RepoURL    string   `url:"repo-url,omitempty"`
 }
 
@@ -702,12 +702,12 @@ type ProjectOverviewFilter struct { // max limit = 100
 	ApplicationIDs []string `url:"applications,omitempty"`
 	TagKeys        []string `url:"tag-keys,omitempty"`
 	TagValues      []string `url:"tag-values,omitempty"`
-	EmptyTags      bool     `url:"empty-tags,omitempty"`
+	EmptyTags      *bool    `url:"empty-tags,omitempty"`
 	RiskLevel      []string `url:"risk-level,omitempty"`
 	FromDate       string   `url:"from-date,omitempty"`
 	ToDate         string   `url:"to-date,omitempty"`
-	IsDeployed     bool     `url:"is-deployed,omitempty"`
-	IsPublic       bool     `url:"is-public,omitempty"`
+	IsDeployed     *bool    `url:"is-deployed,omitempty"`
+	IsPublic       *bool    `url:"is-public,omitempty"`
 	Search         string   `url:"search,omitempty"`
 	Sort           []string `url:"sort,omitempty"` //  name, scan-origin, last-scan-date, source-type, risk-level, is-public, applications
 }
@@ -908,7 +908,7 @@ type SASTAggregateSummaryFilter struct {
 	ResultIDs              []string `url:"result-ids,omitempty"`
 	Categories             string   `url:"categories,omitempty"` // comma-separated list
 	Search                 string   `url:"search,omitempty"`
-	ApplyPredicates        bool     `url:"apply-predicates,omitempty"`
+	ApplyPredicates        *bool    `url:"apply-predicates,omitempty"`
 }
 
 type Scan struct {
@@ -1139,8 +1139,8 @@ type ScanSASTResultsFilter struct {
 	ResultIDs              []string `url:"result-ids,omitempty"`
 	Categories             string   `url:"category,omitempty"` // comma-separated list
 	Search                 string   `url:"search,omitempty"`
-	IncludeNodes           bool     `url:"include-nodes,omitempty"`
-	ApplyPredicates        bool     `url:"apply-predicates,omitempty"`
+	IncludeNodes           *bool    `url:"include-nodes,omitempty"`
+	ApplyPredicates        *bool    `url:"apply-predicates,omitempty"`
 	Sort                   []string `url:"sort,omitempty"` // Default value : +status,+severity,-queryname
 	VisibleColumns         []string `url:"visible-columns,omitempty"`
 	State                  []string `url:"state,omitempty"`
@@ -1405,11 +1405,11 @@ type ScanSummaryCategoryCounter struct {
 type ScanSummaryFilter struct {
 	BaseFilter
 	ScanIDs        string   `url:"scan-ids"` // comma-separated list of scan ids
-	SeverityStatus bool     `url:"include-severity-status"`
-	Status         bool     `url:"include-status-counters"`
-	Queries        bool     `url:"include-queries"`
-	Files          bool     `url:"include-files"`
-	Predicates     bool     `url:"apply-predicates"`
+	SeverityStatus *bool    `url:"include-severity-status"`
+	Status         *bool    `url:"include-status-counters"`
+	Queries        *bool    `url:"include-queries"`
+	Files          *bool    `url:"include-files"`
+	Predicates     *bool    `url:"apply-predicates"`
 	Language       string   `url:"language"`
 	ExcludeTypes   []string `url:"exclude-result-types"` // DEV_AND_TEST, NONE
 }
@@ -1440,11 +1440,11 @@ type User struct {
 
 type UserFilter struct {
 	BaseIAMFilter
-	BriefRepresentation bool   `url:"briefRepresentation,omitempty"` // only used by GetUser* (not GetUserCount)
+	BriefRepresentation *bool  `url:"briefRepresentation,omitempty"` // only used by GetUser* (not GetUserCount)
 	Email               string `url:"email,omitempty"`
-	EmailVerified       bool   `url:"emailVerified,omitempty"`
-	Enabled             bool   `url:"enabled,omitempty"`
-	Exact               bool   `url:"exact,omitempty"` // only used by GetUser* (not GetUserCount)
+	EmailVerified       *bool  `url:"emailVerified,omitempty"`
+	Enabled             *bool  `url:"enabled,omitempty"`
+	Exact               *bool  `url:"exact,omitempty"` // only used by GetUser* (not GetUserCount)
 	FirstName           string `url:"firstName,omitempty"`
 	IDPAlias            string `url:"idpAlias,omitempty"`  // only used by GetUser* (not GetUserCount)
 	IDPUserId           string `url:"idpUserId,omitempty"` // only used by GetUser* (not GetUserCount)

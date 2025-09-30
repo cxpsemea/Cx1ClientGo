@@ -14,8 +14,8 @@ func (c Cx1Client) GetScanSASTResultsByID(scanID string, limit uint64) ([]ScanSA
 	_, results, err := c.GetXScanSASTResultsFiltered(ScanSASTResultsFilter{
 		BaseFilter:      BaseFilter{Limit: c.pagination.Results},
 		ScanID:          scanID,
-		IncludeNodes:    true,
-		ApplyPredicates: true,
+		IncludeNodes:    boolPtr(true),
+		ApplyPredicates: boolPtr(true),
 		Sort:            []string{"+similarity-id", "+result-id"},
 	}, limit)
 
@@ -28,8 +28,8 @@ func (c Cx1Client) GetAllScanSASTResultsByID(scanID string) ([]ScanSASTResult, e
 	_, results, err := c.GetAllScanSASTResultsFiltered(ScanSASTResultsFilter{
 		BaseFilter:      BaseFilter{Limit: c.pagination.Results},
 		ScanID:          scanID,
-		IncludeNodes:    true,
-		ApplyPredicates: true,
+		IncludeNodes:    boolPtr(true),
+		ApplyPredicates: boolPtr(true),
 		Sort:            []string{"+similarity-id", "+result-id"},
 	})
 
@@ -41,8 +41,8 @@ func (c Cx1Client) GetScanSASTResultsCountByID(scanID string) (uint64, error) {
 	count, _, err := c.GetScanSASTResultsFiltered(ScanSASTResultsFilter{
 		BaseFilter:      BaseFilter{Limit: 0},
 		ScanID:          scanID,
-		IncludeNodes:    false,
-		ApplyPredicates: false,
+		IncludeNodes:    boolPtr(false),
+		ApplyPredicates: boolPtr(false),
 	})
 
 	return count, err

@@ -353,17 +353,10 @@ func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string, types []st
 	//c.logger.Infof("GetAllResourcesAccessibleToUserByID All roles combined: %v", strings.Join(all_roles, ", "))
 
 	if includeImplied {
-		missing_applications, err := c.fillMissingApplicationResources(resources)
+		resources, err = c.fillMissingResources(resources)
 		if err != nil {
 			return resources, err
 		}
-		resources = append(resources, missing_applications...)
-
-		missing_projects, err := c.fillMissingProjectResources(&resources)
-		if err != nil {
-			return []AccessibleResource{}, err
-		}
-		resources = append(resources, missing_projects...)
 	}
 
 	resources = *filterResourcesByType(&resources, types)
@@ -421,17 +414,10 @@ func (c Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string, types []
 	}
 
 	if includeImplied {
-		missing_applications, err := c.fillMissingApplicationResources(resources)
+		resources, err = c.fillMissingResources(resources)
 		if err != nil {
 			return resources, err
 		}
-		resources = append(resources, missing_applications...)
-
-		missing_projects, err := c.fillMissingProjectResources(&resources)
-		if err != nil {
-			return []AccessibleResource{}, err
-		}
-		resources = append(resources, missing_projects...)
 	}
 
 	resources = *filterResourcesByType(&resources, types)
@@ -535,7 +521,11 @@ func mergeAccessibleResourceRoles(r1, r2 AccessibleResource) AccessibleResource 
 	return merged
 }
 
-func (c Cx1Client) fillMissingApplicationResources(resources []AccessibleResource) ([]AccessibleResource, error) {
+// if a user has tenant-level access, this will propagate the tenant-level permissions into application-level
+// AccessibleResource objects unless an application is explicitly assigned another permission
+// if a user has application-level access, this will propagate the application-level permissions into project-level
+// AccessibleResource objects unless a project is explicitly assigned another permission
+func (c Cx1Client) fillMissingResources(resources []AccessibleResource) ([]AccessibleResource, error) {
 	// first check there is any tenant access
 	var tenantAccess *AccessibleResource
 	for _, r := range resources {
@@ -544,17 +534,20 @@ func (c Cx1Client) fillMissingApplicationResources(resources []AccessibleResourc
 			break
 		}
 	}
-	if tenantAccess == nil {
-		return []AccessibleResource{}, nil
-	}
 
 	seen_applications := make(map[string]*AccessibleResource)
-	missing_applications := []AccessibleResource{}
+	seen_projects := make(map[string]*AccessibleResource)
+	all_applications := []AccessibleResource{}
+	all_projects := []AccessibleResource{}
 
 	for _, r := range resources {
 		if r.ResourceType == "application" {
 			merged_resource := mergeAccessibleResourceRoles(r, *tenantAccess)
 			seen_applications[r.ResourceID] = &merged_resource
+			all_applications = append(all_applications, merged_resource)
+		}
+		if r.ResourceType == "project" {
+			seen_projects[r.ResourceID] = &r
 		}
 	}
 
@@ -567,101 +560,70 @@ func (c Cx1Client) fillMissingApplicationResources(resources []AccessibleResourc
 		applicationMap[a.ApplicationID] = a
 	}
 
-	for _, app := range applications {
-		var app_resource AccessibleResource
-		application := applicationMap[app.ApplicationID]
-
-		if assigned_application, ok := seen_applications[app.ApplicationID]; !ok {
-			app_resource = AccessibleResource{
-				ResourceID:   app.ApplicationID,
-				ResourceType: "application",
-				ResourceName: application.Name,
-			}
-			app_resource.Roles = tenantAccess.Roles
-			missing_applications = append(missing_applications, app_resource)
-			seen_applications[app.ApplicationID] = &app_resource
-		} else {
-			app_resource = mergeAccessibleResourceRoles(*assigned_application, *tenantAccess)
-		}
-	}
-
-	// in progress, to do
 	projects, err := c.GetAllProjects()
 	if err != nil {
 		return []AccessibleResource{}, err
 	}
+	projectMap := make(map[string]Project)
+	for _, p := range projects {
+		projectMap[p.ProjectID] = p
+	}
 
-	seen_projects := make(map[string]*AccessibleResource)
-	missing_projects := []AccessibleResource{}
+	if tenantAccess != nil {
+		for _, app := range applications {
+			var app_resource AccessibleResource
+			application := applicationMap[app.ApplicationID]
 
-	for _, r := range resources {
-		if r.ResourceType == "application" {
-			merged_resource := mergeAccessibleResourceRoles(r, *tenantAccess)
-			seen_applications[r.ResourceID] = &merged_resource
+			if _, ok := seen_applications[app.ApplicationID]; !ok {
+				app_resource = AccessibleResource{
+					ResourceID:   app.ApplicationID,
+					ResourceType: "application",
+					ResourceName: application.Name,
+					Roles:        tenantAccess.Roles,
+				}
+				all_applications = append(all_applications, app_resource)
+				seen_applications[app.ApplicationID] = &app_resource
+			}
 		}
 	}
 
-	for _, project := range projects {
-		if assigned_project, ok := seen_projects[projectId]; !ok {
-			var project Project
-			if p, ok := projectMap[projectId]; ok {
-				project = p
-			} else {
-				project, err = c.GetProjectByID(projectId)
-				if err != nil {
-					return []AccessibleResource{}, err
-				}
-			}
+	for _, p := range projects {
+		projectMap[p.ProjectID] = p
+		var effectiveAccess AccessibleResource
 
-			missing_projects = append(missing_projects, AccessibleResource{
-				ResourceID:   projectId,
+		if assignedAccess, ok := seen_projects[p.ProjectID]; !ok { // do not have this project explicitly assigned
+			effectiveAccess = AccessibleResource{
+				ResourceID:   p.ProjectID,
 				ResourceType: "project",
-				ResourceName: project.Name,
-				Roles:        tenantAccess.Roles,
-			})
-			seen_projects[projectId] = struct{}{}
-		}
-	}
-
-	return missing_applications, nil
-}
-
-func (c Cx1Client) fillMissingProjectResources(resources *[]AccessibleResource) ([]AccessibleResource, error) {
-	seen_projects := make(map[string]struct{})
-	missing_projects := []AccessibleResource{}
-
-	for _, r := range *resources {
-		if r.ResourceType == "project" {
-			seen_projects[r.ResourceID] = struct{}{}
-		}
-	}
-
-	for _, r := range *resources {
-		if r.ResourceType == "application" {
-			app, err := c.GetApplicationByID(r.ResourceID)
-			if err != nil {
-				return []AccessibleResource{}, err
+				ResourceName: p.Name,
+				Roles:        []string{},
 			}
+		} else {
+			effectiveAccess = *assignedAccess
+		}
 
-			for _, projectId := range *app.ProjectIds {
-				if _, ok := seen_projects[projectId]; !ok {
-					project, err := c.GetProjectByID(projectId)
-					if err != nil {
-						return []AccessibleResource{}, err
-					}
-					missing_projects = append(missing_projects, AccessibleResource{
-						ResourceID:   projectId,
-						ResourceType: "project",
-						ResourceName: project.Name,
-						Roles:        r.Roles,
-					})
-					seen_projects[projectId] = struct{}{}
-				}
+		if tenantAccess != nil {
+			effectiveAccess = mergeAccessibleResourceRoles(effectiveAccess, *tenantAccess)
+		}
+
+		for _, a := range *p.Applications {
+			if assigned_application, ok := seen_applications[a]; ok {
+				effectiveAccess = mergeAccessibleResourceRoles(effectiveAccess, *assigned_application)
 			}
 		}
+
+		all_projects = append(all_projects, effectiveAccess)
+		seen_projects[p.ProjectID] = &effectiveAccess
 	}
 
-	return missing_projects, nil
+	var all_resources []AccessibleResource
+	if tenantAccess != nil {
+		all_resources = append(all_resources, *tenantAccess)
+	}
+	all_resources = append(all_resources, all_applications...)
+	all_resources = append(all_resources, all_projects...)
+
+	return all_resources, nil
 }
 
 func filterResourcesByType(resources *[]AccessibleResource, types []string) *[]AccessibleResource {

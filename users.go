@@ -41,7 +41,7 @@ func (c Cx1Client) GetUsers(count uint64) ([]User, error) {
 
 	_, users, err := c.GetXUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
-		BriefRepresentation: false,
+		BriefRepresentation: boolPtr(false),
 	}, count)
 	return users, err
 }
@@ -51,7 +51,7 @@ func (c Cx1Client) GetAllUsers() ([]User, error) {
 
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
-		BriefRepresentation: false,
+		BriefRepresentation: boolPtr(false),
 	})
 	return users, err
 }
@@ -75,9 +75,9 @@ func (c Cx1Client) GetUserByUserName(username string) (User, error) {
 
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
-		BriefRepresentation: false,
+		BriefRepresentation: boolPtr(false),
 		Username:            username,
-		Exact:               true,
+		Exact:               boolPtr(true),
 	})
 
 	if len(users) == 0 {
@@ -94,9 +94,9 @@ func (c Cx1Client) GetUsersByUserName(username string) ([]User, error) {
 
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
-		BriefRepresentation: false,
+		BriefRepresentation: boolPtr(false),
 		Username:            username,
-		Exact:               false,
+		Exact:               boolPtr(false),
 	})
 	return users, err
 }
@@ -105,9 +105,9 @@ func (c Cx1Client) GetUserByEmail(email string) (User, error) {
 	c.logger.Debugf("Get Cx1 User by email: %v", email)
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
-		BriefRepresentation: false,
+		BriefRepresentation: boolPtr(false),
 		Email:               email,
-		Exact:               true,
+		Exact:               boolPtr(true),
 	})
 
 	if err != nil {
