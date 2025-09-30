@@ -1337,31 +1337,31 @@ type ScanSummary struct {
 type ScanSummaryAgeCounter struct {
 	Age              string
 	SeverityCounters []ScanSummarySeverityCounter
-	Counter          uint64
+	Counter          int64
 }
 type ScanSummaryComplianceCounter struct {
 	Compliance string
-	Counter    uint64
+	Counter    int64
 }
 type ScanSummaryFileCounter struct {
 	File    string
-	Counter uint64
+	Counter int64
 }
 type ScanSummaryLanguageCounter struct {
 	Language string
-	Counter  uint64
+	Counter  int64
 }
 type ScanSummaryLicenseCounter struct {
 	License string
-	Counter uint64
+	Counter int64
 }
 type ScanSummaryPackageCounter struct {
 	Package string
-	Counter uint64
+	Counter int64
 }
 type ScanSummaryContainerPackageCounter struct {
 	Package     string
-	Counter     uint64
+	Counter     int64
 	IsMalicious bool
 }
 type ScanSummaryQueriesCounter struct {
@@ -1369,37 +1369,37 @@ type ScanSummaryQueriesCounter struct {
 	Name           uint64                     `json:"queryName"`
 	Severity       string                     `json:"severity"`
 	StatusCounters []ScanSummaryStatusCounter `json:"statusCounters"`
-	Counter        uint64                     `json:"counter"`
+	Counter        int64                      `json:"counter"`
 }
 type ScanSummaryRiskLevelCounter struct {
 	RiskLevel string
-	Counter   uint64
+	Counter   int64
 }
 type ScanSummarySeverityCounter struct {
 	Severity string
-	Counter  uint64
+	Counter  int64
 }
 type ScanSummarySeverityStatusCounter struct {
 	Severity string
 	Status   string
-	Counter  uint64
+	Counter  int64
 }
 type ScanSummaryStateCounter struct {
 	State   string
-	Counter uint64
+	Counter int64
 }
 type ScanSummaryStatusCounter struct {
 	Status  string
-	Counter uint64
+	Counter int64
 }
 
 type ScanSummaryPlatformCounter struct {
 	Platform string
-	Counter  uint64
+	Counter  int64
 }
 type ScanSummaryCategoryCounter struct {
 	Category string
-	Counter  uint64
+	Counter  int64
 }
 
 type ScanSummaryFilter struct {
