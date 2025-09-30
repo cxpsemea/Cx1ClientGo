@@ -401,8 +401,9 @@ func (c Cx1Client) GetScanSummaryByID(scanID string) (ScanSummary, error) {
 func (c Cx1Client) GetScanSummariesByID(scanIDs []string) ([]ScanSummary, error) {
 	scanIdsString := strings.Join(scanIDs, ",")
 	return c.GetScanSummariesFiltered(ScanSummaryFilter{
-		ScanIDs: scanIdsString,
-		Status:  true,
+		ScanIDs:    scanIdsString,
+		Status:     boolPtr(true),
+		Predicates: boolPtr(true),
 	})
 }
 

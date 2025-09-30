@@ -41,7 +41,7 @@ func (c Cx1Client) GetUsers(count uint64) ([]User, error) {
 
 	_, users, err := c.GetXUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
-		BriefRepresentation: false,
+		BriefRepresentation: boolPtr(false),
 	}, count)
 	return users, err
 }
@@ -51,7 +51,7 @@ func (c Cx1Client) GetAllUsers() ([]User, error) {
 
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
-		BriefRepresentation: false,
+		BriefRepresentation: boolPtr(false),
 	})
 	return users, err
 }
@@ -75,9 +75,9 @@ func (c Cx1Client) GetUserByUserName(username string) (User, error) {
 
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
-		BriefRepresentation: false,
+		BriefRepresentation: boolPtr(false),
 		Username:            username,
-		Exact:               true,
+		Exact:               boolPtr(true),
 	})
 
 	if len(users) == 0 {
@@ -94,9 +94,9 @@ func (c Cx1Client) GetUsersByUserName(username string) ([]User, error) {
 
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
-		BriefRepresentation: false,
+		BriefRepresentation: boolPtr(false),
 		Username:            username,
-		Exact:               false,
+		Exact:               boolPtr(false),
 	})
 	return users, err
 }
@@ -105,9 +105,9 @@ func (c Cx1Client) GetUserByEmail(email string) (User, error) {
 	c.logger.Debugf("Get Cx1 User by email: %v", email)
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
-		BriefRepresentation: false,
+		BriefRepresentation: boolPtr(false),
 		Email:               email,
-		Exact:               true,
+		Exact:               boolPtr(true),
 	})
 
 	if err != nil {
@@ -423,7 +423,48 @@ func (c Cx1Client) RemoveUserFromGroupByID(user *User, groupId string) error {
 }
 
 // New generic functions for roles for convenience
+
+// Get all roles for the user - those directly assigned, and those inherited from group membership & hierarchy
+// Unlike GetUserRoles, this does not update the user.Roles list
+func (c Cx1Client) GetAllUserRoles(user *User) ([]Role, error) {
+	roles, err := c.GetUserAssignedRoles(user)
+	if err != nil {
+		return []Role{}, fmt.Errorf("failed to get user's assigned roles: %v", err)
+	}
+
+	inheritedRoles, err := c.GetUserInheritedRoles(user)
+	if err != nil {
+		return []Role{}, fmt.Errorf("failed to get user's inherited roles: %v", err)
+	}
+
+	for _, ir := range inheritedRoles {
+		match := false
+		for _, ur := range roles {
+			if ir.RoleID == ur.RoleID {
+				match = true
+				break
+			}
+		}
+		if !match {
+			roles = append(roles, ir)
+		}
+	}
+
+	return roles, nil
+}
+
+// this function was ambiguous (returned only directly-assigned roles)
+// now you can use GetUserAssignedRoles (roles assigned directly to user),
+// GetUserInheritedRoles (roles inherited from group membership) or
+// GetAllUserRoles (GetUserAssignedRoles + GetUserInheritedRoles)
 func (c Cx1Client) GetUserRoles(user *User) ([]Role, error) {
+	c.depwarn("GetUserRoles", "GetAllUserRoles, GetUserAssignedRoles, or GetUserInheritedRoles")
+	return c.GetUserAssignedRoles(user)
+}
+
+// this returns the roles that are directly assigned to the user
+// does not include roles inherited from group membership
+func (c Cx1Client) GetUserAssignedRoles(user *User) ([]Role, error) {
 	appRoles, err := c.getUserRolesByClientID(user.UserID, c.GetASTAppID())
 	if err != nil {
 		return []Role{}, nil
@@ -438,6 +479,100 @@ func (c Cx1Client) GetUserRoles(user *User) ([]Role, error) {
 	user.FilledRoles = true
 
 	return user.Roles, nil
+}
+
+// this returns the roles inherited from groups to which the user belongs
+func (c Cx1Client) GetUserInheritedRoles(user *User) (roles []Role, err error) {
+	c.logger.Debugf("Get user inherited roles for user %v", user.String())
+	// get user's groups
+	// get all roles from user's groups
+	// go up the group hierarchy
+	if !user.FilledGroups {
+		_, err := c.GetUserGroups(user)
+		if err != nil {
+			return []Role{}, err
+		}
+	}
+	realmRolesMap := make(map[string]struct{})
+	clientRolesMap := make(map[string]map[string]struct{})
+	for _, g := range user.Groups {
+		//c.logger.Infof("User is in group: %v", g.String())
+		fullGroup, err := c.GetGroupByID(g.GroupID)
+		if err != nil {
+			return []Role{}, err
+		}
+		groupRealmRoles, groupClientRoles, err := c.getGroupInheritedRoleStrings(&fullGroup)
+		if err != nil {
+			return []Role{}, err
+		}
+
+		//c.logger.Infof("User belongs to group %v with realm roles %v, client roles %v", fullGroup.String(), groupRealmRoles, groupClientRoles)
+
+		for _, role := range groupRealmRoles {
+			realmRolesMap[role] = struct{}{}
+		}
+		for client, roles := range groupClientRoles {
+			if _, ok := clientRolesMap[client]; !ok {
+				clientRolesMap[client] = make(map[string]struct{})
+			}
+			for _, role := range roles {
+				clientRolesMap[client][role] = struct{}{}
+			}
+		}
+	}
+
+	realmRoleList := []string{}
+	for r := range realmRolesMap {
+		realmRoleList = append(realmRoleList, r)
+	}
+
+	clientRoleList := make(map[string][]string)
+	for client := range clientRolesMap {
+		clientRoleList[client] = []string{}
+		for r := range clientRolesMap[client] {
+			clientRoleList[client] = append(clientRoleList[client], r)
+		}
+	}
+
+	realmRoles, clientRoles, err := c.resolveRealmAndClientRoleLists(&realmRoleList, &clientRoleList)
+	roles = append(realmRoles, clientRoles...)
+	return roles, err
+}
+
+// internal function used by Get*InheritedRoles calls
+func (c Cx1Client) resolveRealmAndClientRoleLists(realmRoles *[]string, clientRoles *map[string][]string) (realmRoleList []Role, clientRoleList []Role, err error) {
+	realmRoleList = []Role{}
+
+	for _, r := range *realmRoles {
+		role, err := c.GetIAMRoleByName(r)
+		if err != nil {
+			return nil, []Role{}, err
+		}
+		realmRoleList = append(realmRoleList, role)
+	}
+
+	clientRoleList = []Role{}
+	clientRoleMap := make(map[string]Role)
+	for client := range *clientRoles {
+		if client == "ast-app" {
+			for _, r := range (*clientRoles)[client] {
+				if val, ok := clientRoleMap[r]; ok {
+					clientRoleList = append(clientRoleList, val)
+				} else {
+					role, err := c.GetAppRoleByName(r)
+
+					if err != nil {
+						return nil, []Role{}, err
+					}
+					clientRoleList = append(clientRoleList, role)
+					clientRoleMap[r] = role
+				}
+			}
+		} else {
+			c.logger.Warnf("Client roles for clients other than ast-app are not supported - current client is %v", client)
+		}
+	}
+	return realmRoleList, clientRoleList, nil
 }
 
 func (c Cx1Client) AddUserRoles(user *User, roles *[]Role) error {

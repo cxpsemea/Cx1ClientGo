@@ -176,3 +176,8 @@ func (v VersionTriad) Compare(test VersionTriad) int {
 		}
 	}
 }
+
+// this is for convenience when initializing structs with *bool members, thanks golang
+func boolPtr(b bool) *bool {
+	return &b
+}
