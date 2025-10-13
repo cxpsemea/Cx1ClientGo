@@ -54,33 +54,37 @@ func (c *Cx1Client) InitializePaginationSettings() {
 
 func (c *Cx1Client) GetPaginationDefaultsSingleTenant() PaginationSettings {
 	return PaginationSettings{
-		Applications:  500,
-		Branches:      100,
-		CxLinks:       100,
-		Groups:        200,
-		GroupMembers:  100,
-		Projects:      500,
-		Results:       200,
-		Scans:         200,
-		ScanSchedules: 200,
-		SASTAggregate: 10000,
-		Users:         200,
+		Applications:     500,
+		Branches:         100,
+		CxLinks:          100,
+		Groups:           200,
+		GroupMembers:     100,
+		Policies:         50,
+		PolicyViolations: 50,
+		Projects:         500,
+		Results:          200,
+		Scans:            200,
+		ScanSchedules:    200,
+		SASTAggregate:    10000,
+		Users:            200,
 	}
 }
 
 func (c *Cx1Client) GetPaginationDefaultsMultiTenant() PaginationSettings {
 	return PaginationSettings{
-		Applications:  50,
-		Branches:      100,
-		CxLinks:       100,
-		Groups:        100,
-		GroupMembers:  50,
-		Projects:      50,
-		Results:       100,
-		Scans:         50,
-		ScanSchedules: 50,
-		SASTAggregate: 10000,
-		Users:         100,
+		Applications:     50,
+		Branches:         100,
+		CxLinks:          100,
+		Groups:           100,
+		GroupMembers:     50,
+		Policies:         20,
+		PolicyViolations: 20,
+		Projects:         50,
+		Results:          100,
+		Scans:            50,
+		ScanSchedules:    50,
+		SASTAggregate:    10000,
+		Users:            100,
 	}
 }
 
