@@ -118,17 +118,19 @@ type ClientVars struct {
 
 // Related to pagination and filtering
 type PaginationSettings struct {
-	Applications  uint64
-	Branches      uint64
-	CxLinks       uint64
-	Groups        uint64
-	GroupMembers  uint64
-	Projects      uint64
-	Results       uint64
-	Scans         uint64
-	ScanSchedules uint64
-	SASTAggregate uint64
-	Users         uint64
+	Applications     uint64
+	Branches         uint64
+	CxLinks          uint64
+	Groups           uint64
+	GroupMembers     uint64
+	Policies         uint64
+	PolicyViolations uint64
+	Projects         uint64
+	Results          uint64
+	Scans            uint64
+	ScanSchedules    uint64
+	SASTAggregate    uint64
+	Users            uint64
 }
 
 type BaseFilter struct {
@@ -139,6 +141,11 @@ type BaseFilter struct {
 type BaseIAMFilter struct {
 	First uint64 `url:"first"` // offset is set automatically for pagination
 	Max   uint64 `url:"max"`   // limit is set automatically for pagination, should generally not be 0
+}
+
+type BasePolicyFilter struct {
+	Page  uint64 `url:"page"`  // eg offset = (page-1)*limit
+	Limit uint64 `url:"limit"` // limit is set automatically for pagination, should generally not be 0
 }
 
 type BaseFilteredResponse struct {
@@ -599,6 +606,64 @@ type OIDCClientScope struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Protocol    string `json:"protocol"`
+}
+
+type Policy struct {
+	PolicyID     uint64    `json:"id"`
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	IsActivated  bool      `json:"isActivated"`
+	Tags         []string  `json:"tags"`
+	BreakBuild   bool      `json:"breakBuild"`
+	PinPolicy    bool      `json:"pinPolicy"`
+	LastViolated time.Time `json:"lastViolated"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	Projects     []struct {
+		AstProjectID string `json:"astProjectId"`
+	} `json:"projects"`
+	NetNewBreakBuild       bool   `json:"netNewBreakBuild"`
+	Type                   string `json:"type"`
+	AllScannersSeverities  []any  `json:"allScannersSeverities"`
+	ViolatingAssocProjects struct {
+		AssocProjects uint64 `json:"assocProjects"`
+		Violating     uint64 `json:"violating"`
+	} `json:"violatingAssocProjects"`
+	DefaultPolicy bool `json:"defaultPolicy"`
+}
+
+type PolicyFilter struct {
+	BasePolicyFilter
+}
+
+type PolicyViolation struct {
+	ViolationID             uint64    `json:"id"`
+	PolicyName              string    `json:"policyName"`
+	ProjectName             string    `json:"projectName"`
+	Branch                  string    `json:"branch"`
+	RuleName                string    `json:"ruleName"`
+	ScanID                  string    `json:"scanId"`
+	ScanDate                time.Time `json:"scanDate"`
+	PolicyTags              []string  `json:"policyTags"`
+	DefaultPolicy           bool      `json:"defaultPolicy"`
+	DefaultPolicyEvaluation bool      `json:"defaultPolicyEvaluation"`
+}
+
+type PolicyViolationFilter struct {
+	BasePolicyFilter
+}
+
+type PolicyViolationDetails struct {
+	Status     string                      `json:"status"`
+	BreakBuild bool                        `json:"breakBuild"`
+	Policies   []PolicyViolationInfoPolicy `json:"policies"`
+}
+type PolicyViolationInfoPolicy struct {
+	PolicyName    string   `json:"policyName"`
+	Description   string   `json:"description"`
+	RulesViolated []string `json:"rulesViolated"`
+	Tags          []string `json:"tags"`
+	BreakBuild    bool     `json:"breakBuild"`
+	Status        string   `json:"status"`
 }
 
 type Preset struct {
