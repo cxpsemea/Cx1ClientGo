@@ -86,7 +86,7 @@ func (c Cx1Client) GetClientByName(clientName string) (OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC client with name %v", clientName)
 
 	var client OIDCClient
-	clients, err := c.GetClients()
+	clients, err := c.GetClientsByName(clientName)
 	if err != nil {
 		return client, err
 	}
@@ -381,7 +381,7 @@ func (c *Cx1Client) GetCurrentClient() (OIDCClient, error) {
 }
 
 // convenience function
-func (c Cx1Client) GetASTAppID() string {
+func (c *Cx1Client) GetASTAppID() string {
 	if c.astAppID == "" {
 		client, err := c.GetClientByName("ast-app")
 		if err != nil {
