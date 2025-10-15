@@ -349,7 +349,8 @@ func (c Cx1Client) GetPresetContents(p *Preset) error {
 	if err != nil {
 		return err
 	}
-	p.QueryFamilies = preset.QueryFamilies
+	//p.QueryFamilies = preset.QueryFamilies
+	*p = preset
 	return nil
 }
 
@@ -399,6 +400,15 @@ func (c Cx1Client) CreateSASTPreset(name, description string, collection SASTQue
 	}
 	u, _ := strconv.ParseUint(presetID, 10, 64)
 	return c.GetSASTPresetByID(u)
+}
+
+func (c Cx1Client) GetAllIACPresets() ([]Preset, error) {
+	count, err := c.GetIACPresetCount()
+	if err != nil {
+		return []Preset{}, err
+	}
+
+	return c.GetIACPresets(count)
 }
 
 func (c Cx1Client) CreateIACPreset(name, description string, collection IACQueryCollection) (Preset, error) {

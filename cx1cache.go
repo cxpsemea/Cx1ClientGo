@@ -118,20 +118,38 @@ func (c *Cx1Cache) RefreshPresets(client *Cx1Client) error {
 	var err error
 	if !c.PresetRefresh {
 		c.PresetRefresh = true
-		c.Presets["sast"], err = client.GetAllSASTPresets()
+		if c.Presets == nil {
+			c.Presets = make(map[string][]Preset)
+		}
+		var presets []Preset
+		presets, err = client.GetAllSASTPresets()
 
 		if err != nil {
 			client.logger.Tracef("Failed while retrieving presets: %s", err)
 		} else {
-			for engine := range c.Presets {
-				for id := range c.Presets[engine] {
-					err := client.GetPresetContents(&c.Presets[engine][id])
-					if err != nil {
-						client.logger.Tracef("Failed to retrieve preset contents for preset %v: %s", c.Presets[engine][id].String(), err)
-					}
+			for id := range presets {
+				err := client.GetPresetContents(&presets[id])
+				if err != nil {
+					client.logger.Tracef("Failed to retrieve preset contents for preset %v: %s", presets[id].String(), err)
 				}
 			}
 		}
+		c.Presets["sast"] = presets
+
+		presets, err = client.GetAllIACPresets()
+
+		if err != nil {
+			client.logger.Tracef("Failed while retrieving presets: %s", err)
+		} else {
+			for id := range presets {
+				err := client.GetPresetContents(&presets[id])
+				if err != nil {
+					client.logger.Tracef("Failed to retrieve preset contents for preset %v: %s", presets[id].String(), err)
+				}
+			}
+		}
+		c.Presets["iac"] = presets
+
 		c.PresetRefresh = false
 	}
 	return err
