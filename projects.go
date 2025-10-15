@@ -516,7 +516,7 @@ func (c Cx1Client) AssignProjectToApplicationsByIDs(projectId string, applicatio
 		return fmt.Errorf("direct app association is not enabled")
 	}
 	var body struct {
-		Applications []string `json:"applications"`
+		Applications []string `json:"applicationIds"`
 	}
 	body.Applications = applicationIds
 	jsonBody, err := json.Marshal(body)
@@ -535,7 +535,7 @@ func (c Cx1Client) RemoveProjectFromApplicationsByIDs(projectId string, applicat
 		return fmt.Errorf("direct app association is not enabled")
 	}
 	var body struct {
-		Applications []string `json:"applications"`
+		Applications []string `json:"applicationIds"`
 	}
 	body.Applications = applicationIds
 	jsonBody, err := json.Marshal(body)
