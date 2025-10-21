@@ -488,3 +488,114 @@ func (c Cx1Client) DeleteCustomResultState(stateId uint64) error {
 func (c ResultState) String() string {
 	return fmt.Sprintf("[%d] %v", c.ID, c.Name)
 }
+
+// returns the full history of results changes for a specific project
+func (c Cx1Client) GetResultsChangeHistoryForProjectByID(projectID string) ([]ResultsChangeHistory, error) {
+	_, changes, err := c.GetAllResultsChangeHistoryFiltered(ResultsChangeFilter{
+		BaseFilter: BaseFilter{Limit: c.pagination.Results},
+		History:    true,
+		EntityID:   projectID,
+		EntityType: "projectID",
+	})
+
+	return changes, err
+}
+
+// returns the full history of results changes for a specific scan
+func (c Cx1Client) GetResultsChangeHistoryForScanByID(scanID string) ([]ResultsChangeHistory, error) {
+	_, changes, err := c.GetAllResultsChangeHistoryFiltered(ResultsChangeFilter{
+		BaseFilter: BaseFilter{Limit: c.pagination.Results},
+		History:    true,
+		EntityID:   scanID,
+		EntityType: "scanID",
+	})
+
+	return changes, err
+}
+
+// returns the full history of results changes for a specific similarityID
+func (c Cx1Client) GetResultsChangeHistoryForSimilarityID(similarityID string) ([]ResultsChangeHistory, error) {
+	_, changes, err := c.GetAllResultsChangeHistoryFiltered(ResultsChangeFilter{
+		BaseFilter: BaseFilter{Limit: c.pagination.Results},
+		History:    true,
+		EntityID:   similarityID,
+		EntityType: "similarityID",
+	})
+
+	return changes, err
+}
+
+// results bulk retrieval - Changelog
+func (c Cx1Client) GetResultsChangeHistoryFiltered(filter ResultsChangeFilter) (uint64, []ResultsChangeHistory, error) {
+	params, _ := query.Values(filter)
+
+	var response struct {
+		Results            []ResultsChangeHistory `json:"results"`
+		TotalSimilarityIds string                 `json:"totalSimilarityIds"`
+	}
+
+	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/sast-results-predicates/changelog?%v", params.Encode()), nil, nil)
+	if err != nil {
+		err = fmt.Errorf("failed to fetch scans matching filter %v: %s", params.Encode(), err)
+		c.logger.Tracef("Error: %s", err)
+		return 0, response.Results, err
+	}
+
+	err = json.Unmarshal(data, &response)
+	if err != nil {
+		return 0, response.Results, err
+	}
+
+	// response.TotalSimilarityIds contains something like: "presenting 10 of 29"
+	var count, total uint64
+	if filter.EntityType == "similarityID" {
+		count = 1
+		total = 1
+	} else {
+		_, err = fmt.Sscanf(response.TotalSimilarityIds, "presenting %d of %d", &count, &total)
+		if err != nil {
+			// If parsing fails, we might not have the total, but we can return what we have.
+			// The API might change its format.
+			c.logger.Warnf("Could not parse TotalSimilarityIds string: '%s'", response.TotalSimilarityIds)
+		}
+	}
+
+	return total, response.Results, nil
+}
+
+// gets all of the results changes available matching a filter
+func (c Cx1Client) GetAllResultsChangeHistoryFiltered(filter ResultsChangeFilter) (uint64, []ResultsChangeHistory, error) {
+	var results []ResultsChangeHistory
+
+	count, rs, err := c.GetResultsChangeHistoryFiltered(filter)
+	results = rs
+
+	for err == nil && count > filter.Offset+filter.Limit && filter.Limit > 0 {
+		filter.Bump()
+		_, rs, err = c.GetResultsChangeHistoryFiltered(filter)
+		results = append(results, rs...)
+	}
+
+	return uint64(len(results)), results, err
+}
+
+// will return at least X resultschanges matching the filter
+// May return more due to paging eg: requesting 101 with a 100-item page can return 200 results
+func (c Cx1Client) GetXResultsChangeHistoryFiltered(filter ResultsChangeFilter, desiredcount uint64) (uint64, []ResultsChangeHistory, error) {
+	var results []ResultsChangeHistory
+
+	_, rs, err := c.GetResultsChangeHistoryFiltered(filter)
+	results = rs
+
+	for err == nil && desiredcount > filter.Offset+filter.Limit && filter.Limit > 0 {
+		filter.Bump()
+		_, rs, err = c.GetResultsChangeHistoryFiltered(filter)
+		results = append(results, rs...)
+	}
+
+	if len(results) > int(desiredcount) {
+		results = results[:desiredcount]
+	}
+
+	return uint64(len(results)), results, err
+}
