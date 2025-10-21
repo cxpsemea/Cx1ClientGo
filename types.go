@@ -845,6 +845,23 @@ type ReportStatus struct {
 	ReportURL string `json:"url"`
 }
 
+type ResultsChangeFilter struct {
+	BaseFilter
+	History    bool   `url:"history,omitempty"` // default false
+	EntityID   string `url:"entityId"`
+	EntityType string `url:"entityType"` // Possible values: similarityID, scanID, projectID
+}
+
+type ResultsChangeHistory struct {
+	SimilarityID string             `json:"similarityId"`
+	Predicates   []ResultsChangelog `json:"predicates"`
+}
+type ResultsChangelog struct {
+	Change string    `json:"change"`
+	Date   time.Time `json:"date"`
+	User   string    `json:"user"`
+}
+
 type ResultsPredicatesBase struct {
 	PredicateID  string `json:"ID,omitempty"`
 	SimilarityID string `json:"similarityId"`
