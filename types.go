@@ -126,6 +126,7 @@ type PaginationSettings struct {
 	Policies         uint64
 	PolicyViolations uint64
 	Projects         uint64
+	ProjectOverviews uint64
 	Results          uint64
 	Scans            uint64
 	ScanSchedules    uint64

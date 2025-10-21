@@ -11,7 +11,7 @@ import (
 func (c Cx1Client) GetAllProjectOverviews() ([]ProjectOverview, error) {
 	c.logger.Debugf("Get All Cx1 Projects")
 	_, projects, err := c.GetAllProjectOverviewsFiltered(ProjectOverviewFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
+		BaseFilter: BaseFilter{Limit: c.pagination.ProjectOverviews},
 	})
 	return projects, err
 }
