@@ -9,9 +9,9 @@ import (
 )
 
 func (c Cx1Client) GetAllProjectOverviews() ([]ProjectOverview, error) {
-	c.logger.Debugf("Get All Cx1 Projects")
+	c.logger.Debugf("Get All Cx1 Project Overviews")
 	_, projects, err := c.GetAllProjectOverviewsFiltered(ProjectOverviewFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
+		BaseFilter: BaseFilter{Limit: c.pagination.ProjectOverviews},
 	})
 	return projects, err
 }
@@ -71,7 +71,7 @@ func (c Cx1Client) GetXProjectOverviewsFiltered(filter ProjectOverviewFilter, co
 func (c Cx1Client) GetProjectOverviewCountFiltered(filter ProjectOverviewFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	filter.Limit = 1
-	c.logger.Debugf("Get Cx1 Project count matching filter: %v", params.Encode())
+	c.logger.Debugf("Get Cx1 Project overview count matching filter: %v", params.Encode())
 	count, _, err := c.GetProjectOverviewsFiltered(filter)
 	return count, err
 }
