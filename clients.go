@@ -8,33 +8,19 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/go-querystring/query"
 )
 
 // Clients
 func (c Cx1Client) GetClients() ([]OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC Clients")
-	var json_clients []map[string]interface{}
-	var clients []OIDCClient
-
-	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", "/clients?briefRepresentation=true&first=0&max=99999999", nil, nil)
-	if err != nil {
-		return clients, err
-	}
-
-	err = json.Unmarshal(response, &json_clients)
-	if err != nil {
-		return clients, err
-	}
-
-	clients = make([]OIDCClient, len(json_clients))
-	for id, client := range json_clients {
-		clients[id], err = clientFromMap(client)
-		if err != nil {
-			return clients, err
-		}
-	}
-
-	c.logger.Tracef("Got %d clients", len(clients))
+	_, clients, err := c.GetAllClientsFiltered(OIDCClientFilter{
+		BaseIAMFilter: BaseIAMFilter{
+			First: 0,
+			Max:   c.pagination.Clients,
+		},
+	})
 	return clients, err
 }
 
@@ -58,46 +44,37 @@ func (c Cx1Client) GetClientByID(guid string) (OIDCClient, error) {
 
 func (c Cx1Client) GetClientsByName(clientName string) ([]OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC clients matching name %v", clientName)
-	var clients []OIDCClient
+	_, clients, err := c.GetAllClientsFiltered(OIDCClientFilter{
+		BaseIAMFilter: BaseIAMFilter{
+			First: 0,
+			Max:   c.pagination.Clients,
+		},
+		ClientID: clientName,
+		Search:   boolPtr(true),
+	})
 
-	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/clients?clientId=%v&search=true&first=0&max=99999999", clientName), nil, nil)
-	if err != nil {
-		return clients, err
-	}
-
-	var json_clients []map[string]interface{}
-	err = json.Unmarshal(response, &json_clients)
-	if err != nil {
-		return clients, err
-	}
-
-	clients = make([]OIDCClient, len(json_clients))
-	for id, client := range json_clients {
-		clients[id], err = clientFromMap(client)
-		if err != nil {
-			return clients, err
-		}
-	}
-
-	return clients, nil
+	return clients, err
 }
 
 func (c Cx1Client) GetClientByName(clientName string) (OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC client with name %v", clientName)
 
 	var client OIDCClient
-	clients, err := c.GetClientsByName(clientName)
+	_, clients, err := c.GetAllClientsFiltered(OIDCClientFilter{
+		BaseIAMFilter: BaseIAMFilter{
+			First: 0,
+			Max:   c.pagination.Clients,
+		},
+		ClientID: clientName,
+		Search:   boolPtr(false),
+	})
 	if err != nil {
 		return client, err
 	}
 
-	for _, c := range clients {
-		if c.ClientID == clientName {
-			client = c
-			return client, nil
-		}
+	if len(clients) == 1 {
+		return clients[0], nil
 	}
-
 	return client, fmt.Errorf("no such client %v found", clientName)
 }
 
@@ -424,4 +401,71 @@ func (c Cx1Client) RegenerateClientSecret(client OIDCClient) (string, error) {
 
 func (client OIDCClient) String() string {
 	return fmt.Sprintf("[%v] %v", ShortenGUID(client.ID), client.ClientID)
+}
+
+func (c Cx1Client) GetClientsFiltered(filter OIDCClientFilter) ([]OIDCClient, error) {
+	var clients []OIDCClient
+	if filter.Max < 10 {
+		filter.Max = 10
+	}
+	params, _ := query.Values(filter)
+
+	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/clients?%v", params.Encode()), nil, nil)
+	if err != nil {
+		return clients, err
+	}
+
+	var json_clients []map[string]interface{}
+	err = json.Unmarshal(response, &json_clients)
+	if err != nil {
+		return clients, err
+	}
+
+	clients = make([]OIDCClient, len(json_clients))
+	for id, client := range json_clients {
+		clients[id], err = clientFromMap(client)
+		if err != nil {
+			return clients, err
+		}
+	}
+
+	return clients, err
+}
+
+func (c Cx1Client) GetAllClientsFiltered(filter OIDCClientFilter) (uint64, []OIDCClient, error) {
+	var clients []OIDCClient
+	// paginate until we get all results.
+	count := uint64(0)
+
+	cs, err := c.GetClientsFiltered(filter)
+	clients = cs
+	count = uint64(len(clients))
+
+	for err == nil && ((filter.Search != nil && *filter.Search) || filter.ClientID == "") && filter.Max > 0 && uint64(len(cs)) > 0 {
+		filter.Bump()
+		cs, err = c.GetClientsFiltered(filter)
+		clients = append(clients, cs...)
+		count = uint64(len(clients))
+	}
+
+	return count, clients, err
+}
+
+func (c Cx1Client) GetXClientsFiltered(filter OIDCClientFilter, count uint64) (uint64, []OIDCClient, error) {
+	var clients []OIDCClient
+
+	cs, err := c.GetClientsFiltered(filter)
+	clients = cs
+
+	for err == nil && count > filter.Max+filter.First && ((filter.Search != nil && *filter.Search) || filter.ClientID == "") && filter.Max > 0 && uint64(len(clients)) < count {
+		filter.Bump()
+		cs, err = c.GetClientsFiltered(filter)
+		clients = append(clients, cs...)
+	}
+
+	if uint64(len(clients)) > count {
+		return count, clients[:count], err
+	}
+
+	return uint64(len(clients)), clients, err
 }

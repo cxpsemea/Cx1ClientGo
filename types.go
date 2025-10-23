@@ -120,6 +120,7 @@ type ClientVars struct {
 type PaginationSettings struct {
 	Applications     uint64
 	Branches         uint64
+	Clients          uint64
 	CxLinks          uint64
 	Groups           uint64
 	GroupMembers     uint64
@@ -607,6 +608,14 @@ type OIDCClientScope struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Protocol    string `json:"protocol"`
+}
+
+type OIDCClientFilter struct {
+	BaseIAMFilter
+	ClientID     string `url:"clientId,omitempty"`
+	Q            string `url:"q,omitempty"`
+	Search       *bool  `url:"search,omitempty"`
+	ViewableOnly *bool  `url:"viewableOnly,omitempty"`
 }
 
 type Policy struct {
