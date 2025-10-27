@@ -392,13 +392,21 @@ func (a *Application) RemoveRule(ruleID string) {
 func (a *Application) AssignProject(project *Project) {
 	a.AddRule("project.name.in", project.Name)
 
-	if !slices.Contains(*a.ProjectIds, project.ProjectID) {
-		newProjs := append(*a.ProjectIds, project.ProjectID)
-		a.ProjectIds = &newProjs
+	if *a.ProjectIds == nil || !slices.Contains(*a.ProjectIds, project.ProjectID) {
+		if *a.ProjectIds == nil {
+			a.ProjectIds = &[]string{project.ProjectID}
+		} else {
+			newProjs := append(*a.ProjectIds, project.ProjectID)
+			a.ProjectIds = &newProjs
+		}
 	}
-	if !slices.Contains(*project.Applications, a.ApplicationID) {
-		newApps := append(*project.Applications, a.ApplicationID)
-		project.Applications = &newApps
+	if project.Applications == nil || !slices.Contains(*project.Applications, a.ApplicationID) {
+		if project.Applications == nil {
+			project.Applications = &[]string{a.ApplicationID}
+		} else {
+			newApps := append(*project.Applications, a.ApplicationID)
+			project.Applications = &newApps
+		}
 	}
 }
 
@@ -418,11 +426,11 @@ func (a *Application) UnassignProject(project *Project) {
 		}
 	}
 
-	if slices.Contains(*a.ProjectIds, project.ProjectID) {
+	if a.ProjectIds != nil && slices.Contains(*a.ProjectIds, project.ProjectID) {
 		newProjs := slices.Delete(*a.ProjectIds, slices.Index(*a.ProjectIds, project.ProjectID), slices.Index(*a.ProjectIds, project.ProjectID)+1)
 		a.ProjectIds = &newProjs
 	}
-	if slices.Contains(*project.Applications, a.ApplicationID) {
+	if project.Applications != nil && slices.Contains(*project.Applications, a.ApplicationID) {
 		newApps := slices.Delete(*project.Applications, slices.Index(*project.Applications, a.ApplicationID), slices.Index(*project.Applications, a.ApplicationID)+1)
 		project.Applications = &newApps
 	}
