@@ -16,6 +16,7 @@ func (p *Preset_v330) String() string {
 }
 
 func (c Cx1Client) GetPresets_v330(count uint64) ([]Preset_v330, error) {
+	c.depwarn("GetPresets_v330", "Get(SAST|IAC)Presets")
 	c.logger.Debugf("Get Cx1 Presets")
 	var preset_response struct {
 		TotalCount uint64        `json:"totalCount"`
@@ -33,6 +34,7 @@ func (c Cx1Client) GetPresets_v330(count uint64) ([]Preset_v330, error) {
 }
 
 func (c Cx1Client) GetPresetCount_v330() (uint64, error) {
+	c.depwarn("GetPresetCount_v330", "Get(SAST|IAC)PresetCount")
 	c.logger.Debugf("Get Cx1 Presets count")
 
 	response, err := c.sendRequest(http.MethodGet, "/presets?limit=1", nil, nil)
@@ -55,6 +57,7 @@ func (c Cx1Client) GetPresetCount_v330() (uint64, error) {
 }
 
 func (c Cx1Client) GetPresetByName_v330(name string) (Preset_v330, error) {
+	c.depwarn("GetPresetByName_v330", "Get(SAST|IAC)PresetByName")
 	c.logger.Debugf("Get preset by name %v", name)
 	var preset_response struct {
 		TotalCount uint64        `json:"totalCount"`
@@ -86,6 +89,7 @@ func (c Cx1Client) GetPresetByName_v330(name string) (Preset_v330, error) {
 }
 
 func (c Cx1Client) GetPresetByID_v330(id uint64) (Preset_v330, error) {
+	c.depwarn("GetPresetByID_v330", "Get(SAST|IAC)PresetByID")
 	c.logger.Debugf("Get preset by id %d", id)
 	var temp_preset struct {
 		Preset_v330
@@ -113,6 +117,7 @@ func (c Cx1Client) GetPresetByID_v330(id uint64) (Preset_v330, error) {
 }
 
 func (c Cx1Client) GetPresetContents_v330(p *Preset_v330, qc *SASTQueryCollection) error {
+	c.depwarn("GetPresetContents_v330", "GetPresetContents")
 	c.logger.Tracef("Fetching contents for preset %v", p.PresetID)
 	if !p.Filled {
 		preset, err := c.GetPresetByID_v330(p.PresetID)
@@ -143,6 +148,7 @@ func (p *Preset_v330) LinkQueries(qc *SASTQueryCollection) {
 
 // convenience
 func (c Cx1Client) GetAllPresets_v330() ([]Preset_v330, error) {
+	c.depwarn("GetAllPresets_v330", "GetAll(SAST|IAC)Presets")
 	count, err := c.GetPresetCount_v330()
 	if err != nil {
 		return []Preset_v330{}, err
@@ -156,6 +162,7 @@ func (p *Preset_v330) AddQueryID(queryId uint64) {
 }
 
 func (c Cx1Client) CreatePreset_v330(name, description string, queryIDs []uint64) (Preset_v330, error) {
+	c.depwarn("CreatePreset_v330", "Create(SAST|IAC)Preset")
 	c.logger.Debugf("Creating preset %v", name)
 	var preset Preset_v330
 
@@ -200,6 +207,7 @@ func (c Cx1Client) CreatePreset_v330(name, description string, queryIDs []uint64
 }
 
 func (c Cx1Client) UpdatePreset_v330(preset *Preset_v330) error {
+	c.depwarn("UpdatePreset_v330", "Update(SAST|IAC)Preset")
 	c.logger.Debugf("Saving preset %v", preset.Name)
 
 	qidstr := make([]string, len(preset.QueryIDs))
@@ -230,6 +238,7 @@ func (c Cx1Client) UpdatePreset_v330(preset *Preset_v330) error {
 }
 
 func (c Cx1Client) DeletePreset_v330(preset *Preset_v330) error {
+	c.depwarn("DeletePreset_v330", "DeletePreset")
 	c.logger.Debugf("Removing preset %v", preset.Name)
 	if !preset.Custom {
 		return fmt.Errorf("cannot delete preset %v - this is a product-default preset", preset.String())
@@ -240,7 +249,7 @@ func (c Cx1Client) DeletePreset_v330(preset *Preset_v330) error {
 }
 
 func (c Cx1Client) GetPresetQueries_v330() (SASTQueryCollection, error) {
-	//c.depwarn("GetPresetQueries", "Get(SAST|IAC)PresetQueries")
+	c.depwarn("GetPresetQueries_v330", "Get(SAST|IAC)PresetQueries")
 	queries := []SASTQuery{}
 
 	collection := SASTQueryCollection{}
