@@ -24,6 +24,9 @@ func (p Preset) String() string {
 
 func (c Cx1Client) newPresetsEnabled() bool {
 	flag, _ := c.CheckFlag("NEW_PRESET_MANAGEMENT_ENABLED")
+	if !flag {
+		c.logger.Debugf("The New Preset Management feature is not enabled in this environment. Old /api/presets endpoints will be used, but these will be disabled in Cx1 Multi-Tenant EOY 2025 and removed from Cx1ClientGo at that time. Ensure your environment has the new feature if you wish to use newer Cx1ClientGo library versions in 2026.")
+	}
 	return flag
 }
 
