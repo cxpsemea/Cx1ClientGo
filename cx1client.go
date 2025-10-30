@@ -233,7 +233,6 @@ func (c Cx1Client) String() string {
 
 func (c *Cx1Client) InitializeClient(quick bool) error {
 	c.SetUserAgent("Cx1ClientGo")
-	c.logger.Warnf("Notice: the cx1clientgo repo is likely to become internal in the future. If you require continued access, please reach out to your CSM or Checkmarx contact.")
 
 	if err := c.refreshAccessToken(); err != nil {
 		return err

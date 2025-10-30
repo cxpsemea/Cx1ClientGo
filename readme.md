@@ -1,6 +1,6 @@
-# Important Repository Announcement
-Due to organization policy, this repository will no longer be public in the near future.
-If you use this repository and require continued access, please contact your CSM/TAM or other Checkmarx representative to discuss options and alternatives.
+# Repository Update
+This repository will remain public but will be moving to a new location in the future. 
+More details around the timeline will be shared as soon as they are available - apologies for the inconvenience.
 
 
 ## Module information
