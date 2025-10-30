@@ -292,6 +292,8 @@ func (c Cx1Client) GetScanMetricsByID(scanID string) (ScanMetrics, error) {
 	return metrics, err
 }
 
+// return the configuration settings for a scan in a specific project
+// this will list configurations like presets, incremental scan settings etc
 func (c Cx1Client) GetScanConfigurationByID(projectID, scanID string) ([]ConfigurationSetting, error) {
 	c.logger.Debugf("Getting scan configuration for project %v, scan %v", projectID, scanID)
 	var scanConfigurations []ConfigurationSetting
@@ -506,6 +508,7 @@ func (c Cx1Client) scanProject(scanConfig map[string]interface{}) (Scan, error) 
 	return scan, err
 }
 
+// Run a scan from a zip file. You can use a ScanConfigurationSet to generate the settings.
 func (c Cx1Client) ScanProjectZipByID(projectID, sourceUrl, branch string, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
 	jsonBody := map[string]interface{}{
 		"project": map[string]interface{}{"id": projectID},
@@ -525,6 +528,7 @@ func (c Cx1Client) ScanProjectZipByID(projectID, sourceUrl, branch string, setti
 	return scan, err
 }
 
+// Run a scan from a git repo. You can use a ScanConfigurationSet to generate the settings.
 func (c Cx1Client) ScanProjectGitByID(projectID, repoUrl, branch string, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
 	jsonBody := map[string]interface{}{
 		"project": map[string]interface{}{"id": projectID},
@@ -544,7 +548,7 @@ func (c Cx1Client) ScanProjectGitByID(projectID, repoUrl, branch string, setting
 	return scan, err
 }
 
-// convenience function
+// Run a scan from a git repo with commit/credentials included. You can use a ScanConfigurationSet to generate the settings.
 func (c Cx1Client) ScanProjectGitByIDWithHandler(projectID string, handler ScanHandler, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
 	jsonBody := map[string]interface{}{
 		"project": map[string]interface{}{"id": projectID},
@@ -592,7 +596,7 @@ func (c Cx1Client) ScanProjectSBOMByID(projectID, sourceUrl, branch, fileType st
 	return scan, err
 }
 
-// convenience function
+// convenience function wrapping ScanProjectZipByID and ScanProjectGitByID
 func (c Cx1Client) ScanProjectByID(projectID, sourceUrl, branch, scanType string, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
 	if scanType == "upload" {
 		return c.ScanProjectZipByID(projectID, sourceUrl, branch, settings, tags)
@@ -603,7 +607,8 @@ func (c Cx1Client) ScanProjectByID(projectID, sourceUrl, branch, scanType string
 	return Scan{}, fmt.Errorf("invalid scanType provided, must be 'upload' or 'git'")
 }
 
-// convenience function
+// convenience function to retrieve if a Scan was incremental
+// this information is also available through the Scan.Metadata.Configs struct
 func (s *Scan) IsIncremental() (bool, error) {
 	for _, scanconfig := range s.Metadata.Configs {
 		if scanconfig.ScanType == "sast" {
@@ -615,15 +620,20 @@ func (s *Scan) IsIncremental() (bool, error) {
 	return false, fmt.Errorf("Scan %v did not have a sast-engine incremental flag set", s.ScanID)
 }
 
-// convenience
+// Poll a running scan periodically until the scan finishes or fails, or the default timeout is reached.
+// The default timeout can be accessed via Get/SetClientVars
 func (c Cx1Client) ScanPolling(s *Scan) (Scan, error) {
 	return c.ScanPollingWithTimeout(s, false, c.consts.ScanPollingDelaySeconds, c.consts.ScanPollingMaxSeconds)
 }
 
+// Poll a running scan periodically until the scan finishes or fails, or the default timeout is reached.
+// Prints the scan status to the log. The default timeout can be accessed via Get/SetClientVars
 func (c Cx1Client) ScanPollingDetailed(s *Scan) (Scan, error) {
 	return c.ScanPollingWithTimeout(s, true, c.consts.ScanPollingDelaySeconds, c.consts.ScanPollingMaxSeconds)
 }
 
+// Poll a running scan periodically until the scan finishes or fails, or the specified timeout is reached.
+// The detailed boolean enables log output with the scan status.
 func (c Cx1Client) ScanPollingWithTimeout(s *Scan, detailed bool, delaySeconds, maxSeconds int) (Scan, error) {
 	c.logger.Infof("Polling status of scan %v", s.ScanID)
 	shortId := ShortenGUID(s.ScanID)
@@ -664,6 +674,8 @@ func (c Cx1Client) ScanPollingWithTimeout(s *Scan, detailed bool, delaySeconds, 
 	return scan, nil
 }
 
+// Retrieve a URL to which data can be uploaded.
+// This is required when uploading a zip file for a scan and when uploading SAST exports for import.
 func (c Cx1Client) GetUploadURL() (string, error) {
 	c.logger.Debugf("Get Cx1 Upload URL")
 	response, err := c.sendRequest(http.MethodPost, "/uploads", nil, nil)
@@ -685,6 +697,8 @@ func (c Cx1Client) GetUploadURL() (string, error) {
 	}
 }
 
+// Upload a file to an UploadURL retrieved from GetUploadURL.
+// Returns the response body as a string, typically a URL
 func (c Cx1Client) PutFile(URL string, filename string) (string, error) {
 	res, err := c.PutFileRaw(URL, filename)
 	if err != nil {
@@ -703,6 +717,9 @@ func (c Cx1Client) PutFile(URL string, filename string) (string, error) {
 	return string(resBody), nil
 }
 
+// Upload a file to an UploadURL retrieved from GetUploadURL.
+// Returns the actual http.Response if needed, for normal Zip scan & SAST Export/Import workflows
+// it is simpler to use the regular PutFile
 func (c Cx1Client) PutFileRaw(URL string, filename string) (*http.Response, error) {
 	c.logger.Tracef("Putting file %v to %v", filename, URL)
 
@@ -724,11 +741,13 @@ func (c Cx1Client) PutFileRaw(URL string, filename string) (*http.Response, erro
 	return c.httpClient.Do(cx1_req)
 }
 
+// this function exists only for compatibility with a generic interface supporting both SAST and Cx1
+// wraps UploadBytes which should be used instead
 func (c Cx1Client) UploadBytesForProjectByID(projectID string, fileContents *[]byte) (string, error) {
-	// this function exists only for compatibility with a generic interface supporting both SAST and Cx1
 	return c.UploadBytes(fileContents)
 }
 
+// Simplifies uploading a zip file for use when starting a scan
 // creates upload URL, uploads, returns upload URL
 func (c Cx1Client) UploadBytes(fileContents *[]byte) (string, error) {
 	uploadUrl, err := c.GetUploadURL()
@@ -780,6 +799,24 @@ func (s ScanMetrics) GetLanguages() []string {
 	return langs
 }
 
+// Add a scan engine to a configuration set.
+// This is only required if you don't want to set specific configs via AddConfig
+func (s *ScanConfigurationSet) AddScanEngine(engine string) {
+	if engine == "iac" {
+		engine = "kics"
+	} else if engine == "2ms" || engine == "secrets" {
+		s.AddConfig("microengines", "2ms", "true")
+		return
+	}
+	newconf := ScanConfiguration{
+		ScanType: engine,
+		Values:   map[string]string{},
+	}
+	s.Configurations = append(s.Configurations, newconf)
+}
+
+// Add a specific key-value configuration for a scan, for example "sast", "incremental", "true"
+// You can find the full list of key-value pairs via Swagger or Get*Configuration calls
 func (s *ScanConfigurationSet) AddConfig(engine, key, value string) {
 	if engine == "iac" {
 		engine = "kics"

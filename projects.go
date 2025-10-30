@@ -328,6 +328,24 @@ func (c Cx1Client) GetProjectConfiguration(project *Project) error {
 	return err
 }
 
+// return the configuration settings for scans set on the tenant level
+// this will list default configurations like presets, incremental scan settings etc if set
+func (c Cx1Client) GetTenantConfiguration() ([]ConfigurationSetting, error) {
+	c.logger.Debugf("Getting tenant configuration")
+	var tenantConfigurations []ConfigurationSetting
+	data, err := c.sendRequest(http.MethodGet, "/configuration/tenant", nil, nil)
+
+	if err != nil {
+		c.logger.Tracef("Failed to get tenant configuration: %v", err)
+		return tenantConfigurations, err
+	}
+
+	err = json.Unmarshal([]byte(data), &tenantConfigurations)
+	return tenantConfigurations, err
+}
+
+// return the configuration settings for scans set on the project level
+// this will list default configurations like presets, incremental scan settings etc if set
 func (c Cx1Client) GetProjectConfigurationByID(projectID string) ([]ConfigurationSetting, error) {
 	c.logger.Debugf("Getting project configuration for project %v", projectID)
 	var projectConfigurations []ConfigurationSetting
@@ -345,7 +363,7 @@ func (c Cx1Client) GetProjectConfigurationByID(projectID string) ([]Configuratio
 	return projectConfigurations, err
 }
 
-// UpdateProjectConfiguration updates the configuration of the project addressed by projectID
+// updates the configuration of the project eg: preset, incremental scans
 func (c Cx1Client) UpdateProjectConfiguration(project *Project, settings []ConfigurationSetting) error {
 	project.Configuration = settings
 	return c.UpdateProjectConfigurationByID(project.ProjectID, settings)
@@ -762,4 +780,20 @@ func (p *Project) GetTags() string {
 		}
 	}
 	return str
+}
+
+func (c ConfigurationSetting) String() string {
+	value := c.Value
+	if value == "" {
+		value = "[UNSET]"
+	}
+	return fmt.Sprintf("%v - %v - %v = %v", c.OriginLevel, c.Category, c.Name, value)
+}
+
+func (c ConfigurationSetting) StringDetailed() string {
+	value := c.Value
+	if value == "" {
+		value = "[UNSET]"
+	}
+	return fmt.Sprintf("%v - %v = %v [Override: %v, options: %v]", c.OriginLevel, c.Key, value, c.AllowOverride, c.ValueTypeParams)
 }
