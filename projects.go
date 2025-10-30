@@ -781,3 +781,19 @@ func (p *Project) GetTags() string {
 	}
 	return str
 }
+
+func (c ConfigurationSetting) String() string {
+	value := c.Value
+	if value == "" {
+		value = "[UNSET]"
+	}
+	return fmt.Sprintf("%v - %v - %v = %v", c.OriginLevel, c.Category, c.Name, value)
+}
+
+func (c ConfigurationSetting) StringDetailed() string {
+	value := c.Value
+	if value == "" {
+		value = "[UNSET]"
+	}
+	return fmt.Sprintf("%v - %v = %v [Override: %v, options: %v]", c.OriginLevel, c.Key, value, c.AllowOverride, c.ValueTypeParams)
+}
