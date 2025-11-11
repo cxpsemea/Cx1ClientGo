@@ -12,7 +12,7 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
-// Clients
+// Get all OIDC Clients in the system
 func (c Cx1Client) GetClients() ([]OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC Clients")
 	_, clients, err := c.GetAllClientsFiltered(OIDCClientFilter{
@@ -24,6 +24,7 @@ func (c Cx1Client) GetClients() ([]OIDCClient, error) {
 	return clients, err
 }
 
+// Get details about a specific OIDC Client by GUID
 func (c Cx1Client) GetClientByID(guid string) (OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC client with ID %v", guid)
 	var client OIDCClient
@@ -42,6 +43,7 @@ func (c Cx1Client) GetClientByID(guid string) (OIDCClient, error) {
 	return clientFromMap(json_client)
 }
 
+// Get all OIDC Clients matching a string
 func (c Cx1Client) GetClientsByName(clientName string) ([]OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC clients matching name %v", clientName)
 	_, clients, err := c.GetAllClientsFiltered(OIDCClientFilter{
@@ -56,6 +58,7 @@ func (c Cx1Client) GetClientsByName(clientName string) ([]OIDCClient, error) {
 	return clients, err
 }
 
+// Gets a specific OIDC client with the client id matching this name exactly
 func (c Cx1Client) GetClientByName(clientName string) (OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC client with name %v", clientName)
 
@@ -78,6 +81,8 @@ func (c Cx1Client) GetClientByName(clientName string) (OIDCClient, error) {
 	return client, fmt.Errorf("no such client %v found", clientName)
 }
 
+// Gets the secret for an OIDC Client
+// Only available to the creator of the OIDC Client
 func (c Cx1Client) GetClientSecret(client *OIDCClient) (string, error) {
 	c.logger.Debugf("Getting OIDC client secret for %v", client.String())
 
@@ -98,6 +103,7 @@ func (c Cx1Client) GetClientSecret(client *OIDCClient) (string, error) {
 	return responseBody.Value, err
 }
 
+// Create a new OIDC client
 func (c Cx1Client) CreateClient(name string, notificationEmails []string, secretExpiration int) (OIDCClient, error) {
 	c.logger.Debugf("Creating OIDC client with name %v", name)
 
@@ -154,6 +160,7 @@ func clientFromMap(data map[string]interface{}) (OIDCClient, error) {
 	return client, err
 }
 
+// Used internally to update an OIDC Client struct from JSON data
 func (c *OIDCClient) ClientFromMap(data map[string]interface{}) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -214,12 +221,6 @@ func (c *OIDCClient) clientToMap() {
 	}
 }
 
-// The original SaveClient is renamed to UpdateClient for consistency with other Update* functions
-func (c Cx1Client) SaveClient(client OIDCClient) error {
-	c.depwarn("SaveClient", "UpdateClient")
-	return c.UpdateClient(client)
-}
-
 /*
 The UpdateClient function should be used sparingly - it will use the contents of the OIDCClient.OIDCClientRaw variable of type map[string]interface{} in the PUT request.
 As a result, changes to the member variables in the OIDCClient object itself (creator & clientsecretexpiry) will not be saved using this method unless they are also updated in OIDCClientRaw.
@@ -238,6 +239,7 @@ func (c Cx1Client) UpdateClient(client OIDCClient) error {
 	return nil
 }
 
+// review Keycloak documentation for correct usage
 func (c Cx1Client) AddClientScopeByID(guid, clientScopeId string) error {
 	c.logger.Debugf("Adding client scope %v to OIDC Client %v", clientScopeId, guid)
 
@@ -245,6 +247,7 @@ func (c Cx1Client) AddClientScopeByID(guid, clientScopeId string) error {
 	return err
 }
 
+// Delete an OIDC Client
 func (c Cx1Client) DeleteClientByID(guid string) error {
 	c.logger.Debugf("Deleting OIDC client with ID %v", guid)
 	if strings.EqualFold(guid, c.GetASTAppID()) {
@@ -254,6 +257,8 @@ func (c Cx1Client) DeleteClientByID(guid string) error {
 	return err
 }
 
+// Retrieve the user account behind the OIDC Client
+// The user account stores the roles, group access, and other mappings
 func (c Cx1Client) GetServiceAccountByID(guid string) (User, error) {
 	c.logger.Debugf("Getting service account user behind OIDC client with ID %v", guid)
 	var user User
@@ -264,53 +269,6 @@ func (c Cx1Client) GetServiceAccountByID(guid string) (User, error) {
 
 	err = json.Unmarshal(response, &user)
 	return user, err
-}
-
-func (c Cx1Client) GetTenantID() string {
-	if c.tenantID != "" {
-		return c.tenantID
-	}
-
-	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", "", nil, nil)
-	if err != nil {
-		c.logger.Warnf("Failed to retrieve tenant ID: %s", err)
-		return c.tenantID
-	}
-
-	var realms struct {
-		ID    string `json:"id"`
-		Realm string `json:"realm"`
-	} // Sometimes this returns an array of one element? Is it possible to return multiple?
-
-	err = json.Unmarshal(response, &realms)
-	if err != nil {
-		c.logger.Warnf("Failed to parse tenant ID: %s", err)
-		c.logger.Tracef("Response was: %v", string(response))
-		return c.tenantID
-	}
-
-	//for _, r := range realms {
-	if realms.Realm == c.tenant {
-		c.tenantID = realms.ID
-	}
-	//}
-	if c.tenantID == "" {
-		c.logger.Warnf("Failed to retrieve tenant ID: no tenant found matching %v", c.tenant)
-	}
-
-	return c.tenantID
-}
-
-func (c Cx1Client) GetTenantName() string {
-	return c.tenant
-}
-
-func (c Cx1Client) GetBaseURL() string {
-	return c.baseUrl
-}
-
-func (c Cx1Client) GetIAMURL() string {
-	return c.iamUrl
 }
 
 func (c Cx1Client) GetClientScopes() ([]OIDCClientScope, error) {

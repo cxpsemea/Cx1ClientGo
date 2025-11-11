@@ -344,6 +344,7 @@ func (c *Cx1Client) SetClaims(claims Cx1Claims) {
 	}
 }
 
+// Check if the license allows a specific engine: SAST, SCA, IAC/KICS, Containers
 func (c Cx1Client) IsEngineAllowed(engine string) (string, bool) {
 	var engineName string
 	var licenseName string
@@ -367,6 +368,7 @@ func (c Cx1Client) IsEngineAllowed(engine string) (string, bool) {
 	return "", false
 }
 
+// Check if a feature flag is set
 func (c Cx1Client) CheckFlag(flag string) (bool, error) {
 	setting, ok := c.flags[flag]
 	if !ok {
@@ -376,6 +378,7 @@ func (c Cx1Client) CheckFlag(flag string) (bool, error) {
 	return setting, nil
 }
 
+// Check which user is set as the tenant owner
 func (c *Cx1Client) GetTenantOwner() (TenantOwner, error) {
 	if c.tenantOwner != nil {
 		return *c.tenantOwner, nil
@@ -395,6 +398,7 @@ func (c *Cx1Client) GetTenantOwner() (TenantOwner, error) {
 	return owner, err
 }
 
+// Retrieve the version strings for various system components
 func (c Cx1Client) GetVersion() (VersionInfo, error) {
 	if c.version != nil {
 		return *c.version, nil
@@ -435,4 +439,51 @@ func (c Cx1Client) Clone() Cx1Client {
 
 func (c *Cx1Client) SetDeprecationWarning(logged bool) {
 	c.suppressdepwarn = !logged
+}
+
+func (c Cx1Client) GetTenantID() string {
+	if c.tenantID != "" {
+		return c.tenantID
+	}
+
+	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", "", nil, nil)
+	if err != nil {
+		c.logger.Warnf("Failed to retrieve tenant ID: %s", err)
+		return c.tenantID
+	}
+
+	var realms struct {
+		ID    string `json:"id"`
+		Realm string `json:"realm"`
+	} // Sometimes this returns an array of one element? Is it possible to return multiple?
+
+	err = json.Unmarshal(response, &realms)
+	if err != nil {
+		c.logger.Warnf("Failed to parse tenant ID: %s", err)
+		c.logger.Tracef("Response was: %v", string(response))
+		return c.tenantID
+	}
+
+	//for _, r := range realms {
+	if realms.Realm == c.tenant {
+		c.tenantID = realms.ID
+	}
+	//}
+	if c.tenantID == "" {
+		c.logger.Warnf("Failed to retrieve tenant ID: no tenant found matching %v", c.tenant)
+	}
+
+	return c.tenantID
+}
+
+func (c Cx1Client) GetTenantName() string {
+	return c.tenant
+}
+
+func (c Cx1Client) GetBaseURL() string {
+	return c.baseUrl
+}
+
+func (c Cx1Client) GetIAMURL() string {
+	return c.iamUrl
 }
