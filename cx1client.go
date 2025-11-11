@@ -248,13 +248,13 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 		}
 
 		if !c.IsUser {
-			oidcclient, err := c.GetClientByName(c.claims.ClientID)
+			oidcclient, err := c.GetClientByName(c.userinfo.ClientName)
 			if err != nil {
-				c.logger.Warnf("Insufficient permissions to retrieve details for current OIDC Client %v: %v", c.claims.ClientID, err)
+				c.logger.Warnf("Insufficient permissions to retrieve details for current OIDC Client %v: %v", c.userinfo.ClientName, err)
 			} else {
 				user, err := c.GetServiceAccountByID(oidcclient.ID)
 				if err != nil {
-					c.logger.Warnf("Insufficient permissions to retrieve details for user behind OIDC Client %v: %v", c.claims.ClientID, err)
+					c.logger.Warnf("Insufficient permissions to retrieve details for user behind OIDC Client %v: %v", c.userinfo.ClientName, err)
 				} else {
 					c.user = &user
 				}
@@ -341,6 +341,13 @@ func (c *Cx1Client) SetClaims(claims Cx1Claims) {
 	}
 	if claims.TenantID != "" {
 		c.tenantID = claims.TenantID
+	}
+
+	c.userinfo = Cx1TokenUserInfo{}
+	c.userinfo.UserID = claims.UserID
+	c.userinfo.UserName = claims.Username
+	if claims.AZP != "" {
+		c.userinfo.ClientName = claims.AZP
 	}
 }
 
@@ -437,6 +444,7 @@ func (c Cx1Client) Clone() Cx1Client {
 	return c
 }
 
+// If you are heavily using functions that throw deprecation warnings you can mute them here
 func (c *Cx1Client) SetDeprecationWarning(logged bool) {
 	c.suppressdepwarn = !logged
 }

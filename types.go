@@ -27,11 +27,12 @@ type Cx1Client struct {
 	consts     ClientVars
 	pagination PaginationSettings
 
-	auth   Cx1ClientAuth
-	claims Cx1Claims
-	user   *User
-	client *OIDCClient
-	IsUser bool
+	auth     Cx1ClientAuth
+	claims   Cx1Claims
+	user     *User
+	client   *OIDCClient
+	IsUser   bool
+	userinfo Cx1TokenUserInfo
 
 	version         *VersionInfo
 	astAppID        string
@@ -41,6 +42,12 @@ type Cx1Client struct {
 	maxRetries      int
 	retryDelay      int
 	suppressdepwarn bool
+}
+
+type Cx1TokenUserInfo struct {
+	UserID     string // token.sub
+	UserName   string // token.preferred_username
+	ClientName string // token.azp
 }
 
 type Cx1ClientAuth struct {
