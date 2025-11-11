@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
+// Return overviews for all projects
 func (c Cx1Client) GetAllProjectOverviews() ([]ProjectOverview, error) {
 	c.logger.Debugf("Get All Cx1 Project Overviews")
 	_, projects, err := c.GetAllProjectOverviewsFiltered(ProjectOverviewFilter{
@@ -68,6 +69,7 @@ func (c Cx1Client) GetXProjectOverviewsFiltered(filter ProjectOverviewFilter, co
 	return count, projects, err
 }
 
+// Get the number of projects/project overviews matching a filter
 func (c Cx1Client) GetProjectOverviewCountFiltered(filter ProjectOverviewFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	filter.Limit = 1
