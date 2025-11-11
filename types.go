@@ -1053,13 +1053,19 @@ type ScanHandler struct {
 }
 
 type ScanMetadata struct {
-	ScanID                string
-	ProjectID             string
-	LOC                   uint64
-	FileCount             uint64
-	IsIncremental         bool
-	IsIncrementalCanceled bool
-	PresetName            string `json:"queryPreset"`
+	ScanID                  string
+	ProjectID               string
+	LOC                     uint64
+	FileCount               uint64
+	IsIncremental           bool
+	IsIncrementalCanceled   bool
+	IncrementalCancelReason string
+	BaseID                  string
+	AddedFilesCount         uint64
+	ChangedFilesCount       uint64
+	DeletedFilesCount       uint64
+	ChangePercentage        float64
+	PresetName              string `json:"queryPreset"`
 }
 
 type ScanMetrics struct {

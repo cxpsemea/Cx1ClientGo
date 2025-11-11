@@ -17,6 +17,7 @@ import (
 
 var ScanSortCreatedDescending = "+created_at"
 
+// Get the details of a scan by scan ID
 func (c Cx1Client) GetScanByID(scanID string) (Scan, error) {
 	var scan Scan
 
@@ -29,6 +30,8 @@ func (c Cx1Client) GetScanByID(scanID string) (Scan, error) {
 	json.Unmarshal([]byte(data), &scan)
 	return scan, nil
 }
+
+// Delete a scan by ID
 func (c Cx1Client) DeleteScanByID(scanID string) error {
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/scans/%v", scanID), nil, nil)
 	if err != nil {
@@ -37,6 +40,8 @@ func (c Cx1Client) DeleteScanByID(scanID string) error {
 
 	return nil
 }
+
+// Cancel a scan by ID
 func (c Cx1Client) CancelScanByID(scanID string) error {
 	var body struct {
 		Status string `json:"status"`
@@ -54,6 +59,7 @@ func (c Cx1Client) CancelScanByID(scanID string) error {
 	return nil
 }
 
+// Return a list of all scans
 func (c Cx1Client) GetAllScans() ([]Scan, error) {
 	_, scans, err := c.GetAllScansFiltered(ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
@@ -61,6 +67,7 @@ func (c Cx1Client) GetAllScans() ([]Scan, error) {
 	return scans, err
 }
 
+// Return a list of all scans for a specific project by ID, filtered by branch
 func (c Cx1Client) GetScansByProjectIDAndBranch(projectID string, branch string) ([]Scan, error) {
 	filter := ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
@@ -71,6 +78,8 @@ func (c Cx1Client) GetScansByProjectIDAndBranch(projectID string, branch string)
 	return scans, err
 }
 
+// Return the last scan filtered by status
+// Statuses are: Completed, Failed, Canceled, Partial, Queued, Running
 func (c Cx1Client) GetLastScansByStatus(status []string) ([]Scan, error) {
 	filter := ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
@@ -81,6 +90,7 @@ func (c Cx1Client) GetLastScansByStatus(status []string) ([]Scan, error) {
 	return scans, err
 }
 
+// Get a list of all scans filtered by status
 func (c Cx1Client) GetScansByStatus(status []string) ([]Scan, error) {
 	filter := ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
@@ -90,6 +100,7 @@ func (c Cx1Client) GetScansByStatus(status []string) ([]Scan, error) {
 	return scans, err
 }
 
+// Get the most recent scan for a specific project
 func (c Cx1Client) GetLastScanByID(projectID string) (Scan, error) {
 	_, scans, err := c.GetScansFiltered(ScanFilter{
 		BaseFilter: BaseFilter{Limit: 1},
@@ -102,6 +113,7 @@ func (c Cx1Client) GetLastScanByID(projectID string) (Scan, error) {
 	return Scan{}, fmt.Errorf("no scans run")
 }
 
+// Return a list of the most recent scans for a specific project
 func (c Cx1Client) GetLastScansByID(projectID string, limit uint64) ([]Scan, error) {
 	_, scans, err := c.GetXScansFiltered(ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
@@ -123,6 +135,7 @@ func (c Cx1Client) GetLastScansByIDFiltered(projectID string, filter ScanFilter)
 	return scans, err
 }
 
+// Returns a list of scans for a specific project, filtered by status, returning up to limit items
 func (c Cx1Client) GetLastScansByStatusAndID(projectID string, limit uint64, status []string) ([]Scan, error) {
 	_, scans, err := c.GetXScansFiltered(ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
@@ -133,6 +146,7 @@ func (c Cx1Client) GetLastScansByStatusAndID(projectID string, limit uint64, sta
 	return scans, err
 }
 
+// Returns a list of all scans matching the supplied filter, ordered most-recent first
 func (c Cx1Client) GetLastScansFiltered(filter ScanFilter) ([]Scan, error) {
 	filter.Sort = append(filter.Sort, ScanSortCreatedDescending)
 	_, scans, err := c.GetAllScansFiltered(filter)
@@ -159,6 +173,7 @@ func (c Cx1Client) GetLastScansByEngineFiltered(engine string, limit uint64, fil
 	return scans, nil
 }
 
+// filterScansByEngine filters a slice of Scan objects, returning only those that include the specified engine.
 func filterScansByEngine(scans []Scan, engine string) []Scan {
 	var filteredScans []Scan
 	for _, scan := range scans {
@@ -190,6 +205,7 @@ func (c Cx1Client) GetScansFiltered(filter ScanFilter) (uint64, []Scan, error) {
 	return scanResponse.FilteredTotalCount, scanResponse.Scans, err
 }
 
+// Return all scans matching a filter
 func (c Cx1Client) GetAllScansFiltered(filter ScanFilter) (uint64, []Scan, error) {
 	var scans []Scan
 
@@ -205,6 +221,7 @@ func (c Cx1Client) GetAllScansFiltered(filter ScanFilter) (uint64, []Scan, error
 	return count, scans, err
 }
 
+// Return x scans matching a filter
 func (c Cx1Client) GetXScansFiltered(filter ScanFilter, count uint64) (uint64, []Scan, error) {
 	var scans []Scan
 
@@ -224,6 +241,7 @@ func (c Cx1Client) GetXScansFiltered(filter ScanFilter, count uint64) (uint64, [
 	return count, scans, err
 }
 
+// TotalCount calculates the total number of results across all scanner types within a ScanSummary.
 func (s ScanSummary) TotalCount() uint64 {
 	var count uint64
 	count = 0
@@ -250,12 +268,14 @@ func (s ScanSummary) String() string {
 	)
 }
 
+// returns the number of scans in the system
 func (c Cx1Client) GetScanCount() (uint64, error) {
 	c.logger.Debugf("Get scan count")
 	count, _, err := c.GetScansFiltered(ScanFilter{BaseFilter: BaseFilter{Limit: 1}})
 	return count, err
 }
 
+// returns the number of scans in the system matching a filter
 func (c Cx1Client) GetScanCountFiltered(filter ScanFilter) (uint64, error) {
 	filter.Limit = 1
 	params, _ := query.Values(filter)
@@ -264,6 +284,7 @@ func (c Cx1Client) GetScanCountFiltered(filter ScanFilter) (uint64, error) {
 	return count, err
 }
 
+// returns the metadata for a scan
 func (c Cx1Client) GetScanMetadataByID(scanID string) (ScanMetadata, error) {
 	var scanmeta ScanMetadata
 
@@ -277,6 +298,7 @@ func (c Cx1Client) GetScanMetadataByID(scanID string) (ScanMetadata, error) {
 	return scanmeta, nil
 }
 
+// returns the metrics for a scan
 func (c Cx1Client) GetScanMetricsByID(scanID string) (ScanMetrics, error) {
 	c.logger.Debugf("Getting scan metrics for scan %v", scanID)
 
@@ -375,6 +397,7 @@ func (c Cx1Client) GetXScanSASTAggregateSummaryFiltered(filter SASTAggregateSumm
 }
 */
 
+// Returns a summary (count) of all scans in the tenant
 func (c Cx1Client) GetScansSummary() (ScanStatusSummary, error) {
 	var summaryResponse struct {
 		Status ScanStatusSummary
@@ -389,6 +412,7 @@ func (c Cx1Client) GetScansSummary() (ScanStatusSummary, error) {
 	return summaryResponse.Status, err
 }
 
+// Returns the summary for a scan's results, by scan id
 func (c Cx1Client) GetScanSummaryByID(scanID string) (ScanSummary, error) {
 	summaries, err := c.GetScanSummariesByID([]string{scanID})
 	if err != nil {
@@ -400,6 +424,7 @@ func (c Cx1Client) GetScanSummaryByID(scanID string) (ScanSummary, error) {
 	return summaries[0], nil
 }
 
+// Returns the summary for multiple scans' results, by scan id
 func (c Cx1Client) GetScanSummariesByID(scanIDs []string) ([]ScanSummary, error) {
 	scanIdsString := strings.Join(scanIDs, ",")
 	return c.GetScanSummariesFiltered(ScanSummaryFilter{
@@ -409,6 +434,7 @@ func (c Cx1Client) GetScanSummariesByID(scanIDs []string) ([]ScanSummary, error)
 	})
 }
 
+// Return a list of scan summaries for scans matching the filter
 func (c Cx1Client) GetScanSummariesFiltered(filter ScanSummaryFilter) ([]ScanSummary, error) {
 	var ScansSummaries struct {
 		BaseFilteredResponse
@@ -440,6 +466,7 @@ func (c Cx1Client) GetScanSummariesFiltered(filter ScanSummaryFilter) ([]ScanSum
 	return ScansSummaries.ScanSum, nil
 }
 
+// retieves the logs from a scan by ID, currently engine must be "sast"
 func (c Cx1Client) GetScanLogsByID(scanID, engine string) ([]byte, error) {
 	c.logger.Debugf("Fetching scan logs for scan %v", scanID)
 
@@ -465,6 +492,8 @@ func (c Cx1Client) GetScanLogsByID(scanID, engine string) ([]byte, error) {
 	return data, nil
 }
 
+// retrieves the source code used to run a scan.
+// the source code is in a zip archive
 func (c Cx1Client) GetScanSourcesByID(scanID string) ([]byte, error) {
 	c.logger.Debugf("Fetching scan sources for scan %v", scanID)
 
@@ -478,6 +507,8 @@ func (c Cx1Client) GetScanSourcesByID(scanID string) ([]byte, error) {
 	return data, nil
 }
 
+// returns the workflow for a scan by ID
+// this shows the steps in the scan flow from when the scan was uploaded until it was complete
 func (c Cx1Client) GetScanWorkflowByID(scanID string) ([]WorkflowLog, error) {
 	var workflow []WorkflowLog
 
@@ -491,6 +522,7 @@ func (c Cx1Client) GetScanWorkflowByID(scanID string) ([]WorkflowLog, error) {
 	return workflow, err
 }
 
+// scanProject is an internal helper function to send a POST request to the `/scans` endpoint to initiate a scan.
 func (c Cx1Client) scanProject(scanConfig map[string]interface{}) (Scan, error) {
 	scan := Scan{}
 
@@ -782,6 +814,7 @@ func (s ScanStatusSummary) String() string {
 	return fmt.Sprintf("Summary of all scan statuses: %d queued, %d running, %d completed, %d partial, %d canceled, %d failed", s.Queued, s.Running, s.Completed, s.Partial, s.Canceled, s.Failed)
 }
 
+// HasLanguage checks if the scan metrics contain data for a specific programming language.
 func (s ScanMetrics) HasLanguage(lang string) bool {
 	for scanLang := range s.ScannedFilesPerLanguage {
 		if strings.EqualFold(scanLang, lang) {
@@ -791,6 +824,7 @@ func (s ScanMetrics) HasLanguage(lang string) bool {
 	return false
 }
 
+// returns the languages
 func (s ScanMetrics) GetLanguages() []string {
 	langs := []string{}
 	for scanLang := range s.ScannedFilesPerLanguage {
