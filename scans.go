@@ -17,6 +17,22 @@ import (
 
 var ScanSortCreatedDescending = "-created_at"
 
+var ScanStatus = struct {
+	Queued    string
+	Running   string
+	Completed string
+	Partial   string
+	Canceled  string
+	Failed    string
+}{
+	Queued:    "Queued",
+	Running:   "Running",
+	Completed: "Completed",
+	Partial:   "Partial",
+	Canceled:  "Canceled",
+	Failed:    "Failed",
+}
+
 // Get the details of a scan by scan ID
 func (c Cx1Client) GetScanByID(scanID string) (Scan, error) {
 	var scan Scan
@@ -80,6 +96,7 @@ func (c Cx1Client) GetScansByProjectIDAndBranch(projectID string, branch string)
 
 // Return the last scan filtered by status
 // Statuses are: Completed, Failed, Canceled, Partial, Queued, Running
+// Status also available in the ScanStatus enum
 func (c Cx1Client) GetLastScansByStatus(status []string) ([]Scan, error) {
 	filter := ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
@@ -831,50 +848,6 @@ func (s ScanMetrics) GetLanguages() []string {
 		langs = append(langs, scanLang)
 	}
 	return langs
-}
-
-// Add a scan engine to a configuration set.
-// This is only required if you don't want to set specific configs via AddConfig
-func (s *ScanConfigurationSet) AddScanEngine(engine string) {
-	if engine == "iac" {
-		engine = "kics"
-	} else if engine == "2ms" || engine == "secrets" {
-		s.AddConfig("microengines", "2ms", "true")
-		return
-	}
-	newconf := ScanConfiguration{
-		ScanType: engine,
-		Values:   map[string]string{},
-	}
-	s.Configurations = append(s.Configurations, newconf)
-}
-
-// Add a specific key-value configuration for a scan, for example "sast", "incremental", "true"
-// You can find the full list of key-value pairs via Swagger or Get*Configuration calls
-func (s *ScanConfigurationSet) AddConfig(engine, key, value string) {
-	if engine == "iac" {
-		engine = "kics"
-	} else if engine == "2ms" || engine == "secrets" {
-		s.AddConfig("microengines", "2ms", "true")
-		return
-	}
-
-	for i := range s.Configurations {
-		if s.Configurations[i].ScanType == engine {
-			if key != "" {
-				s.Configurations[i].Values[key] = value
-			}
-			return
-		}
-	}
-	newconf := ScanConfiguration{
-		ScanType: engine,
-		Values:   map[string]string{},
-	}
-	if key != "" {
-		newconf.Values[key] = value
-	}
-	s.Configurations = append(s.Configurations, newconf)
 }
 
 /* misc future stuff

@@ -271,9 +271,9 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 	c.version = &cxVersion
 
 	if check, _ := c.version.CheckCxOne("3.12.7"); check < 0 {
-		c.logger.Tracef("Version %v < 3.12.7: AUDIT_QUERY_TENANT = Corp, AUDIT_QUERY_APPLICATION = Team", c.version.CxOne)
-		AUDIT_QUERY_TENANT = "Corp"
-		AUDIT_QUERY_APPLICATION = "Team"
+		c.logger.Tracef("Version %v < 3.12.7: AUDIT_QUERY.TENANT = Corp, AUDIT_QUERY.APPLICATION = Team", c.version.CxOne)
+		AUDIT_QUERY.TENANT = "Corp"
+		AUDIT_QUERY.APPLICATION = "Team"
 	}
 
 	if check, _ := c.version.CheckCxOne("3.30.45"); check < 0 {

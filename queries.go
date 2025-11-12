@@ -48,7 +48,7 @@ func (q AuditQuery_v312) ToQuery() SASTQuery {
 		CweID:              q.Cwe,
 		IsExecutable:       q.IsExecutable,
 		QueryDescriptionId: q.CxDescriptionId,
-		Custom:             q.Level != AUDIT_QUERY_PRODUCT,
+		Custom:             q.Level != AUDIT_QUERY.PRODUCT,
 		EditorKey:          q.Key,
 		SastID:             0,
 	}
@@ -63,9 +63,9 @@ func (c Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollecti
 	var queries_v312 []AuditQuery_v312
 	var queries []SASTQuery
 	switch level {
-	case AUDIT_QUERY_TENANT:
+	case AUDIT_QUERY.TENANT:
 		url = "/cx-audit/queries"
-	case AUDIT_QUERY_PROJECT:
+	case AUDIT_QUERY.PROJECT:
 		url = fmt.Sprintf("/cx-audit/queries?projectId=%v", levelId)
 	default:
 		return collection, fmt.Errorf("invalid level %v, options are currently: Corp or Project", level)
@@ -85,11 +85,11 @@ func (c Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollecti
 
 	for id := range queries_v312 {
 		switch queries_v312[id].Level {
-		case AUDIT_QUERY_TENANT:
+		case AUDIT_QUERY.TENANT:
 			queries_v312[id].LevelID = c.QueryTypeTenant()
-		case AUDIT_QUERY_PROJECT:
+		case AUDIT_QUERY.PROJECT:
 			queries_v312[id].LevelID = levelId
-		case AUDIT_QUERY_APPLICATION:
+		case AUDIT_QUERY.APPLICATION:
 			if applicationId == "" {
 				project, err := c.GetProjectByID(levelId)
 				if err != nil {
@@ -103,7 +103,7 @@ func (c Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollecti
 				applicationId = (*project.Applications)[0]
 			}
 			queries_v312[id].LevelID = applicationId
-		case AUDIT_QUERY_PRODUCT:
+		case AUDIT_QUERY.PRODUCT:
 			queries_v312[id].LevelID = c.QueryTypeProduct()
 		}
 
@@ -263,9 +263,9 @@ func (q *IACQuery) MergeQuery(nq IACQuery) {
 func (q SASTQuery) StringDetailed() string {
 	var scope string
 	switch q.Level {
-	case AUDIT_QUERY_PRODUCT:
+	case AUDIT_QUERY.PRODUCT:
 		scope = "Product"
-	case AUDIT_QUERY_TENANT:
+	case AUDIT_QUERY.TENANT:
 		scope = "Tenant"
 	default:
 		scope = fmt.Sprintf("%v %v", q.Level, ShortenGUID(q.LevelID))
@@ -282,9 +282,9 @@ func (q IACQuery) String() string {
 func (q IACQuery) StringDetailed() string {
 	var scope string
 	switch q.Level {
-	case AUDIT_QUERY_PRODUCT:
+	case AUDIT_QUERY.PRODUCT:
 		scope = "Product"
-	case AUDIT_QUERY_TENANT:
+	case AUDIT_QUERY.TENANT:
 		scope = "Tenant"
 	default:
 		scope = fmt.Sprintf("%v %v", q.Level, ShortenGUID(q.LevelID))

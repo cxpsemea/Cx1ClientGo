@@ -40,12 +40,12 @@ func (c Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery
 	var queries_v310 []AuditQuery_v310
 
 	switch level {
-	case AUDIT_QUERY_TENANT:
+	case AUDIT_QUERY.TENANT:
 		url = "/cx-audit/queries"
-	case AUDIT_QUERY_PROJECT, AUDIT_QUERY_APPLICATION:
+	case AUDIT_QUERY.PROJECT, AUDIT_QUERY.APPLICATION:
 		url = fmt.Sprintf("/cx-audit/queries?projectId=%v", levelId)
 	default:
-		return queries_v310, fmt.Errorf("invalid level %v, options are currently: %v, %v, or %v", level, AUDIT_QUERY_TENANT, AUDIT_QUERY_APPLICATION, AUDIT_QUERY_PROJECT)
+		return queries_v310, fmt.Errorf("invalid level %v, options are currently: %v, %v, or %v", level, AUDIT_QUERY.TENANT, AUDIT_QUERY.APPLICATION, AUDIT_QUERY.PROJECT)
 	}
 
 	response, err := c.sendRequest(http.MethodGet, url, nil, nil)
@@ -63,11 +63,11 @@ func (c Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery
 	for id := range queries_v310 {
 		queries_v310[id].ParsePath()
 		switch queries_v310[id].Level {
-		case AUDIT_QUERY_TENANT:
-			queries_v310[id].LevelID = AUDIT_QUERY_TENANT
-		case AUDIT_QUERY_PROJECT:
+		case AUDIT_QUERY.TENANT:
+			queries_v310[id].LevelID = AUDIT_QUERY.TENANT
+		case AUDIT_QUERY.PROJECT:
 			queries_v310[id].LevelID = levelId
-		case AUDIT_QUERY_APPLICATION:
+		case AUDIT_QUERY.APPLICATION:
 			if applicationId == "" {
 				project, err := c.GetProjectByID(levelId)
 				if err != nil {
@@ -79,10 +79,10 @@ func (c Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery
 				applicationId = (*project.Applications)[0]
 			}
 			queries_v310[id].LevelID = applicationId
-		case AUDIT_QUERY_PRODUCT:
-			queries_v310[id].LevelID = AUDIT_QUERY_PRODUCT
+		case AUDIT_QUERY.PRODUCT:
+			queries_v310[id].LevelID = AUDIT_QUERY.PRODUCT
 		case "Tenant":
-			queries_v310[id].LevelID = AUDIT_QUERY_TENANT
+			queries_v310[id].LevelID = AUDIT_QUERY.TENANT
 		}
 	}
 
@@ -143,7 +143,7 @@ func (c Cx1Client) DeleteQueryByName_v310(level, levelID, language, group, query
 
 func (c Cx1Client) AuditNewQuery_v310(language, group, name string) (AuditQuery_v310, error) {
 	c.depwarn("AuditNewQuery_v310", "CreateQueryOverride")
-	newQuery, err := c.GetQueryByName_v310(AUDIT_QUERY_TENANT, AUDIT_QUERY_TENANT, language, "CxDefaultQueryGroup", "CxDefaultQuery")
+	newQuery, err := c.GetQueryByName_v310(AUDIT_QUERY.TENANT, AUDIT_QUERY.TENANT, language, "CxDefaultQueryGroup", "CxDefaultQuery")
 	if err != nil {
 		return newQuery, err
 	}
@@ -329,7 +329,7 @@ func (c Cx1Client) GetQueries_v310() (SASTQueryCollection, error) {
 		return qc, err
 	}
 
-	aq, err := c.GetQueriesByLevelID_v310(AUDIT_QUERY_TENANT, "")
+	aq, err := c.GetQueriesByLevelID_v310(AUDIT_QUERY.TENANT, "")
 	if err != nil {
 		return qc, err
 	}

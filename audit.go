@@ -17,10 +17,12 @@ import (
 	This file contains the query-related functions that require an audit session (compiling queries, updating queries, creating overrides)
 */
 
-var AUDIT_QUERY_PRODUCT = "Cx"
-var AUDIT_QUERY_TENANT = "Tenant"
-var AUDIT_QUERY_APPLICATION = "Application"
-var AUDIT_QUERY_PROJECT = "Project"
+var AUDIT_QUERY = struct {
+	PRODUCT     string
+	TENANT      string
+	APPLICATION string
+	PROJECT     string
+}{"Cx", "Tenant", "Application", "Project"}
 
 type requestIDBody struct {
 	Message string `json:"message"`
@@ -43,16 +45,16 @@ type requestQueryStatus struct {
 */
 
 func (c Cx1Client) QueryTypeProduct() string {
-	return AUDIT_QUERY_PRODUCT
+	return AUDIT_QUERY.PRODUCT
 }
 func (c Cx1Client) QueryTypeTenant() string {
-	return AUDIT_QUERY_TENANT
+	return AUDIT_QUERY.TENANT
 }
 func (c Cx1Client) QueryTypeApplication() string {
-	return AUDIT_QUERY_APPLICATION
+	return AUDIT_QUERY.APPLICATION
 }
 func (c Cx1Client) QueryTypeProject() string {
-	return AUDIT_QUERY_PROJECT
+	return AUDIT_QUERY.PROJECT
 }
 
 func (c Cx1Client) AuditCreateSession(engine, filter string) (AuditSession, error) {
@@ -383,14 +385,14 @@ func (c Cx1Client) GetAuditSASTQueryByKey(auditSession *AuditSession, key string
 
 	query := q.ToSASTQuery()
 	switch query.Level {
-	case AUDIT_QUERY_APPLICATION:
+	case AUDIT_QUERY.APPLICATION:
 		query.LevelID = auditSession.ApplicationID
-	case AUDIT_QUERY_PRODUCT:
-		query.LevelID = AUDIT_QUERY_PRODUCT
-	case AUDIT_QUERY_PROJECT:
+	case AUDIT_QUERY.PRODUCT:
+		query.LevelID = AUDIT_QUERY.PRODUCT
+	case AUDIT_QUERY.PROJECT:
 		query.LevelID = auditSession.ProjectID
-	case AUDIT_QUERY_TENANT:
-		query.LevelID = AUDIT_QUERY_TENANT
+	case AUDIT_QUERY.TENANT:
+		query.LevelID = AUDIT_QUERY.TENANT
 	}
 
 	return query, nil
@@ -417,14 +419,14 @@ func (c Cx1Client) GetAuditIACQueryByID(auditSession *AuditSession, queryId stri
 
 	query := q.ToIACQuery()
 	switch query.Level {
-	case AUDIT_QUERY_APPLICATION:
+	case AUDIT_QUERY.APPLICATION:
 		query.LevelID = auditSession.ApplicationID
-	case AUDIT_QUERY_PRODUCT:
-		query.LevelID = AUDIT_QUERY_PRODUCT
-	case AUDIT_QUERY_PROJECT:
+	case AUDIT_QUERY.PRODUCT:
+		query.LevelID = AUDIT_QUERY.PRODUCT
+	case AUDIT_QUERY.PROJECT:
 		query.LevelID = auditSession.ProjectID
-	case AUDIT_QUERY_TENANT:
-		query.LevelID = AUDIT_QUERY_TENANT
+	case AUDIT_QUERY.TENANT:
+		query.LevelID = AUDIT_QUERY.TENANT
 	}
 
 	return query, nil
@@ -473,12 +475,12 @@ func (c Cx1Client) GetAuditQueryTreeByLevelID(auditSession *AuditSession, level,
 	var url string
 	var querytree []AuditQueryTree
 	switch level {
-	case AUDIT_QUERY_TENANT:
+	case AUDIT_QUERY.TENANT:
 		url = fmt.Sprintf("/query-editor/sessions/%v/queries", auditSession.ID)
-	case AUDIT_QUERY_PROJECT:
+	case AUDIT_QUERY.PROJECT:
 		url = fmt.Sprintf("/query-editor/sessions/%v/queries?projectId=%v", auditSession.ID, levelId)
 	default:
-		return querytree, fmt.Errorf("invalid level %v, options are currently: %v or %v", level, AUDIT_QUERY_TENANT, AUDIT_QUERY_PROJECT)
+		return querytree, fmt.Errorf("invalid level %v, options are currently: %v or %v", level, AUDIT_QUERY.TENANT, AUDIT_QUERY.PROJECT)
 	}
 
 	response, err := c.sendRequest(http.MethodGet, url, nil, nil)
@@ -516,15 +518,15 @@ func (c Cx1Client) CreateQueryOverride(auditSession *AuditSession, level string,
 // When creating overrides, it is best to first fetch the full query collection (via GetSASTQueryCollection) to pass in the base query
 func (c Cx1Client) CreateSASTQueryOverride(auditSession *AuditSession, level string, baseQuery *SASTQuery) (SASTQuery, error) {
 	var newQuery SASTQuery
-	if strings.EqualFold(level, AUDIT_QUERY_APPLICATION) {
-		level = AUDIT_QUERY_APPLICATION
+	if strings.EqualFold(level, AUDIT_QUERY.APPLICATION) {
+		level = AUDIT_QUERY.APPLICATION
 		if auditSession.ApplicationID == "" {
 			return newQuery, fmt.Errorf("requested to create an application-level query but the current %v for project %v has no application associated", auditSession.String(), auditSession.ProjectName)
 		}
-	} else if strings.EqualFold(level, AUDIT_QUERY_PROJECT) {
-		level = AUDIT_QUERY_PROJECT
-	} else if strings.EqualFold(level, AUDIT_QUERY_TENANT) {
-		level = AUDIT_QUERY_TENANT
+	} else if strings.EqualFold(level, AUDIT_QUERY.PROJECT) {
+		level = AUDIT_QUERY.PROJECT
+	} else if strings.EqualFold(level, AUDIT_QUERY.TENANT) {
+		level = AUDIT_QUERY.TENANT
 	} else {
 		return newQuery, fmt.Errorf("invalid query override level specified ('%v'), use functions cx1client.QueryTypeTenant, QueryTypeApplication, and QueryTypeProduct", level)
 	}
@@ -583,14 +585,14 @@ func (c Cx1Client) CreateSASTQueryOverride(auditSession *AuditSession, level str
 	}
 
 	switch level {
-	case AUDIT_QUERY_APPLICATION:
+	case AUDIT_QUERY.APPLICATION:
 		newQuery.LevelID = auditSession.ApplicationID
-	case AUDIT_QUERY_PRODUCT:
-		newQuery.LevelID = AUDIT_QUERY_PRODUCT
-	case AUDIT_QUERY_PROJECT:
+	case AUDIT_QUERY.PRODUCT:
+		newQuery.LevelID = AUDIT_QUERY.PRODUCT
+	case AUDIT_QUERY.PROJECT:
 		newQuery.LevelID = auditSession.ProjectID
-	case AUDIT_QUERY_TENANT:
-		newQuery.LevelID = AUDIT_QUERY_TENANT
+	case AUDIT_QUERY.TENANT:
+		newQuery.LevelID = AUDIT_QUERY.TENANT
 	}
 
 	if newQuery.QueryID == 0 {
@@ -603,15 +605,15 @@ func (c Cx1Client) CreateSASTQueryOverride(auditSession *AuditSession, level str
 // When creating overrides, it is best to first fetch the full query collection (via GetIACQueryCollection) to pass in the base query
 func (c Cx1Client) CreateIACQueryOverride(auditSession *AuditSession, level string, baseQuery *IACQuery) (IACQuery, error) {
 	var newQuery IACQuery
-	if strings.EqualFold(level, AUDIT_QUERY_APPLICATION) {
-		level = AUDIT_QUERY_APPLICATION
+	if strings.EqualFold(level, AUDIT_QUERY.APPLICATION) {
+		level = AUDIT_QUERY.APPLICATION
 		if auditSession.ApplicationID == "" {
 			return newQuery, fmt.Errorf("requested to create an application-level query but the current %v for project %v has no application associated", auditSession.String(), auditSession.ProjectName)
 		}
-	} else if strings.EqualFold(level, AUDIT_QUERY_PROJECT) {
-		level = AUDIT_QUERY_PROJECT
-	} else if strings.EqualFold(level, AUDIT_QUERY_TENANT) {
-		level = AUDIT_QUERY_TENANT
+	} else if strings.EqualFold(level, AUDIT_QUERY.PROJECT) {
+		level = AUDIT_QUERY.PROJECT
+	} else if strings.EqualFold(level, AUDIT_QUERY.TENANT) {
+		level = AUDIT_QUERY.TENANT
 	} else {
 		return newQuery, fmt.Errorf("invalid query override level specified ('%v'), use functions cx1client.QueryTypeTenant, QueryTypeApplication, and QueryTypeProduct", level)
 	}
@@ -663,23 +665,23 @@ func (c Cx1Client) CreateIACQueryOverride(auditSession *AuditSession, level stri
 	}
 
 	switch level {
-	case AUDIT_QUERY_APPLICATION:
+	case AUDIT_QUERY.APPLICATION:
 		newQuery.LevelID = auditSession.ApplicationID
-	case AUDIT_QUERY_PRODUCT:
-		newQuery.LevelID = AUDIT_QUERY_PRODUCT
-	case AUDIT_QUERY_PROJECT:
+	case AUDIT_QUERY.PRODUCT:
+		newQuery.LevelID = AUDIT_QUERY.PRODUCT
+	case AUDIT_QUERY.PROJECT:
 		newQuery.LevelID = auditSession.ProjectID
-	case AUDIT_QUERY_TENANT:
-		newQuery.LevelID = AUDIT_QUERY_TENANT
+	case AUDIT_QUERY.TENANT:
+		newQuery.LevelID = AUDIT_QUERY.TENANT
 	}
 
 	if newQuery.QueryID == "" {
 		switch level {
-		case AUDIT_QUERY_APPLICATION:
+		case AUDIT_QUERY.APPLICATION:
 			newQuery.QueryID = "a" + baseQuery.QueryID[1:]
-		case AUDIT_QUERY_PROJECT:
+		case AUDIT_QUERY.PROJECT:
 			newQuery.QueryID = "p" + baseQuery.QueryID[1:]
-		case AUDIT_QUERY_TENANT:
+		case AUDIT_QUERY.TENANT:
 			newQuery.QueryID = "t" + baseQuery.QueryID[1:]
 		default:
 			c.logger.Warnf("Unknown query level: %v", level)
@@ -1254,7 +1256,7 @@ func (q AuditSASTQuery) ToSASTQuery() SASTQuery {
 		CweID:              q.Metadata.Cwe,
 		IsExecutable:       q.Metadata.IsExecutable,
 		QueryDescriptionId: q.Metadata.CxDescriptionID,
-		Custom:             q.Level != AUDIT_QUERY_PRODUCT,
+		Custom:             q.Level != AUDIT_QUERY.PRODUCT,
 		EditorKey:          q.Key,
 		SastID:             q.Metadata.SastID,
 	}
@@ -1367,7 +1369,7 @@ func (q AuditIACQuery) ToIACQuery() IACQuery {
 		Category:       q.Metadata.Category,
 		Platform:       q.Metadata.Platform,
 		Severity:       q.Metadata.Severity,
-		Custom:         q.Level != AUDIT_QUERY_PRODUCT,
+		Custom:         q.Level != AUDIT_QUERY.PRODUCT,
 		Description:    q.Metadata.Description,
 		DescriptionID:  q.Metadata.DescriptionID,
 		DescriptionURL: q.Metadata.DescriptionURL,

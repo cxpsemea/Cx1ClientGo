@@ -779,20 +779,7 @@ func (c Cx1Client) MoveProjectBetweenApplications(project *Project, sourceApplic
 
 // Returns a specific configuration by 'key'
 func (p Project) GetConfigurationByName(configKey string) *ConfigurationSetting {
-	return getConfigurationByName(&p.Configuration, configKey)
-}
-
-func (c Cx1Client) GetConfigurationByName(config *[]ConfigurationSetting, configKey string) *ConfigurationSetting {
-	return getConfigurationByName(config, configKey)
-}
-
-func getConfigurationByName(config *[]ConfigurationSetting, configKey string) *ConfigurationSetting {
-	for id := range *config {
-		if (*config)[id].Key == configKey || (*config)[id].Name == configKey {
-			return &((*config)[id])
-		}
-	}
-	return nil
+	return getConfigurationByKey(&p.Configuration, configKey)
 }
 
 func (p *Project) String() string {
@@ -809,20 +796,4 @@ func (p *Project) GetTags() string {
 		}
 	}
 	return str
-}
-
-func (c ConfigurationSetting) String() string {
-	value := c.Value
-	if value == "" {
-		value = "[UNSET]"
-	}
-	return fmt.Sprintf("%v - %v - %v = %v", c.OriginLevel, c.Category, c.Name, value)
-}
-
-func (c ConfigurationSetting) StringDetailed() string {
-	value := c.Value
-	if value == "" {
-		value = "[UNSET]"
-	}
-	return fmt.Sprintf("%v - %v = %v [Override: %v, options: %v]", c.OriginLevel, c.Key, value, c.AllowOverride, c.ValueTypeParams)
 }

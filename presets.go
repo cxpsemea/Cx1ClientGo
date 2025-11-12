@@ -519,7 +519,7 @@ func (p Preset) GetSASTQueryCollection(queries SASTQueryCollection) SASTQueryCol
 	for _, fam := range p.QueryFamilies {
 		for _, qid := range fam.QueryIDs {
 			u, _ := strconv.ParseUint(qid, 0, 64)
-			if query := queries.GetQueryByLevelAndID(AUDIT_QUERY_PRODUCT, AUDIT_QUERY_PRODUCT, u); query != nil && query.IsExecutable {
+			if query := queries.GetQueryByLevelAndID(AUDIT_QUERY.PRODUCT, AUDIT_QUERY.PRODUCT, u); query != nil && query.IsExecutable {
 				coll.AddQuery(*query)
 			}
 		}
