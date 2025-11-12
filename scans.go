@@ -17,6 +17,22 @@ import (
 
 var ScanSortCreatedDescending = "-created_at"
 
+var ScanStatus = struct {
+	Queued    string
+	Running   string
+	Completed string
+	Partial   string
+	Canceled  string
+	Failed    string
+}{
+	Queued:    "Queued",
+	Running:   "Running",
+	Completed: "Completed",
+	Partial:   "Partial",
+	Canceled:  "Canceled",
+	Failed:    "Failed",
+}
+
 // Get the details of a scan by scan ID
 func (c Cx1Client) GetScanByID(scanID string) (Scan, error) {
 	var scan Scan
@@ -80,6 +96,7 @@ func (c Cx1Client) GetScansByProjectIDAndBranch(projectID string, branch string)
 
 // Return the last scan filtered by status
 // Statuses are: Completed, Failed, Canceled, Partial, Queued, Running
+// Status also available in the ScanStatus enum
 func (c Cx1Client) GetLastScansByStatus(status []string) ([]Scan, error) {
 	filter := ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
