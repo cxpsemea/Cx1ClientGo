@@ -270,15 +270,15 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 	}
 	c.version = &cxVersion
 
-	if check, _ := c.version.CheckCxOne("3.12.7"); check >= 0 {
-		c.logger.Tracef("Version %v > 3.12.7: AUDIT_QUERY_TENANT = Tenant, AUDIT_QUERY_APPLICATION = Application", c.version.CxOne)
-		AUDIT_QUERY_TENANT = "Tenant"
-		AUDIT_QUERY_APPLICATION = "Application"
+	if check, _ := c.version.CheckCxOne("3.12.7"); check < 0 {
+		c.logger.Tracef("Version %v < 3.12.7: AUDIT_QUERY_TENANT = Corp, AUDIT_QUERY_APPLICATION = Team", c.version.CxOne)
+		AUDIT_QUERY_TENANT = "Corp"
+		AUDIT_QUERY_APPLICATION = "Team"
 	}
 
-	if check, _ := c.version.CheckCxOne("3.30.45"); check >= 0 {
-		c.logger.Tracef("Version %v > 3.30.0: ScanSortCreatedDescending = -created_at", c.version.CxOne)
-		ScanSortCreatedDescending = "-created_at"
+	if check, _ := c.version.CheckCxOne("3.30.45"); check < 0 {
+		c.logger.Tracef("Version %v < 3.30.0: ScanSortCreatedDescending = +created_at", c.version.CxOne)
+		ScanSortCreatedDescending = "+created_at"
 	}
 
 	c.InitializeClientVars()
@@ -377,6 +377,13 @@ func (c Cx1Client) IsEngineAllowed(engine string) (string, bool) {
 
 // Check if a feature flag is set
 func (c Cx1Client) CheckFlag(flag string) (bool, error) {
+	if len(c.flags) == 0 {
+		c.logger.Debugf("No flags defined, refreshing")
+		err := c.RefreshFlags()
+		if err != nil {
+			return false, err
+		}
+	}
 	setting, ok := c.flags[flag]
 	if !ok {
 		return false, fmt.Errorf("no such flag: %v", flag)

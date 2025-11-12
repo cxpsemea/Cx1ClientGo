@@ -15,7 +15,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-var ScanSortCreatedDescending = "+created_at"
+var ScanSortCreatedDescending = "-created_at"
 
 // Get the details of a scan by scan ID
 func (c Cx1Client) GetScanByID(scanID string) (Scan, error) {
