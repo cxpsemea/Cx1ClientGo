@@ -8,6 +8,15 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
+func (c Cx1Client) GetAllApplicationOverviews() ([]ApplicationOverview, error) {
+	c.logger.Debugf("Get All Cx1 Application Overviews")
+	_, applications, err := c.GetAllApplicationOverviewsFiltered(ApplicationOverviewFilter{
+		BaseFilter: BaseFilter{Limit: c.pagination.Applications},
+	})
+
+	return applications, err
+}
+
 // Returns the total number of matching results plus an array of applications with
 // one page of results (from filter.Offset to filter.Offset+filter.Limit)
 func (c Cx1Client) GetApplicationOverviewsFiltered(filter ApplicationOverviewFilter) (uint64, []ApplicationOverview, error) {

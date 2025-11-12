@@ -18,8 +18,8 @@ import (
 */
 
 var AUDIT_QUERY_PRODUCT = "Cx"
-var AUDIT_QUERY_TENANT = "Corp"
-var AUDIT_QUERY_APPLICATION = "Team"
+var AUDIT_QUERY_TENANT = "Tenant"
+var AUDIT_QUERY_APPLICATION = "Application"
 var AUDIT_QUERY_PROJECT = "Project"
 
 type requestIDBody struct {

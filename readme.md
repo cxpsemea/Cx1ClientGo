@@ -21,13 +21,7 @@ import (
 func main() {
 	logger := log.New()
 	logger.Infof( "Starting" )
-
-	base_url := os.Args[1]
-	iam_url := os.Args[2]
-	tenant := os.Args[3]
-	api_key := os.Args[4]
-
-	cx1client, err := Cx1ClientGo.NewAPIKeyClient( &http.Client{}, base_url, iam_url, tenant, api_key, logger )
+	cx1client, err := Cx1ClientGo.NewClient(&http.Client{}, logger)
 	if err != nil {
 		log.Error( "Error creating client: " + err.Error() )
 		return 
@@ -38,6 +32,24 @@ func main() {
 }
 ```
 
+Using the NewClient function includes command-line arguments - the above example will include output help on command-line arguments when executed:
+```
+> go run . -h
+[INFO][2025-11-11 14:00:57.344] Starting
+Usage of C:\..\cx1test.exe:
+  -apikey string
+        CheckmarxOne API Key (if not using client id/secret)
+  -client string
+        CheckmarxOne Client ID (if not using API Key)
+  -cx1 string
+        Optional: CheckmarxOne platform URL, if not defined in the test config.yaml
+  -iam string
+        Optional: CheckmarxOne IAM URL, if not defined in the test config.yaml
+  -secret string
+        CheckmarxOne Client Secret (if not using API Key)
+  -tenant string
+        Optional: CheckmarxOne tenant, if not defined in the test config.yaml
+```
 
 
 More complete workflow example:

@@ -12,7 +12,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// Projects
+// Create a new project
 func (c Cx1Client) CreateProject(projectname string, cx1_group_ids []string, tags map[string]string) (Project, error) {
 	c.logger.Debugf("Create Project: %v", projectname)
 	data := map[string]interface{}{
@@ -51,6 +51,8 @@ func (c Cx1Client) CreateProject(projectname string, cx1_group_ids []string, tag
 	return project, err
 }
 
+// Create a new project inside an application
+// Does not wait/poll until the project is created and attached to the application
 func (c Cx1Client) CreateProjectInApplicationWOPolling(projectname string, cx1_group_ids []string, tags map[string]string, applicationId string) (Project, error) {
 	c.logger.Debugf("Create Project %v in applicationId %v", projectname, applicationId)
 	data := map[string]interface{}{
@@ -113,6 +115,7 @@ func (c Cx1Client) CreateProjectInApplicationWOPolling(projectname string, cx1_g
 	return project, err
 }
 
+// Create a project in an application and poll until the project is created and attached to the application
 func (c Cx1Client) CreateProjectInApplication(projectname string, cx1_group_ids []string, tags map[string]string, applicationId string) (Project, error) {
 	project, err := c.CreateProjectInApplicationWOPolling(projectname, cx1_group_ids, tags, applicationId)
 	if err != nil {
@@ -122,10 +125,13 @@ func (c Cx1Client) CreateProjectInApplication(projectname string, cx1_group_ids 
 	return c.ProjectInApplicationPollingByID(project.ProjectID, applicationId)
 }
 
+// Poll a specific project until it shows as attached to the application, by ID
 func (c Cx1Client) ProjectInApplicationPollingByID(projectId, applicationId string) (Project, error) {
 	return c.ProjectInApplicationPollingByIDWithTimeout(projectId, applicationId, c.consts.ProjectApplicationLinkPollingDelaySeconds, c.consts.ProjectApplicationLinkPollingMaxSeconds)
 }
 
+// Poll a specific project until it shows as attached to the application, by ID
+// Polling occurs every delaySeconds until maxSeconds is reached
 func (c Cx1Client) ProjectInApplicationPollingByIDWithTimeout(projectId, applicationId string, delaySeconds, maxSeconds int) (Project, error) {
 	project, err := c.GetProjectByID(projectId)
 	pollingCounter := 0
@@ -163,6 +169,7 @@ func (c Cx1Client) GetAllProjects() ([]Project, error) {
 	return projects, err
 }
 
+// Get a specific project by ID
 func (c Cx1Client) GetProjectByID(projectID string) (Project, error) {
 	c.logger.Debugf("Getting Project with ID %v...", projectID)
 	var project Project
@@ -295,7 +302,7 @@ func (c Cx1Client) GetXProjectsFiltered(filter ProjectFilter, count uint64) (uin
 	return count, projects, err
 }
 
-// convenience
+// check if project is assigned to a group by ID
 func (p *Project) IsInGroupID(groupId string) bool {
 	for _, g := range p.Groups {
 		if g == groupId {
@@ -305,10 +312,12 @@ func (p *Project) IsInGroupID(groupId string) bool {
 	return false
 }
 
+// check if project is assigned to a group
 func (p *Project) IsInGroup(group *Group) bool {
 	return p.IsInGroupID(group.GroupID)
 }
 
+// check if project is assigned to an application by ID
 func (p *Project) IsInApplicationID(appId string) bool {
 	for _, g := range *p.Applications {
 		if g == appId {
@@ -318,10 +327,12 @@ func (p *Project) IsInApplicationID(appId string) bool {
 	return false
 }
 
+// check if project is assigned to an application
 func (p *Project) IsInApplication(app *Application) bool {
 	return p.IsInApplicationID(app.ApplicationID)
 }
 
+// Get the project's configuration and update the project.Configuration field
 func (c Cx1Client) GetProjectConfiguration(project *Project) error {
 	configurations, err := c.GetProjectConfigurationByID(project.ProjectID)
 	project.Configuration = configurations
@@ -369,6 +380,7 @@ func (c Cx1Client) UpdateProjectConfiguration(project *Project, settings []Confi
 	return c.UpdateProjectConfigurationByID(project.ProjectID, settings)
 }
 
+// update the project's configuration
 func (c Cx1Client) UpdateProjectConfigurationByID(projectID string, settings []ConfigurationSetting) error {
 	if len(settings) == 0 {
 		return fmt.Errorf("empty list of settings provided")
@@ -392,6 +404,7 @@ func (c Cx1Client) UpdateProjectConfigurationByID(projectID string, settings []C
 	return nil
 }
 
+// Set a project's configured git branch
 func (c Cx1Client) SetProjectBranchByID(projectID, branch string, allowOverride bool) error {
 	var setting ConfigurationSetting
 	setting.Key = "scan.handler.git.branch"
@@ -461,6 +474,7 @@ func (c Cx1Client) GetXProjectBranchesFiltered(filter ProjectBranchFilter, count
 	return branches, err
 }
 
+// Get the count of all projects in the system
 func (c Cx1Client) GetProjectCount() (uint64, error) {
 	c.logger.Debugf("Get Cx1 Projects Count")
 	count, _, err := c.GetProjectsFiltered(ProjectFilter{BaseFilter: BaseFilter{Limit: 1}})
@@ -477,6 +491,7 @@ func (c Cx1Client) GetProjectCountByName(name string) (uint64, error) {
 	return count, err
 }
 
+// Get the count of all projects matching the filter
 func (c Cx1Client) GetProjectCountFiltered(filter ProjectFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	filter.Limit = 1
@@ -485,10 +500,12 @@ func (c Cx1Client) GetProjectCountFiltered(filter ProjectFilter) (uint64, error)
 	return count, err
 }
 
+// Returns a URL to the project's overview page
 func (c Cx1Client) ProjectLink(p *Project) string {
 	return fmt.Sprintf("%v/projects/%v/overview", c.baseUrl, p.ProjectID)
 }
 
+// Sets a project's default repository configuration
 func (c Cx1Client) SetProjectRepositoryByID(projectID, repository string, allowOverride bool) error {
 	var setting ConfigurationSetting
 	setting.Key = "scan.handler.git.repository"
@@ -498,6 +515,7 @@ func (c Cx1Client) SetProjectRepositoryByID(projectID, repository string, allowO
 	return c.UpdateProjectConfigurationByID(projectID, []ConfigurationSetting{setting})
 }
 
+// Sets a project's default preset configuration
 func (c Cx1Client) SetProjectPresetByID(projectID, presetName string, allowOverride bool) error {
 	var setting ConfigurationSetting
 	setting.Key = "scan.config.sast.presetName"
@@ -507,6 +525,7 @@ func (c Cx1Client) SetProjectPresetByID(projectID, presetName string, allowOverr
 	return c.UpdateProjectConfigurationByID(projectID, []ConfigurationSetting{setting})
 }
 
+// Sets a project's default language mode (single/multi language scanning)
 func (c Cx1Client) SetProjectLanguageModeByID(projectID, languageMode string, allowOverride bool) error {
 	var setting ConfigurationSetting
 	setting.Key = "scan.config.sast.languageMode"
@@ -516,6 +535,7 @@ func (c Cx1Client) SetProjectLanguageModeByID(projectID, languageMode string, al
 	return c.UpdateProjectConfigurationByID(projectID, []ConfigurationSetting{setting})
 }
 
+// Sets a projet's default file filter
 func (c Cx1Client) SetProjectFileFilterByID(projectID, filter string, allowOverride bool) error {
 	var setting ConfigurationSetting
 	setting.Key = "scan.config.sast.filter"
@@ -630,6 +650,8 @@ func (c Cx1Client) UpdateProject(project *Project) error {
 	return err
 }
 
+// Delete the project
+// There is no UNDO
 func (c Cx1Client) DeleteProject(p *Project) error {
 	c.logger.Debugf("Deleting Project %v", p.String())
 
@@ -671,6 +693,8 @@ func (p *Project) AssignApplicationByID(appId string) {
 	p.Applications = &newApps
 }
 
+// Remove a project from an application and vice versa.
+// Requires the project or application to be saved via UpdateProject/UpdateApplication to take effect
 func (p *Project) RemoveApplication(app *Application) {
 	if !p.IsInApplication(app) {
 		return
@@ -701,6 +725,8 @@ func (c Cx1Client) GetOrCreateProjectByName(name string) (Project, error) {
 	return c.CreateProject(name, []string{}, map[string]string{})
 }
 
+// Find a specific project by name. Should be in a specific application by name.
+// If the project doesn't exist, it is created
 func (c Cx1Client) GetOrCreateProjectInApplicationByName(projectName, applicationName string) (Project, Application, error) {
 	var application Application
 	var project Project
@@ -729,6 +755,8 @@ func (c Cx1Client) GetOrCreateProjectInApplicationByName(projectName, applicatio
 	return project, application, nil
 }
 
+// Moves a project from one application to another in one operation
+// This is necessary for limited-permission users with application-based access assignments
 func (c Cx1Client) MoveProjectBetweenApplications(project *Project, sourceApplicationIDs, destinationApplicationIDs []string) error {
 	var requestBody struct {
 		Source []string `json:"applicationIdsToDisassociate"`
@@ -749,6 +777,7 @@ func (c Cx1Client) MoveProjectBetweenApplications(project *Project, sourceApplic
 	return nil
 }
 
+// Returns a specific configuration by 'key'
 func (p Project) GetConfigurationByName(configKey string) *ConfigurationSetting {
 	return getConfigurationByName(&p.Configuration, configKey)
 }

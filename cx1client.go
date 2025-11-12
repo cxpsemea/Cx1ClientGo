@@ -248,13 +248,13 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 		}
 
 		if !c.IsUser {
-			oidcclient, err := c.GetClientByName(c.claims.ClientID)
+			oidcclient, err := c.GetClientByName(c.userinfo.ClientName)
 			if err != nil {
-				c.logger.Warnf("Insufficient permissions to retrieve details for current OIDC Client %v: %v", c.claims.ClientID, err)
+				c.logger.Warnf("Insufficient permissions to retrieve details for current OIDC Client %v: %v", c.userinfo.ClientName, err)
 			} else {
 				user, err := c.GetServiceAccountByID(oidcclient.ID)
 				if err != nil {
-					c.logger.Warnf("Insufficient permissions to retrieve details for user behind OIDC Client %v: %v", c.claims.ClientID, err)
+					c.logger.Warnf("Insufficient permissions to retrieve details for user behind OIDC Client %v: %v", c.userinfo.ClientName, err)
 				} else {
 					c.user = &user
 				}
@@ -270,15 +270,15 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 	}
 	c.version = &cxVersion
 
-	if check, _ := c.version.CheckCxOne("3.12.7"); check >= 0 {
-		c.logger.Tracef("Version %v > 3.12.7: AUDIT_QUERY_TENANT = Tenant, AUDIT_QUERY_APPLICATION = Application", c.version.CxOne)
-		AUDIT_QUERY_TENANT = "Tenant"
-		AUDIT_QUERY_APPLICATION = "Application"
+	if check, _ := c.version.CheckCxOne("3.12.7"); check < 0 {
+		c.logger.Tracef("Version %v < 3.12.7: AUDIT_QUERY_TENANT = Corp, AUDIT_QUERY_APPLICATION = Team", c.version.CxOne)
+		AUDIT_QUERY_TENANT = "Corp"
+		AUDIT_QUERY_APPLICATION = "Team"
 	}
 
-	if check, _ := c.version.CheckCxOne("3.30.45"); check >= 0 {
-		c.logger.Tracef("Version %v > 3.30.0: ScanSortCreatedDescending = -created_at", c.version.CxOne)
-		ScanSortCreatedDescending = "-created_at"
+	if check, _ := c.version.CheckCxOne("3.30.45"); check < 0 {
+		c.logger.Tracef("Version %v < 3.30.0: ScanSortCreatedDescending = +created_at", c.version.CxOne)
+		ScanSortCreatedDescending = "+created_at"
 	}
 
 	c.InitializeClientVars()
@@ -342,8 +342,16 @@ func (c *Cx1Client) SetClaims(claims Cx1Claims) {
 	if claims.TenantID != "" {
 		c.tenantID = claims.TenantID
 	}
+
+	c.userinfo = Cx1TokenUserInfo{}
+	c.userinfo.UserID = claims.UserID
+	c.userinfo.UserName = claims.Username
+	if claims.AZP != "" {
+		c.userinfo.ClientName = claims.AZP
+	}
 }
 
+// Check if the license allows a specific engine: SAST, SCA, IAC/KICS, Containers
 func (c Cx1Client) IsEngineAllowed(engine string) (string, bool) {
 	var engineName string
 	var licenseName string
@@ -367,7 +375,15 @@ func (c Cx1Client) IsEngineAllowed(engine string) (string, bool) {
 	return "", false
 }
 
+// Check if a feature flag is set
 func (c Cx1Client) CheckFlag(flag string) (bool, error) {
+	if len(c.flags) == 0 {
+		c.logger.Debugf("No flags defined, refreshing")
+		err := c.RefreshFlags()
+		if err != nil {
+			return false, err
+		}
+	}
 	setting, ok := c.flags[flag]
 	if !ok {
 		return false, fmt.Errorf("no such flag: %v", flag)
@@ -376,6 +392,7 @@ func (c Cx1Client) CheckFlag(flag string) (bool, error) {
 	return setting, nil
 }
 
+// Check which user is set as the tenant owner
 func (c *Cx1Client) GetTenantOwner() (TenantOwner, error) {
 	if c.tenantOwner != nil {
 		return *c.tenantOwner, nil
@@ -395,6 +412,7 @@ func (c *Cx1Client) GetTenantOwner() (TenantOwner, error) {
 	return owner, err
 }
 
+// Retrieve the version strings for various system components
 func (c Cx1Client) GetVersion() (VersionInfo, error) {
 	if c.version != nil {
 		return *c.version, nil
@@ -433,6 +451,54 @@ func (c Cx1Client) Clone() Cx1Client {
 	return c
 }
 
+// If you are heavily using functions that throw deprecation warnings you can mute them here
 func (c *Cx1Client) SetDeprecationWarning(logged bool) {
 	c.suppressdepwarn = !logged
+}
+
+func (c Cx1Client) GetTenantID() string {
+	if c.tenantID != "" {
+		return c.tenantID
+	}
+
+	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", "", nil, nil)
+	if err != nil {
+		c.logger.Warnf("Failed to retrieve tenant ID: %s", err)
+		return c.tenantID
+	}
+
+	var realms struct {
+		ID    string `json:"id"`
+		Realm string `json:"realm"`
+	} // Sometimes this returns an array of one element? Is it possible to return multiple?
+
+	err = json.Unmarshal(response, &realms)
+	if err != nil {
+		c.logger.Warnf("Failed to parse tenant ID: %s", err)
+		c.logger.Tracef("Response was: %v", string(response))
+		return c.tenantID
+	}
+
+	//for _, r := range realms {
+	if realms.Realm == c.tenant {
+		c.tenantID = realms.ID
+	}
+	//}
+	if c.tenantID == "" {
+		c.logger.Warnf("Failed to retrieve tenant ID: no tenant found matching %v", c.tenant)
+	}
+
+	return c.tenantID
+}
+
+func (c Cx1Client) GetTenantName() string {
+	return c.tenant
+}
+
+func (c Cx1Client) GetBaseURL() string {
+	return c.baseUrl
+}
+
+func (c Cx1Client) GetIAMURL() string {
+	return c.iamUrl
 }

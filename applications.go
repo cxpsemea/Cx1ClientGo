@@ -23,6 +23,7 @@ func (c Cx1Client) GetApplications(count uint64) ([]Application, error) {
 	return applications, err
 }
 
+// Get all applications
 func (c Cx1Client) GetAllApplications() ([]Application, error) {
 	c.logger.Debugf("Get Cx1 Applications")
 
@@ -33,6 +34,7 @@ func (c Cx1Client) GetAllApplications() ([]Application, error) {
 	return applications, err
 }
 
+// Get a specific application by ID
 func (c Cx1Client) GetApplicationByID(id string) (Application, error) {
 	c.logger.Debugf("Get Cx1 Applications by id: %v", id)
 	var application Application
@@ -144,6 +146,7 @@ func (c Cx1Client) GetXApplicationsFiltered(filter ApplicationFilter, count uint
 	return count, applications, err
 }
 
+// Create a new application
 func (c Cx1Client) CreateApplication(appname string) (Application, error) {
 	c.logger.Debugf("Create Application: %v", appname)
 	data := map[string]interface{}{ // TODO: direct_app ?
@@ -172,9 +175,14 @@ func (c Cx1Client) CreateApplication(appname string) (Application, error) {
 	return app, err
 }
 
+// Delete an application
+// There is no UNDO
 func (c Cx1Client) DeleteApplication(application *Application) error {
 	return c.DeleteApplicationByID(application.ApplicationID)
 }
+
+// Delete an application by ID
+// There is no UNDO
 func (c Cx1Client) DeleteApplicationByID(applicationId string) error {
 	c.logger.Debugf("Delete Application: %v", applicationId)
 
@@ -187,10 +195,9 @@ func (c Cx1Client) DeleteApplicationByID(applicationId string) error {
 	return nil
 }
 
-// convenience
+// Get the number of applications
 func (c Cx1Client) GetApplicationCount() (uint64, error) {
-	c.logger.Debugf("Get Cx1 Project count")
-
+	c.logger.Debugf("Get Cx1 Application count")
 	count, _, err := c.GetApplicationsFiltered(ApplicationFilter{
 		BaseFilter: BaseFilter{Limit: 1},
 	})
@@ -198,6 +205,7 @@ func (c Cx1Client) GetApplicationCount() (uint64, error) {
 	return count, err
 }
 
+// Get the number of applications with names containing this substring
 func (c Cx1Client) GetApplicationCountByName(name string) (uint64, error) {
 	c.logger.Debugf("Get Cx1 Application count by name: %v", name)
 
@@ -209,6 +217,7 @@ func (c Cx1Client) GetApplicationCountByName(name string) (uint64, error) {
 	return count, err
 }
 
+// Get the count of applications matching the filter
 func (c Cx1Client) GetApplicationCountFiltered(filter ApplicationFilter) (uint64, error) {
 	filter.Limit = 1
 	params, _ := query.Values(filter)
@@ -223,6 +232,7 @@ func (a *Application) String() string {
 	return fmt.Sprintf("[%v] %v", ShortenGUID(a.ApplicationID), a.Name)
 }
 
+// Gets an application by name, and if it doesn't exist it is created
 func (c Cx1Client) GetOrCreateApplicationByName(name string) (Application, error) {
 	app, err := c.GetApplicationByName(name)
 	if err == nil {
@@ -233,6 +243,7 @@ func (c Cx1Client) GetOrCreateApplicationByName(name string) (Application, error
 }
 
 // Directly assign an application to one or more projects
+// requires the direct_app_association feature
 func (c Cx1Client) AssignApplicationToProjectsByIDs(applicationId string, projectIds []string) error {
 	if flag, _ := c.CheckFlag("DIRECT_APP_ASSOCIATION_ENABLED"); !flag {
 		return fmt.Errorf("direct app association is not enabled")
@@ -255,6 +266,7 @@ func (c Cx1Client) AssignApplicationToProjectsByIDs(applicationId string, projec
 }
 
 // Directly remove an application from one or more projects
+// requires the direct_app_association feature
 func (c Cx1Client) RemoveApplicationFromProjectsByIDs(applicationId string, projectIds []string) error {
 	if flag, _ := c.CheckFlag("DIRECT_APP_ASSOCIATION_ENABLED"); !flag {
 		return fmt.Errorf("direct app association is not enabled")
