@@ -234,13 +234,13 @@ func (qc *SASTQueryCollection) UpdateNewQuery(query *SASTQuery) error {
 		return nil
 	}
 
-	qgq = qg.GetQueryByLevelAndName(AUDIT_QUERY_TENANT, AUDIT_QUERY_TENANT, query.Name)
+	qgq = qg.GetQueryByLevelAndName(AUDIT_QUERY.TENANT, AUDIT_QUERY.TENANT, query.Name)
 	if qgq != nil {
 		query.MergeQuery(*qgq)
 		return nil
 	}
 
-	qgq = qg.GetQueryByLevelAndName(AUDIT_QUERY_PRODUCT, AUDIT_QUERY_PRODUCT, query.Name)
+	qgq = qg.GetQueryByLevelAndName(AUDIT_QUERY.PRODUCT, AUDIT_QUERY.PRODUCT, query.Name)
 	if qgq != nil {
 		query.MergeQuery(*qgq)
 		return nil
@@ -267,18 +267,18 @@ func (qc *SASTQueryCollection) AddQueryTree(t *[]AuditQueryTree, appId, projectI
 					var qlevelId string
 					var qlevel string
 					switch level.Title {
-					case AUDIT_QUERY_PRODUCT, "Checkmarx predefined":
-						qlevelId = AUDIT_QUERY_PRODUCT
-						qlevel = AUDIT_QUERY_PRODUCT
-					case AUDIT_QUERY_TENANT, "Custom":
-						qlevelId = AUDIT_QUERY_TENANT
-						qlevel = AUDIT_QUERY_TENANT
-					case AUDIT_QUERY_PROJECT:
+					case AUDIT_QUERY.PRODUCT, "Checkmarx predefined":
+						qlevelId = AUDIT_QUERY.PRODUCT
+						qlevel = AUDIT_QUERY.PRODUCT
+					case AUDIT_QUERY.TENANT, "Custom":
+						qlevelId = AUDIT_QUERY.TENANT
+						qlevel = AUDIT_QUERY.TENANT
+					case AUDIT_QUERY.PROJECT:
 						qlevelId = projectId
-						qlevel = AUDIT_QUERY_PROJECT
-					case AUDIT_QUERY_APPLICATION:
+						qlevel = AUDIT_QUERY.PROJECT
+					case AUDIT_QUERY.APPLICATION:
 						qlevelId = appId
-						qlevel = AUDIT_QUERY_APPLICATION
+						qlevel = AUDIT_QUERY.APPLICATION
 					default:
 						//c.logger.Warnf("Unknown query level: %v / %v", level.Title, level.Key)
 						qlevelId = level.Title

@@ -240,13 +240,13 @@ func (qc *IACQueryCollection) UpdateNewQuery(query *IACQuery) error {
 		return nil
 	}
 
-	qgq = qg.GetQueryByLevelAndName(AUDIT_QUERY_TENANT, AUDIT_QUERY_TENANT, query.Name)
+	qgq = qg.GetQueryByLevelAndName(AUDIT_QUERY.TENANT, AUDIT_QUERY.TENANT, query.Name)
 	if qgq != nil {
 		query.MergeQuery(*qgq)
 		return nil
 	}
 
-	qgq = qg.GetQueryByLevelAndName(AUDIT_QUERY_PRODUCT, AUDIT_QUERY_PRODUCT, query.Name)
+	qgq = qg.GetQueryByLevelAndName(AUDIT_QUERY.PRODUCT, AUDIT_QUERY.PRODUCT, query.Name)
 	if qgq != nil {
 		query.MergeQuery(*qgq)
 		return nil
@@ -284,28 +284,28 @@ func (query AuditQueryTree) ToIACQuery(levelTitle, platformTitle, groupTitle, pr
 	var qlevelId string
 	var qlevel string
 	var key string
-	if levelTitle == AUDIT_QUERY_PRODUCT || levelTitle == "Checkmarx predefined" {
-		qlevelId = AUDIT_QUERY_PRODUCT
-		qlevel = AUDIT_QUERY_PRODUCT
+	if levelTitle == AUDIT_QUERY.PRODUCT || levelTitle == "Checkmarx predefined" {
+		qlevelId = AUDIT_QUERY.PRODUCT
+		qlevel = AUDIT_QUERY.PRODUCT
 		key = query.Key
 	} else {
 		switch query.Key[0] {
 		case 't':
-			qlevelId = AUDIT_QUERY_TENANT
-			qlevel = AUDIT_QUERY_TENANT
+			qlevelId = AUDIT_QUERY.TENANT
+			qlevel = AUDIT_QUERY.TENANT
 			//key = query.Key[2:]
 		case 'p':
 			qlevelId = projectId
-			qlevel = AUDIT_QUERY_PROJECT
+			qlevel = AUDIT_QUERY.PROJECT
 			//key = query.Key[2:]
 		case 'a':
 			qlevelId = appId
-			qlevel = AUDIT_QUERY_APPLICATION
+			qlevel = AUDIT_QUERY.APPLICATION
 			//key = query.Key[2:]
 		default:
 			//c.logger.Warnf("Unknown query level: %v / %v", levelTitle, level.Key)
-			qlevel = AUDIT_QUERY_PRODUCT
-			qlevelId = AUDIT_QUERY_PRODUCT
+			qlevel = AUDIT_QUERY.PRODUCT
+			qlevelId = AUDIT_QUERY.PRODUCT
 			key = query.Key
 		}
 	}
