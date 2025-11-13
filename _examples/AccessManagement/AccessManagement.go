@@ -46,7 +46,7 @@ func main() {
 		}
 	}
 
-	err = addAccessAssignments(cx1client, testclient, cx1client.GetTenantName(), logger)
+	err = addAccessAssignments(cx1client, testclient, logger)
 
 	if err != nil {
 		logger.Errorf("Failed to add user assignment for cx1clientgo_test service user: %s", err)
@@ -122,7 +122,7 @@ func createOIDCClient(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger) (
 	return testclient, nil
 }
 
-func addAccessAssignments(cx1client *Cx1ClientGo.Cx1Client, client Cx1ClientGo.OIDCClient, tenant string, logger *logrus.Logger) error {
+func addAccessAssignments(cx1client *Cx1ClientGo.Cx1Client, client Cx1ClientGo.OIDCClient, logger *logrus.Logger) error {
 	tenantId := cx1client.GetTenantID()
 
 	role, err := cx1client.GetRoleByName("ast-scanner")
@@ -134,10 +134,10 @@ func addAccessAssignments(cx1client *Cx1ClientGo.Cx1Client, client Cx1ClientGo.O
 		TenantID:     tenantId,
 		ResourceID:   tenantId,
 		ResourceType: "tenant",
-		ResourceName: tenant,
+		ResourceName: cx1client.GetTenantName(),
 		EntityRoles:  []Cx1ClientGo.AccessAssignedRole{{Name: role.Name, Id: role.RoleID}},
 		EntityID:     client.ID,
-		EntityType:   "client",
+		EntityType:   "client", // would be a user otherwise
 		EntityName:   client.ClientID,
 	}
 

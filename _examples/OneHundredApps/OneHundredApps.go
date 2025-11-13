@@ -29,24 +29,8 @@ func main() {
 
 	logger.Infof("Starting")
 
-	base_url := os.Args[1]
-	iam_url := os.Args[2]
-	tenant := os.Args[3]
-	api_key := os.Args[4]
-	//	project_name := os.Args[5]
-	//	group_name := os.Args[6]
-	//	project_repo := os.Args[7]
-	//	branch_name := os.Args[8]
-
-	//proxyURL, _ := url.Parse("http://127.0.0.1:8080")
-	//transport := &http.Transport{}
-	//transport.Proxy = http.ProxyURL(proxyURL)
-	//transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
 	httpClient := &http.Client{}
-	//httpClient.Transport = transport
-
-	cx1client, err := Cx1ClientGo.NewAPIKeyClient(httpClient, base_url, iam_url, tenant, api_key, logger)
+	cx1client, err := Cx1ClientGo.NewClient(httpClient, logger)
 	if err != nil {
 		log.Fatalf("Error creating client: %s", err)
 		return
@@ -55,9 +39,14 @@ func main() {
 	// no err means that the client is initialized
 	logger.Infof("Client initialized: " + cx1client.String())
 
-	var scanConfig Cx1ClientGo.ScanConfiguration
-	scanConfig.ScanType = "sast"
-	scanConfig.Values = map[string]string{"incremental": "false", "presetName": "All"}
+	// Old way to configure a scan:
+	// var scanConfig Cx1ClientGo.ScanConfiguration
+	// scanConfig.ScanType = "sast"
+	// scanConfig.Values = map[string]string{"incremental": "false", "presetName": "All"}
+
+	configSet := Cx1ClientGo.ScanConfigurationSet{}
+	configSet.SetKey(Cx1ClientGo.ConfigurationSettings.SAST.Incremental, "true")
+	configSet.SetKey(Cx1ClientGo.ConfigurationSettings.SAST.PresetName, "All")
 
 	var i uint64
 	for i = 1; i <= 100; i++ {
@@ -89,7 +78,7 @@ func main() {
 			logger.Errorf("Failed to Update project: %s", err)
 		}
 
-		scan, serr := cx1client.ScanProjectGitByID(project.ProjectID, "https://github.com/michaelkubiaczyk/ssba/", "master", []Cx1ClientGo.ScanConfiguration{scanConfig}, map[string]string{})
+		scan, serr := cx1client.ScanProjectGitByID(project.ProjectID, "https://github.com/cx-michael-kubiaczyk/ssba/", "master", configSet.Configurations, map[string]string{})
 		if serr != nil {
 			logger.Errorf("Error starting scan: %s", err)
 		} else {
