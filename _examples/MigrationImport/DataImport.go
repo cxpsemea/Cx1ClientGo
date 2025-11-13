@@ -1,9 +1,8 @@
 package main
 
 import (
-	"crypto/tls"
+	"flag"
 	"net/http"
-	"net/url"
 	"os"
 
 	"github.com/cxpsemea/Cx1ClientGo"
@@ -19,34 +18,21 @@ func main() {
 	myformatter.LogFormat = "[%lvl%][%time%] %msg%\n"
 	logger.SetFormatter(myformatter)
 	logger.SetOutput(os.Stdout)
-
 	logger.Infof("Starting")
 
-	base_url := os.Args[1]
-	iam_url := os.Args[2]
-	tenant := os.Args[3]
-	api_key := os.Args[4]
-
-	proxyURL, _ := url.Parse("http://127.0.0.1:8080")
-	transport := &http.Transport{}
-	transport.Proxy = http.ProxyURL(proxyURL)
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
-	httpClient := &http.Client{}
-	//httpClient.Transport = transport
-
-	cx1client, err := Cx1ClientGo.NewAPIKeyClient(httpClient, base_url, iam_url, tenant, api_key, logger)
+	key := flag.String("key", "Uo9B+aCL4Z1rhemrUzUEQLCj3hX15yHxx99FQ9+vyc8=", "The encryption key for a CxSAST Export Zip file")
+	file := flag.String("file", "importData.zip", "The exporter-generated zip file")
+	cx1client, err := Cx1ClientGo.NewClient(&http.Client{}, logger)
 	if err != nil {
 		logger.Fatalf("Error creating client: %s", err.Error())
 	}
 
-	encryptionKey := "Uo9B+aCL4Z1rhemrUzUEQLCj3hX15yHxx99FQ9+vyc8="
-	fileContents, err := os.ReadFile("importData.zip")
+	fileContents, err := os.ReadFile(*file)
 	if err != nil {
-		logger.Fatalf("Failed to read importData.zip: %s", err)
+		logger.Fatalf("Failed to read %v: %s", *file, err)
 	}
 
-	importID, err := cx1client.StartMigration(fileContents, []byte{}, encryptionKey) // no project-to-app mapping
+	importID, err := cx1client.StartMigration(fileContents, []byte{}, *key) // no project-to-app mapping
 	if err != nil {
 		logger.Fatalf("Failed to start migration: %s", err)
 	}

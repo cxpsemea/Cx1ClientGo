@@ -1,10 +1,7 @@
 package main
 
 import (
-	"crypto/tls"
-	"log"
 	"net/http"
-	"net/url"
 	"os"
 
 	"github.com/cxpsemea/Cx1ClientGo"
@@ -19,36 +16,16 @@ result := {}
 
 func main() {
 	logger := logrus.New()
-	logger.SetLevel(logrus.InfoLevel)
+	logger.SetLevel(logrus.DebugLevel)
 	myformatter := &easy.Formatter{}
 	myformatter.TimestampFormat = "2006-01-02 15:04:05.000"
 	myformatter.LogFormat = "[%lvl%][%time%] %msg%\n"
 	logger.SetFormatter(myformatter)
 	logger.SetOutput(os.Stdout)
-
-	if len(os.Args) < 5 {
-		log.Fatalf("Usage: go run . <cx1 url> <iam url> <tenant> <api key>")
-	}
-
 	logger.Infof("Starting")
 
-	base_url := os.Args[1]
-	iam_url := os.Args[2]
-	tenant := os.Args[3]
-	api_key := os.Args[4]
-
 	httpClient := &http.Client{}
-
-	if true {
-		proxyURL, _ := url.Parse("http://127.0.0.1:8080")
-		transport := &http.Transport{}
-		transport.Proxy = http.ProxyURL(proxyURL)
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
-		httpClient.Transport = transport
-	}
-
-	cx1client, err := Cx1ClientGo.NewAPIKeyClient(httpClient, base_url, iam_url, tenant, api_key, logger)
+	cx1client, err := Cx1ClientGo.NewClient(httpClient, logger)
 	if err != nil {
 		logger.Fatalf("Error creating client: %s", err)
 	}
