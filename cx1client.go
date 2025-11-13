@@ -37,7 +37,8 @@ var cxVersion VersionInfo
 
 //var cx1UserAgent string = "Cx1ClientGo"
 
-// Main entry for users of this client when using OAuth Client ID & Client Secret:
+// Create a new Cx1Client using OAuth Client ID & Client Secret
+// You can also use NewClient instead which automatically pulls from command-line arguments
 func NewOAuthClient(client *http.Client, base_url, iam_url, tenant, client_id, client_secret string, logger Logger) (*Cx1Client, error) {
 	if base_url == "" || iam_url == "" || tenant == "" || client_id == "" || client_secret == "" || logger == nil {
 		return nil, fmt.Errorf("unable to create client: invalid parameters provided")
@@ -49,27 +50,6 @@ func NewOAuthClient(client *http.Client, base_url, iam_url, tenant, client_id, c
 	if l := len(iam_url); iam_url[l-1:] == "/" {
 		iam_url = iam_url[:l-1]
 	}
-
-	/*ctx := context.Background()
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, client)
-
-	conf := &clientcredentials.Config{
-		ClientID:     client_id,
-		ClientSecret: client_secret,
-		TokenURL:     fmt.Sprintf("%v/auth/realms/%v/protocol/openid-connect/token", iam_url, tenant),
-	}
-
-	oauthclient := conf.Client(ctx)
-
-	token, err := conf.Token(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	claims, err := parseJWT(token.AccessToken)
-	if err != nil {
-		return nil, err
-	}*/
 
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
@@ -92,16 +72,20 @@ func NewOAuthClient(client *http.Client, base_url, iam_url, tenant, client_id, c
 	return &cli, err
 }
 
-// Old entry for users of this client when using API Key
-// You can use the new "FromAPIKey" initializer with fewer parameters
+// Create a new Cx1Client using an API Key
+// You can also use NewClient instead which automatically pulls from command-line arguments
 func NewAPIKeyClient(client *http.Client, base_url string, iam_url string, tenant string, api_key string, logger Logger) (*Cx1Client, error) {
 	return ResumeAPIKeyClient(client, api_key, "", logger)
 }
 
+// Create a client from an API Key and optionally an old token
+// If the old token is valid it will be reused, or supply an empty string to force a new token
 func FromAPIKey(client *http.Client, api_key, last_token string, logger Logger) (*Cx1Client, error) {
 	return ResumeAPIKeyClient(client, api_key, last_token, logger)
 }
 
+// Create a client from an API Key and optionally an old token
+// If the old token is valid it will be reused, or supply an empty string to force a new token
 func ResumeAPIKeyClient(client *http.Client, api_key, last_token string, logger Logger) (*Cx1Client, error) {
 	if (api_key == "" && last_token == "") || logger == nil || client == nil {
 		return nil, fmt.Errorf("unable to create client: invalid parameters provided, requires (API Key or last_token) and logger and client")
@@ -122,63 +106,6 @@ func ResumeAPIKeyClient(client *http.Client, api_key, last_token string, logger 
 		}
 	}
 
-	/*
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, oauth2.HTTPClient, client)
-
-		conf := &oauth2.Config{
-			ClientID: "ast-app",
-			Endpoint: oauth2.Endpoint{
-				TokenURL: fmt.Sprintf("%v/auth/realms/%v/protocol/openid-connect/token", claims.IAMURL, claims.TenantName),
-			},
-		}
-
-		var refreshToken *oauth2.Token
-
-		if last_token != "" {
-			claims, err = parseJWT(last_token)
-			if err != nil {
-				logger.Warningf("Failed parsing last token: %s", err)
-			}
-
-			refreshToken = &oauth2.Token{
-				AccessToken:  last_token,
-				RefreshToken: api_key,
-				Expiry:       claims.ExpiryTime.UTC(),
-			}
-		} else {
-			refreshToken = &oauth2.Token{
-				AccessToken:  "",
-				RefreshToken: api_key,
-				Expiry:       time.Now().UTC(),
-			}
-		}
-
-		token, err := conf.TokenSource(ctx, refreshToken).Token()
-		if err != nil {
-			err = fmt.Errorf("failed getting a token: %s", err)
-			logger.Errorf(err.Error())
-			return nil, err
-		}
-
-		oauthTransport := &oauth2.Transport{
-			Source: conf.TokenSource(ctx, refreshToken),
-			Base:   client.Transport,
-		}
-
-		oauthclient := &http.Client{
-			Transport: oauthTransport,
-			Timeout:   client.Timeout,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return http.ErrUseLastResponse
-			},
-		}
-
-		claims, err = parseJWT(token.AccessToken)
-		if err != nil {
-			return nil, err
-		}*/
-
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
@@ -198,11 +125,13 @@ func ResumeAPIKeyClient(client *http.Client, api_key, last_token string, logger 
 	return &cli, err
 }
 
+// Create a client from an access token
+// The client will be unable to generate a new access token - useful for zero trust workflows
 func FromToken(client *http.Client, last_token string, logger Logger) (*Cx1Client, error) {
 	return ResumeAPIKeyClient(client, "", last_token, logger)
 }
 
-// Convenience function that reads command-line flags to create the Cx1Client
+// Reads command-line flags to create a Cx1Client
 func NewClient(client *http.Client, logger Logger) (*Cx1Client, error) {
 	APIKey := flag.String("apikey", "", "CheckmarxOne API Key (if not using client id/secret)")
 	ClientID := flag.String("client", "", "CheckmarxOne Client ID (if not using API Key)")
@@ -210,7 +139,12 @@ func NewClient(client *http.Client, logger Logger) (*Cx1Client, error) {
 	Cx1URL := flag.String("cx1", "", "Optional: CheckmarxOne platform URL, if not defined in the test config.yaml")
 	IAMURL := flag.String("iam", "", "Optional: CheckmarxOne IAM URL, if not defined in the test config.yaml")
 	Tenant := flag.String("tenant", "", "Optional: CheckmarxOne tenant, if not defined in the test config.yaml")
+	Token := flag.String("token", "", "Optional: A valid access_token. If this value is provided, others will be ignored - the client will lose access when the token expires")
 	flag.Parse()
+
+	if *Token != "" {
+		return FromToken(client, *Token, logger)
+	}
 
 	if *APIKey == "" && (*ClientID == "" || *ClientSecret == "") {
 		return nil, fmt.Errorf("no credentials provided - need to supply either 'apikey' or 'client' and 'secret' parameters")
@@ -452,6 +386,7 @@ func (c Cx1Client) Clone() Cx1Client {
 }
 
 // If you are heavily using functions that throw deprecation warnings you can mute them here
+// Just don't be surprised when they are actually deprecated
 func (c *Cx1Client) SetDeprecationWarning(logged bool) {
 	c.suppressdepwarn = !logged
 }
@@ -461,6 +396,7 @@ func (c Cx1Client) GetTenantID() string {
 		return c.tenantID
 	}
 
+	// This shouldn't ever run since the token should contain & initialize the tenantID.
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", "", nil, nil)
 	if err != nil {
 		c.logger.Warnf("Failed to retrieve tenant ID: %s", err)
@@ -479,11 +415,9 @@ func (c Cx1Client) GetTenantID() string {
 		return c.tenantID
 	}
 
-	//for _, r := range realms {
 	if realms.Realm == c.tenant {
 		c.tenantID = realms.ID
 	}
-	//}
 	if c.tenantID == "" {
 		c.logger.Warnf("Failed to retrieve tenant ID: no tenant found matching %v", c.tenant)
 	}

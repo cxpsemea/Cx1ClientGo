@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -20,10 +19,6 @@ func main() {
 	myformatter.LogFormat = "[%lvl%][%time%] %msg%\n"
 	logger.SetFormatter(myformatter)
 	logger.SetOutput(os.Stdout)
-
-	if len(os.Args) < 5 {
-		log.Fatalf("Usage: go run . <cx1 url> <iam url> <tenant> <api key>")
-	}
 
 	logger.Infof("Starting")
 
