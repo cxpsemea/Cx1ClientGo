@@ -633,11 +633,6 @@ func (c Cx1Client) UpdateProject(project *Project) error {
 		}
 		if len(added) == 0 && len(removed) == 0 { // no changes were made to the applications list, so omit this field when doing the PUT
 			project_copy.Applications = nil
-		} else {
-			// if direct_app is on, the normal post will do the project-app association, otherwise we do it here.
-			if flag, _ := c.CheckFlag("DIRECT_APP_ASSOCIATION_ENABLED"); !flag {
-				c.logger.Warnf("Project %v's list of ApplicationIDs has changed - this will not be saved unless done via application.Update")
-			}
 		}
 	}
 
