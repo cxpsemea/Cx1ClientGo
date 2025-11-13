@@ -17,7 +17,11 @@ func (c *Cx1Client) SetClientVars(clientvars ClientVars) {
 }
 
 func (c *Cx1Client) InitializeClientVars() {
-	c.consts = ClientVars{
+	c.SetClientVars(c.GetDefaultClientVars())
+}
+
+func (c *Cx1Client) GetDefaultClientVars() ClientVars {
+	return ClientVars{
 		MigrationPollingMaxSeconds:                300, // 5 min
 		MigrationPollingDelaySeconds:              30,
 		AuditEnginePollingMaxSeconds:              300,
@@ -39,8 +43,10 @@ func (c *Cx1Client) InitializeClientVars() {
 	}
 }
 
+// Retrieve the configured default "limit" values for paging when retrieving various object types
+// Two default settings are available via GetPaginationDefaults(SingleTenant|MultiTenant)
 func (c Cx1Client) GetPaginationSettings() PaginationSettings {
-	c.logger.Debugf("Retrieving client vars - polling limits set in seconds")
+	c.logger.Debugf("Retrieving pagination settings")
 	return c.pagination
 }
 
