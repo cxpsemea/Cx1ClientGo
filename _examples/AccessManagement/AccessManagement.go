@@ -1,11 +1,9 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 
@@ -29,27 +27,16 @@ func main() {
 
 	logger.Infof("Starting")
 
-	base_url := os.Args[1]
-	iam_url := os.Args[2]
-	tenant := os.Args[3]
-	api_key := os.Args[4]
-
-	proxyURL, _ := url.Parse("http://127.0.0.1:8080")
-	transport := &http.Transport{}
-	transport.Proxy = http.ProxyURL(proxyURL)
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
 	httpClient := &http.Client{}
-	httpClient.Transport = transport
 
-	cx1client, err := Cx1ClientGo.NewAPIKeyClient(httpClient, base_url, iam_url, tenant, api_key, logger)
+	cx1client, err := Cx1ClientGo.NewClient(httpClient, logger)
 	if err != nil {
 		logger.Fatalf("Error creating client: %s", err)
 	}
 
 	checkCurrentUserAccess(cx1client, logger)
 
-	testclient, testuser, err := createOIDCClient(cx1client, logger)
+	testclient, err := createOIDCClient(cx1client, logger)
 	if err != nil {
 		logger.Fatalf("Failed to get or create OIDC Client: %s", err)
 	} else {
@@ -59,18 +46,13 @@ func main() {
 		}
 	}
 
-	version, _ := cx1client.GetVersion()
-	if check, _ := version.CheckCxOne("3.25.0"); check >= 0 {
-		err = addAccessAssignments(cx1client, testuser, "client", tenant, logger)
-	} else {
-		err = addAccessAssignments(cx1client, testuser, "user", tenant, logger)
-	}
+	err = addAccessAssignments(cx1client, testclient, cx1client.GetTenantName(), logger)
 
 	if err != nil {
 		logger.Errorf("Failed to add user assignment for cx1clientgo_test service user: %s", err)
 	} else {
 		logger.Infof("Testing new OIDC Client by logging in as cx1clientgo_test")
-		testcx1client, err := Cx1ClientGo.NewOAuthClient(httpClient, base_url, iam_url, tenant, testclient.ClientID, testclient.ClientSecret, logger)
+		testcx1client, err := Cx1ClientGo.NewOAuthClient(httpClient, cx1client.GetBaseURL(), cx1client.GetIAMURL(), cx1client.GetTenantName(), testclient.ClientID, testclient.ClientSecret, logger)
 		if err != nil {
 			logger.Errorf("Failed to log in as 'cx1clientgo_test' OIDC Client: %s", err)
 		} else {
@@ -86,12 +68,7 @@ func main() {
 }
 
 func checkCurrentUserAccess(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger) {
-	currentuser, err := cx1client.Whoami()
-	if err != nil {
-		logger.Errorf("Failed to get current user identity: %s", err)
-	}
-
-	logger.Infof("Currently logged in as: %v", currentuser.String())
+	logger.Infof("Currently logged in as: %v", cx1client.GetCurrentUsername())
 
 	allAccess, accessibleResources, err := cx1client.CheckAccessibleResources([]string{"tenant", "project", "application"}, "ast-scanner")
 	if err != nil {
@@ -115,37 +92,37 @@ func checkCurrentUserAccess(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Log
 	logger.Infof("Current user has ast-scanner access to tenant %v: %t", tenantId, hasAccess)
 }
 
-func createOIDCClient(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger) (Cx1ClientGo.OIDCClient, Cx1ClientGo.User, error) {
+func createOIDCClient(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger) (Cx1ClientGo.OIDCClient, error) {
 	testclient, err := cx1client.GetClientByName("cx1clientgo_test")
 	var user Cx1ClientGo.User
 	if err != nil {
 		logger.Warnf("Failed to find existing OIDC Client 'cx1clientgo_test' - trying to create this OIDC client. Error: %s", err)
 		testclient, err = cx1client.CreateClient("cx1clientgo_test", []string{ /*no email for notification*/ }, 30)
 		if err != nil {
-			return testclient, user, fmt.Errorf("failed to create oidc client 'cx1clientgo_test': %s", err)
+			return testclient, fmt.Errorf("failed to create oidc client 'cx1clientgo_test': %s", err)
 		}
 	}
 
 	user, err = cx1client.GetServiceAccountByID(testclient.ID)
 	if err != nil {
-		return testclient, user, fmt.Errorf("failed to get service account for oidc client 'cx1clientgo_test': %s", err)
+		return testclient, fmt.Errorf("failed to get service account for oidc client 'cx1clientgo_test': %s", err)
 	}
 
 	logger.Infof("cx1clientgo_test oidc client service account user is: %v", user.String())
 
 	scanner_role, err := cx1client.GetRoleByName("ast-scanner")
 	if err != nil {
-		return testclient, user, fmt.Errorf("failed to find 'ast-scanner' role: %s", err)
+		return testclient, fmt.Errorf("failed to find 'ast-scanner' role: %s", err)
 	}
 
 	err = cx1client.AddUserRoles(&user, &[]Cx1ClientGo.Role{scanner_role})
 	if err != nil {
-		return testclient, user, fmt.Errorf("failed to add 'ast-scanner' role to user: %s", err)
+		return testclient, fmt.Errorf("failed to add 'ast-scanner' role to user: %s", err)
 	}
-	return testclient, user, nil
+	return testclient, nil
 }
 
-func addAccessAssignments(cx1client *Cx1ClientGo.Cx1Client, user Cx1ClientGo.User, entityType, tenant string, logger *logrus.Logger) error {
+func addAccessAssignments(cx1client *Cx1ClientGo.Cx1Client, client Cx1ClientGo.OIDCClient, tenant string, logger *logrus.Logger) error {
 	tenantId := cx1client.GetTenantID()
 
 	role, err := cx1client.GetRoleByName("ast-scanner")
@@ -159,9 +136,9 @@ func addAccessAssignments(cx1client *Cx1ClientGo.Cx1Client, user Cx1ClientGo.Use
 		ResourceType: "tenant",
 		ResourceName: tenant,
 		EntityRoles:  []Cx1ClientGo.AccessAssignedRole{{Name: role.Name, Id: role.RoleID}},
-		EntityID:     user.UserID,
-		EntityType:   entityType,
-		EntityName:   "cx1clientgo_test",
+		EntityID:     client.ID,
+		EntityType:   "client",
+		EntityName:   client.ClientID,
 	}
 
 	err = cx1client.AddAccessAssignment(access)
