@@ -42,10 +42,10 @@ func (c Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery
 	switch level {
 	case AUDIT_QUERY.TENANT:
 		url = "/cx-audit/queries"
-	case AUDIT_QUERY.PROJECT, AUDIT_QUERY.APPLICATION:
+	case AUDIT_QUERY.PROJECT:
 		url = fmt.Sprintf("/cx-audit/queries?projectId=%v", levelId)
 	default:
-		return queries_v310, fmt.Errorf("invalid level %v, options are currently: %v, %v, or %v", level, AUDIT_QUERY.TENANT, AUDIT_QUERY.APPLICATION, AUDIT_QUERY.PROJECT)
+		return queries_v310, fmt.Errorf("invalid level %v, options are currently: %v or %v", level, AUDIT_QUERY.TENANT, AUDIT_QUERY.PROJECT)
 	}
 
 	response, err := c.sendRequest(http.MethodGet, url, nil, nil)
