@@ -14,6 +14,9 @@ import (
 
 var IAMResourceTypes = []string{"tenant", "application", "project"}
 
+// Retrieves a specific entity-resource assignment from Access Management
+// As of Nov '25 this will not consider implied permissions
+// eg: user in group + group has access = user has access but no access assignment
 func (c Cx1Client) GetAccessAssignmentByID(entityId, resourceId string) (AccessAssignment, error) {
 	c.logger.Debugf("Getting access assignment for entityId %v and resourceId %v", entityId, resourceId)
 	var aa AccessAssignment
@@ -27,6 +30,7 @@ func (c Cx1Client) GetAccessAssignmentByID(entityId, resourceId string) (AccessA
 	return aa, err
 }
 
+// Add a specific access assignment
 func (c Cx1Client) AddAccessAssignment(access AccessAssignment) error {
 	c.logger.Debugf("Creating access assignment for entityId %v and resourceId %v", access.EntityID, access.ResourceID)
 
@@ -74,6 +78,9 @@ func (c Cx1Client) AddAccessAssignment(access AccessAssignment) error {
 	return err
 }
 
+// Get a list of entities that have been granted direct access to a specific resource
+// As of Nov '25 this will not consider implied permissions
+// eg: user in group + group has access = user has access but no access assignment
 func (c Cx1Client) GetEntitiesAccessToResourceByID(resourceId, resourceType string) ([]AccessAssignment, error) {
 	c.logger.Debugf("Getting the entities with access assignment for resourceId %v", resourceId)
 	var aas []AccessAssignment
@@ -87,6 +94,9 @@ func (c Cx1Client) GetEntitiesAccessToResourceByID(resourceId, resourceType stri
 	return aas, err
 }
 
+// Get a list of resources to which this entity has been granted direct access
+// As of Nov '25 this will not consider implied permissions
+// eg: user in group + group has access = user has access but no access assignment
 func (c Cx1Client) GetResourcesAccessibleToEntityByID(entityId, entityType string, resourceTypes []string) ([]AccessAssignment, error) {
 	var aas []AccessAssignment
 	c.logger.Debugf("Getting the resources accessible to entity %v", entityId)
@@ -104,6 +114,7 @@ func (c Cx1Client) GetResourcesAccessibleToEntityByID(entityId, entityType strin
 	return aas, nil
 }
 
+// Check if the current user has access to execute a specific action on this resource
 func (c Cx1Client) CheckAccessToResourceByID(resourceId, resourceType, action string) (bool, error) {
 	c.logger.Debugf("Checking current user access for resource %v and action %v", resourceId, action)
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/has-access?resource-id=%v&resource-type=%v&action=%v", resourceId, resourceType, action), nil, nil)
@@ -119,6 +130,7 @@ func (c Cx1Client) CheckAccessToResourceByID(resourceId, resourceType, action st
 	return accessResponse.AccessGranted, err
 }
 
+// Check which resources are accessible to this user
 func (c Cx1Client) CheckAccessibleResources(resourceTypes []string, action string) (bool, []AccessibleResource, error) {
 	c.logger.Debugf("Checking current user accessible resources for action %v", action)
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/get-resources?resource-types=%v&action=%v", strings.Join(resourceTypes, ","), action), nil, nil)

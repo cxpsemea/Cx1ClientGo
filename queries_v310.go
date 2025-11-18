@@ -42,10 +42,10 @@ func (c Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery
 	switch level {
 	case AUDIT_QUERY.TENANT:
 		url = "/cx-audit/queries"
-	case AUDIT_QUERY.PROJECT, AUDIT_QUERY.APPLICATION:
+	case AUDIT_QUERY.PROJECT:
 		url = fmt.Sprintf("/cx-audit/queries?projectId=%v", levelId)
 	default:
-		return queries_v310, fmt.Errorf("invalid level %v, options are currently: %v, %v, or %v", level, AUDIT_QUERY.TENANT, AUDIT_QUERY.APPLICATION, AUDIT_QUERY.PROJECT)
+		return queries_v310, fmt.Errorf("invalid level %v, options are currently: %v or %v", level, AUDIT_QUERY.TENANT, AUDIT_QUERY.PROJECT)
 	}
 
 	response, err := c.sendRequest(http.MethodGet, url, nil, nil)
@@ -183,6 +183,8 @@ func (c Cx1Client) UpdateQueries_v310(level, levelid string, queries []QueryUpda
 	if err != nil {
 		if err.Error()[0:8] == "HTTP 405" {
 			return fmt.Errorf("this endpoint is no longer available - please use UpdateQuery* instead")
+		} else if level == AUDIT_QUERY.APPLICATION {
+			return fmt.Errorf("failed to update application-level query: %s, but this may be buggy - use GetQueriesByLevelID_v310 with a project inside this application to check", err)
 		} else {
 			// Workaround to fix issue in CX1: sometimes the query is saved but still throws a 500 error
 			c.logger.Warnf("Query update failed with %s but it's buggy, checking if the query was updated anyway", err)
@@ -276,6 +278,8 @@ func (c Cx1Client) UpdateQueriesMetadata_v310(level, levelid string, queries []Q
 	if err != nil {
 		if err.Error()[0:8] == "HTTP 405" {
 			return fmt.Errorf("this endpoint is no longer available - please use UpdateQuery* instead")
+		} else if level == AUDIT_QUERY.APPLICATION {
+			return fmt.Errorf("failed to update application-level query: %s, but this may be buggy - use GetQueriesByLevelID_v310 with a project inside this application to check", err)
 		} else {
 			// Workaround to fix issue in CX1: sometimes the query is saved but still throws a 500 error
 			c.logger.Warnf("Query update failed with %s but it's buggy, checking if the query was updated anyway", err)
