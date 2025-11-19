@@ -57,12 +57,15 @@ func (c Cx1Client) QueryTypeProject() string {
 	return AUDIT_QUERY.PROJECT
 }
 
-func (c Cx1Client) AuditCreateSession(engine, filter string) (AuditSession, error) {
-	c.logger.Debugf("Trying to create a tenant-level audit session for engine %v and filter %v", engine, filter)
+// Create an audit session on the tenant-level
+// eg: engine = "sast", language = "go"
+// The session will expire unless you call AuditSessionKeepAlive periodically
+func (c Cx1Client) AuditCreateSession(engine, language string) (AuditSession, error) {
+	c.logger.Debugf("Trying to create a tenant-level audit session for engine %v and language %v", engine, language)
 
 	body := map[string]string{
 		"scanner": engine,
-		"filter":  filter,
+		"filter":  language,
 	}
 	jsonBody, _ := json.Marshal(body)
 
@@ -103,24 +106,19 @@ func (c Cx1Client) AuditCreateSession(engine, filter string) (AuditSession, erro
 	session.ProjectID = ""
 	session.ApplicationID = ""
 
-	c.logger.Debugf("Created audit session %v under tenant with engine %v and filter %v", session.ID, engine, filter)
+	c.logger.Debugf("Created audit session %v under tenant with engine %v and filter %v", session.ID, engine, language)
 
 	return session, nil
 
 }
 
+// You should probably use GetAuditSessionByID instead
+// This is an internal function to create an Audit session for a specific project based on a scan ID
+// This is step 1 of a multi-step process to create an audit session for a specific scan
+// A session will expire unless you call AuditSessionKeepAlive periodically
 func (c Cx1Client) AuditCreateSessionByID(engine, projectId, scanId string) (AuditSession, error) {
 	engine = strings.ToLower(engine)
 	c.logger.Debugf("Trying to create %v audit session for project %v scan %v", engine, projectId, scanId)
-	/*available, _, err := c.AuditFindSessionsByID(projectId, scanId)
-	if err != nil {
-		return "", err
-	}
-
-	if !available {
-		return "", fmt.Errorf("audit session not available")
-	}*/
-
 	var session AuditSession
 	var appId string
 
@@ -194,6 +192,7 @@ func (c Cx1Client) AuditCreateSessionByID(engine, projectId, scanId string) (Aud
 	return session, nil
 }
 
+// Delete an audit session. Frees up a slot for new sessions.
 func (c Cx1Client) AuditDeleteSession(auditSession *AuditSession) error {
 	if auditSession == nil {
 		c.logger.Errorf("Attempt to run AuditDeleteSession with a nil session")
@@ -208,6 +207,7 @@ func (c Cx1Client) AuditDeleteSession(auditSession *AuditSession) error {
 	return nil
 }
 
+// Get the status of a specific request within an audit session
 func (c Cx1Client) AuditGetRequestStatusByID(auditSession *AuditSession, requestId string) (bool, interface{}, error) {
 	c.logger.Debugf("Get status of request %v for %v", requestId, auditSession.String())
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/query-editor/sessions/%v/requests/%v", auditSession.ID, requestId), nil, nil)
@@ -273,6 +273,8 @@ func (c Cx1Client) AuditRequestStatusPollingByIDWithTimeout(auditSession *AuditS
 	return value, nil
 }
 
+// Refresh an audit session to keep it alive
+// Should be called periodically to prevent session expiration, rate limited to 1 per 5 minutes
 func (c Cx1Client) AuditSessionKeepAlive(auditSession *AuditSession) error {
 	if time.Since(auditSession.LastHeartbeat) < 5*time.Minute {
 		c.logger.Tracef("Audit session last refreshed within 5 minutes ago, skipping")
@@ -286,7 +288,8 @@ func (c Cx1Client) AuditSessionKeepAlive(auditSession *AuditSession) error {
 	return nil
 }
 
-// Convenience function
+// Get a new Audit session for a specific project and scan ID
+// The session will expire unless you call AuditSessionKeepAlive periodically
 func (c Cx1Client) GetAuditSessionByID(engine, projectId, scanId string) (AuditSession, error) {
 	// TODO: convert the audit session to an object that also does the polling/keepalive
 	c.logger.Infof("Creating an audit session for project %v scan %v", projectId, scanId)
@@ -320,6 +323,9 @@ func (c Cx1Client) GetAuditSessionByID(engine, projectId, scanId string) (AuditS
 	return session, nil
 }
 
+// You should probably use GetAuditSessionByID instead
+// This is an internal function to create an Audit session for a specific project based on a scan ID
+// This is step 2 of a multi-step process to create an audit session for a specific scan
 func (c Cx1Client) AuditGetScanSourcesByID(auditSession *AuditSession) ([]AuditScanSourceFile, error) {
 	c.logger.Debugf("Get %v scan sources", auditSession.String())
 
@@ -334,6 +340,9 @@ func (c Cx1Client) AuditGetScanSourcesByID(auditSession *AuditSession) ([]AuditS
 	return sourcefiles, err
 }
 
+// You should probably use GetAuditSessionByID instead
+// This is an internal function to create an Audit session for a specific project based on a scan ID
+// This is step 3 of a multi-step process to create an audit session for a specific scan
 func (c Cx1Client) AuditRunScanByID(auditSession *AuditSession) error {
 	c.logger.Infof("Triggering scan under %v", auditSession.String())
 	response, err := c.sendRequest(http.MethodPost, fmt.Sprintf("/query-editor/sessions/%v/sources/scan", auditSession.ID), nil, nil)
@@ -365,10 +374,6 @@ func (q AuditSASTQuery) String() string {
 	return fmt.Sprintf("[%v] %v: %v", ShortenGUID(q.Key), q.Level, q.Path)
 }
 
-func (c Cx1Client) GetAuditQueryByKey(auditSession *AuditSession, key string) (SASTQuery, error) {
-	c.depwarn("GetAuditQueryByKey", "GetAuditSASTQueryByKey")
-	return c.GetAuditSASTQueryByKey(auditSession, key)
-}
 func (c Cx1Client) GetAuditSASTQueryByKey(auditSession *AuditSession, key string) (SASTQuery, error) {
 	c.logger.Debugf("Get audit query by key: %v", key)
 
@@ -434,17 +439,13 @@ func (c Cx1Client) GetAuditIACQueryByID(auditSession *AuditSession, queryId stri
 
 /*
 Retrieves the list of queries available for this audit session. Level and LevelID options are:
-QueryTypeProduct(), QueryTypeProduct() : same value for both when retrieving product-level queries
+QueryTypeProduct(), QueryTypeProduct() : same value for both when retrieving product-default queries
 QueryTypeTenant(), QueryTypeTenant() : same value for both when retrieving tenant-level queries
 QueryTypeApplication(), application.ApplicationID : when retrieving application-level queries
 QueryTypeProject(), project.ProjectID : when retrieving project-level queries
 
 The resulting array of queries should be merged into a QueryCollection object returned by the GetQueries function.
 */
-func (c Cx1Client) GetAuditQueriesByLevelID(auditSession *AuditSession, level, levelId string) (SASTQueryCollection, error) {
-	c.depwarn("GetAuditQueriesByLevelID", "GetAuditSASTQueriesByLevelID")
-	return c.GetAuditSASTQueriesByLevelID(auditSession, level, levelId)
-}
 func (c Cx1Client) GetAuditSASTQueriesByLevelID(auditSession *AuditSession, level, levelId string) (SASTQueryCollection, error) {
 	c.logger.Debugf("Get all queries for %v %v", level, levelId)
 
@@ -458,6 +459,16 @@ func (c Cx1Client) GetAuditSASTQueriesByLevelID(auditSession *AuditSession, leve
 
 	return collection, nil
 }
+
+/*
+Retrieves the list of queries available for this audit session. Level and LevelID options are:
+QueryTypeProduct(), QueryTypeProduct() : same value for both when retrieving product-default queries
+QueryTypeTenant(), QueryTypeTenant() : same value for both when retrieving tenant-level queries
+QueryTypeApplication(), application.ApplicationID : when retrieving application-level queries
+QueryTypeProject(), project.ProjectID : when retrieving project-level queries
+
+The resulting array of queries should be merged into a QueryCollection object returned by the GetQueries function.
+*/
 func (c Cx1Client) GetAuditIACQueriesByLevelID(auditSession *AuditSession, level, levelId string) (IACQueryCollection, error) {
 	c.logger.Debugf("Get all queries for %v %v", level, levelId)
 
@@ -471,6 +482,10 @@ func (c Cx1Client) GetAuditIACQueriesByLevelID(auditSession *AuditSession, level
 
 	return collection, nil
 }
+
+// Get the query tree for an audit session
+// You probably don't need this and should use GetAuditSASTQueriesByLevelID or GetAuditIACQueriesByLevelID instead
+// The tree is an internal structure converted to SAST/IAC query collections as appropriate
 func (c Cx1Client) GetAuditQueryTreeByLevelID(auditSession *AuditSession, level, levelId string) ([]AuditQueryTree, error) {
 	var url string
 	var querytree []AuditQueryTree
@@ -510,11 +525,7 @@ func (c Cx1Client) DeleteQueryOverrideByKey(auditSession *AuditSession, queryKey
 	return err
 }
 
-func (c Cx1Client) CreateQueryOverride(auditSession *AuditSession, level string, baseQuery *SASTQuery) (SASTQuery, error) {
-	c.depwarn("CreateQueryOverride", "CreateSASTQueryOverride")
-	return c.CreateSASTQueryOverride(auditSession, level, baseQuery)
-}
-
+// Level options are: QueryTypeTenant(), QueryTypeApplication(), QueryTypeProject()
 // When creating overrides, it is best to first fetch the full query collection (via GetSASTQueryCollection) to pass in the base query
 func (c Cx1Client) CreateSASTQueryOverride(auditSession *AuditSession, level string, baseQuery *SASTQuery) (SASTQuery, error) {
 	var newQuery SASTQuery
@@ -602,6 +613,7 @@ func (c Cx1Client) CreateSASTQueryOverride(auditSession *AuditSession, level str
 	return newQuery, nil
 }
 
+// Level options are: QueryTypeTenant(), QueryTypeApplication(), QueryTypeProject()
 // When creating overrides, it is best to first fetch the full query collection (via GetIACQueryCollection) to pass in the base query
 func (c Cx1Client) CreateIACQueryOverride(auditSession *AuditSession, level string, baseQuery *IACQuery) (IACQuery, error) {
 	var newQuery IACQuery
@@ -694,10 +706,8 @@ func (c Cx1Client) CreateIACQueryOverride(auditSession *AuditSession, level stri
 	return newQuery, nil
 }
 
-func (c Cx1Client) CreateNewQuery(auditSession *AuditSession, query SASTQuery) (SASTQuery, []QueryFailure, error) {
-	c.depwarn("CreateNewQuery", "CreateNewSASTQuery")
-	return c.CreateNewSASTQuery(auditSession, query)
-}
+// Create a new SAST query (not an override)
+// This will be a tenant-level query to be overridden for Application or Project level as needed
 func (c Cx1Client) CreateNewSASTQuery(auditSession *AuditSession, query SASTQuery) (SASTQuery, []QueryFailure, error) {
 	c.logger.Debugf("Creating new query %v under %v", query.String(), auditSession.String())
 	type NewQuery struct {
@@ -756,6 +766,8 @@ func (c Cx1Client) CreateNewSASTQuery(auditSession *AuditSession, query SASTQuer
 	return newQuery, queryFail, err
 }
 
+// Create a new IAC query (not an override)
+// This will be a tenant-level query to be overridden for Application or Project level as needed
 func (c Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery) (IACQuery, []QueryFailure, error) {
 	c.logger.Debugf("Creating new query %v under %v", query.String(), auditSession.String())
 	type NewQuery struct {
@@ -814,15 +826,6 @@ func (c Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery)
 	return new_query, queryFail, err
 }
 
-/*
-This function will update the query metadata, however currently only the Severity of a query can be changed.
-Changes to CWE, description, and other fields will not take effect.
-Also, the data returned by the query-editor api does not include the query ID, so it will be 0. Use "UpdateQueryMetadata" wrapper instead to address that.
-*/
-func (c Cx1Client) UpdateQueryMetadataByKey(auditSession *AuditSession, queryKey string, metadata AuditSASTQueryMetadata) error {
-	c.depwarn("UpdateQueryMetadataByKey", "UpdateSASTQueryMetadataByKey")
-	return c.updateSASTQueryMetadataByKey(auditSession, queryKey, metadata)
-}
 func (c Cx1Client) updateSASTQueryMetadataByKey(auditSession *AuditSession, queryKey string, metadata AuditSASTQueryMetadata) error {
 	c.logger.Debugf("Updating sast query metadata by key: %v", queryKey)
 	jsonBody, err := json.Marshal(metadata)
@@ -875,10 +878,7 @@ func (c Cx1Client) updateIACQueryMetadataByKey(auditSession *AuditSession, query
 	return nil
 }
 
-func (c Cx1Client) UpdateQueryMetadata(auditSession *AuditSession, query SASTQuery, metadata AuditSASTQueryMetadata) (SASTQuery, error) {
-	c.depwarn("UpdateQueryMetadata", "UpdateSASTQueryMetadata")
-	return c.UpdateSASTQueryMetadata(auditSession, query, metadata)
-}
+// This function will update the query metadata
 func (c Cx1Client) UpdateSASTQueryMetadata(auditSession *AuditSession, query SASTQuery, metadata AuditSASTQueryMetadata) (SASTQuery, error) {
 	if query.EditorKey == "" {
 		return SASTQuery{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditQueries* calls", query.String())
@@ -899,6 +899,7 @@ func (c Cx1Client) UpdateSASTQueryMetadata(auditSession *AuditSession, query SAS
 	return newQuery, nil
 }
 
+// This function will update the query metadata
 func (c Cx1Client) UpdateIACQueryMetadata(auditSession *AuditSession, query IACQuery, metadata AuditIACQueryMetadata) (IACQuery, error) {
 	if query.QueryID == "" {
 		return IACQuery{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditQueries* calls", query.String())
@@ -998,7 +999,9 @@ func (c Cx1Client) updateQuerySourceByKey(auditSession *AuditSession, queryKey, 
 	return queryFail, err
 }
 
-// This function
+// This function should be used only if you have updated both the source code and the metadata of a query
+// Use UpdateSASTQuerySource and UpdateSASTQueryMetadata separately if you are only updating one of those
+// It will perform both updates in sequence. Performing the update without a change may throw an error.
 func (c Cx1Client) UpdateSASTQuery(auditSession *AuditSession, query SASTQuery) (SASTQuery, []QueryFailure, error) {
 	if query.EditorKey == "" {
 		return query, []QueryFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditSASTQueries* calls", query.String())
@@ -1017,6 +1020,10 @@ func (c Cx1Client) UpdateSASTQuery(auditSession *AuditSession, query SASTQuery) 
 	updatedQuery, err := c.GetAuditSASTQueryByKey(auditSession, query.EditorKey)
 	return updatedQuery, queryFail, err
 }
+
+// This function should be used only if you have updated both the source code and the metadata of a query
+// Use UpdateIACQuerySource and UpdateIACQueryMetadata separately if you are only updating one of those
+// It will perform both updates in sequence. Performing the update without a change may throw an error.
 func (c Cx1Client) UpdateIACQuery(auditSession *AuditSession, query IACQuery) (IACQuery, []QueryFailure, error) {
 	if query.QueryID == "" {
 		return query, []QueryFailure{}, fmt.Errorf("query %v does not have an ID, this should be retrieved with the GetAuditIACQueries* calls", query.String())
@@ -1221,7 +1228,7 @@ func (c Cx1Client) RunSASTQuery(auditSession *AuditSession, query *SASTQuery, so
 	return c.RunQueryByKey(auditSession, query.EditorKey, source)
 }
 
-// This function will fill the metadata (severity etc) for all queries in the
+// This function will fill the metadata (severity etc) for all queries in the collection
 func (c Cx1Client) GetIACCollectionAuditMetadata(auditSession *AuditSession, collection *IACQueryCollection, customOnly bool) error {
 	for pid := range collection.Platforms {
 		for gid := range collection.Platforms[pid].QueryGroups {
