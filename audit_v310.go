@@ -29,6 +29,13 @@ type AuditQuery_v310 struct {
 	Title              string
 }
 
+var AUDIT_QUERY_v310 = struct {
+	PRODUCT     string
+	TENANT      string
+	APPLICATION string
+	PROJECT     string
+}{"Cx", "Corp", "Team", "Project"}
+
 func (q *AuditQuery_v310) ParsePath() {
 	s := strings.Split(q.Path, "/")
 	if len(s) >= 4 {
