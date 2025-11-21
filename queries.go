@@ -54,8 +54,9 @@ func (q AuditQuery_v312) ToQuery() SASTQuery {
 	}
 }
 
+// This function uses the cx-audit/queries endpoint, which will at some point be deprecated.
 func (c Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollection, error) {
-	c.depwarn("GetQueriesByLevelID", "GetAuditQueriesByLevelID")
+	c.depwarn("GetQueriesByLevelID", "GetAuditSASTQueriesByLevelID")
 	c.logger.Debugf("Get all queries for %v", level)
 
 	var url string
@@ -113,11 +114,6 @@ func (c Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollecti
 	collection.AddQueries(&queries)
 
 	return collection, nil
-}
-
-func (c Cx1Client) GetQueries() (SASTQueryCollection, error) {
-	c.depwarn("GetQueries", "Get(SAST|IAC)QueryCollection")
-	return c.GetSASTQueryCollection()
 }
 
 func (c Cx1Client) GetQueryMappings() (map[uint64]uint64, error) {

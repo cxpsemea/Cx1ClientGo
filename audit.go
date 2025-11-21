@@ -499,7 +499,7 @@ func (c Cx1Client) GetAuditSASTQueriesByLevelID(auditSession *AuditSession, leve
 	c.logger.Debugf("Get all queries for %v %v", level, levelId)
 
 	collection := SASTQueryCollection{}
-	querytree, err := c.GetAuditQueryTreeByLevelID(auditSession, level, levelId)
+	querytree, err := c.getAuditQueryTreeByLevelID(auditSession, level, levelId)
 	if err != nil {
 		return collection, err
 	}
