@@ -216,8 +216,15 @@ func (q *SASTQuery) MergeQuery(nq SASTQuery) {
 	if q.Source == "" && nq.Source != "" {
 		q.Source = nq.Source
 	}
-	if nq.IsExecutable {
-		q.IsExecutable = true
+	q.IsExecutable = nq.IsExecutable
+	if q.CweID == 0 && nq.CweID != 0 {
+		q.CweID = nq.CweID
+	}
+	if q.QueryDescriptionId == 0 && nq.QueryDescriptionId != 0 {
+		q.QueryDescriptionId = nq.QueryDescriptionId
+	}
+	if q.SastID == 0 && nq.SastID != 0 {
+		q.SastID = nq.SastID
 	}
 }
 
