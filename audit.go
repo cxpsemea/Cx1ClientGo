@@ -1451,6 +1451,7 @@ func (q AuditIACQuery) ToIACQuery() IACQuery {
 		Name:           q.Name,
 		Category:       q.Metadata.Category,
 		Platform:       q.Metadata.Platform,
+		Group:          q.Metadata.CloudProvider,
 		Severity:       q.Metadata.Severity,
 		Custom:         q.Level != AUDIT_QUERY.PRODUCT,
 		Description:    q.Metadata.Description,
