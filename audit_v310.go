@@ -87,7 +87,7 @@ func (q AuditQuery_v310) ToQuery() SASTQuery {
 		CweID:              q.Cwe,
 		IsExecutable:       q.IsExecutable,
 		QueryDescriptionId: q.CxDescriptionId,
-		Custom:             q.Level != AUDIT_QUERY.PRODUCT,
+		Custom:             q.Level != AUDIT_QUERY_v310.PRODUCT,
 		EditorKey:          q.Key,
 		SastID:             0,
 	}
@@ -95,19 +95,19 @@ func (q AuditQuery_v310) ToQuery() SASTQuery {
 
 func (q AuditQuery_v310) CreateTenantOverride() AuditQuery_v310 {
 	new_query := q
-	new_query.Level = AUDIT_QUERY.TENANT
-	new_query.LevelID = AUDIT_QUERY.TENANT
+	new_query.Level = AUDIT_QUERY_v310.TENANT
+	new_query.LevelID = AUDIT_QUERY_v310.TENANT
 	return new_query
 }
 func (q AuditQuery_v310) CreateProjectOverrideByID(projectId string) AuditQuery_v310 {
 	new_query := q
-	new_query.Level = AUDIT_QUERY.PROJECT
+	new_query.Level = AUDIT_QUERY_v310.PROJECT
 	new_query.LevelID = projectId
 	return new_query
 }
 func (q AuditQuery_v310) CreateApplicationOverrideByID(applicationId string) AuditQuery_v310 {
 	new_query := q
-	new_query.Level = AUDIT_QUERY.APPLICATION
+	new_query.Level = AUDIT_QUERY_v310.APPLICATION
 	new_query.LevelID = applicationId
 	return new_query
 }

@@ -40,12 +40,12 @@ func (c Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery
 	var queries_v310 []AuditQuery_v310
 
 	switch level {
-	case AUDIT_QUERY.TENANT:
+	case AUDIT_QUERY_v310.TENANT:
 		url = "/cx-audit/queries"
-	case AUDIT_QUERY.PROJECT:
+	case AUDIT_QUERY_v310.PROJECT:
 		url = fmt.Sprintf("/cx-audit/queries?projectId=%v", levelId)
 	default:
-		return queries_v310, fmt.Errorf("invalid level %v, options are currently: %v or %v", level, AUDIT_QUERY.TENANT, AUDIT_QUERY.PROJECT)
+		return queries_v310, fmt.Errorf("invalid level %v, options are currently: %v or %v", level, AUDIT_QUERY_v310.TENANT, AUDIT_QUERY_v310.PROJECT)
 	}
 
 	response, err := c.sendRequest(http.MethodGet, url, nil, nil)
@@ -63,11 +63,11 @@ func (c Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery
 	for id := range queries_v310 {
 		queries_v310[id].ParsePath()
 		switch queries_v310[id].Level {
-		case AUDIT_QUERY.TENANT:
-			queries_v310[id].LevelID = AUDIT_QUERY.TENANT
-		case AUDIT_QUERY.PROJECT:
+		case AUDIT_QUERY_v310.TENANT:
+			queries_v310[id].LevelID = AUDIT_QUERY_v310.TENANT
+		case AUDIT_QUERY_v310.PROJECT:
 			queries_v310[id].LevelID = levelId
-		case AUDIT_QUERY.APPLICATION:
+		case AUDIT_QUERY_v310.APPLICATION:
 			if applicationId == "" {
 				project, err := c.GetProjectByID(levelId)
 				if err != nil {
@@ -79,10 +79,10 @@ func (c Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery
 				applicationId = (*project.Applications)[0]
 			}
 			queries_v310[id].LevelID = applicationId
-		case AUDIT_QUERY.PRODUCT:
-			queries_v310[id].LevelID = AUDIT_QUERY.PRODUCT
+		case AUDIT_QUERY_v310.PRODUCT:
+			queries_v310[id].LevelID = AUDIT_QUERY_v310.PRODUCT
 		case "Tenant":
-			queries_v310[id].LevelID = AUDIT_QUERY.TENANT
+			queries_v310[id].LevelID = AUDIT_QUERY_v310.TENANT
 		}
 	}
 
@@ -143,7 +143,7 @@ func (c Cx1Client) DeleteQueryByName_v310(level, levelID, language, group, query
 
 func (c Cx1Client) AuditNewQuery_v310(language, group, name string) (AuditQuery_v310, error) {
 	c.depwarn("AuditNewQuery_v310", "CreateQueryOverride")
-	newQuery, err := c.GetQueryByName_v310(AUDIT_QUERY.TENANT, AUDIT_QUERY.TENANT, language, "CxDefaultQueryGroup", "CxDefaultQuery")
+	newQuery, err := c.GetQueryByName_v310(AUDIT_QUERY_v310.TENANT, AUDIT_QUERY_v310.TENANT, language, "CxDefaultQueryGroup", "CxDefaultQuery")
 	if err != nil {
 		return newQuery, err
 	}
@@ -183,7 +183,7 @@ func (c Cx1Client) UpdateQueries_v310(level, levelid string, queries []QueryUpda
 	if err != nil {
 		if err.Error()[0:8] == "HTTP 405" {
 			return fmt.Errorf("this endpoint is no longer available - please use UpdateQuery* instead")
-		} else if level == AUDIT_QUERY.APPLICATION {
+		} else if level == AUDIT_QUERY_v310.APPLICATION {
 			return fmt.Errorf("failed to update application-level query: %s, but this may be buggy - use GetQueriesByLevelID_v310 with a project inside this application to check", err)
 		} else {
 			// Workaround to fix issue in CX1: sometimes the query is saved but still throws a 500 error
@@ -278,7 +278,7 @@ func (c Cx1Client) UpdateQueriesMetadata_v310(level, levelid string, queries []Q
 	if err != nil {
 		if err.Error()[0:8] == "HTTP 405" {
 			return fmt.Errorf("this endpoint is no longer available - please use UpdateQuery* instead")
-		} else if level == AUDIT_QUERY.APPLICATION {
+		} else if level == AUDIT_QUERY_v310.APPLICATION {
 			return fmt.Errorf("failed to update application-level query: %s, but this may be buggy - use GetQueriesByLevelID_v310 with a project inside this application to check", err)
 		} else {
 			// Workaround to fix issue in CX1: sometimes the query is saved but still throws a 500 error
@@ -333,7 +333,7 @@ func (c Cx1Client) GetQueries_v310() (SASTQueryCollection, error) {
 		return qc, err
 	}
 
-	aq, err := c.GetQueriesByLevelID_v310(AUDIT_QUERY.TENANT, "")
+	aq, err := c.GetQueriesByLevelID_v310(AUDIT_QUERY_v310.TENANT, "")
 	if err != nil {
 		return qc, err
 	}
