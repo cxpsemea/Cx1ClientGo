@@ -102,12 +102,14 @@ func (c *Cx1Cache) RefreshUsers(client *Cx1Client) error {
 	return err
 }
 
+// This is only the SAST queries
+// To do - add IAC?
 func (c *Cx1Cache) RefreshQueries(client *Cx1Client) error {
 	client.logger.Infof("Refreshing queries in Cx1 cache")
 	var err error
 	if !c.QueryRefresh {
 		c.QueryRefresh = true
-		c.Queries, err = client.GetQueries()
+		c.Queries, err = client.GetSASTQueryCollection()
 		c.QueryRefresh = false
 	}
 	return err

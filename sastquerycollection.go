@@ -141,6 +141,94 @@ func (qc SASTQueryCollection) GetQueryByLevelAndName(level, levelID, language, g
 	return qg.GetQueryByLevelAndName(level, levelID, query)
 }
 
+func (qc SASTQueryCollection) GetClosestQueryByLevelAndName(level, levelID, language, group, query string) *SASTQuery {
+	ql := qc.GetQueryLanguageByName(language)
+	if ql == nil {
+		return nil
+	}
+	qg := ql.GetQueryGroupByName(group)
+	if qg == nil {
+		return nil
+	}
+
+	productQ := qg.GetQueryByLevelAndName(AUDIT_QUERY.PRODUCT, AUDIT_QUERY.PRODUCT, query)
+	if level == AUDIT_QUERY.PRODUCT {
+		return productQ
+	}
+	tenantQ := qg.GetQueryByLevelAndName(AUDIT_QUERY.TENANT, AUDIT_QUERY.TENANT, query)
+	if level == AUDIT_QUERY.TENANT {
+		if tenantQ != nil {
+			return tenantQ
+		}
+		return productQ
+	}
+	applicationQ := qg.GetQueryByLevelAndName(AUDIT_QUERY.APPLICATION, levelID, query)
+	if level == AUDIT_QUERY.APPLICATION {
+		if applicationQ != nil {
+			return applicationQ
+		}
+		if tenantQ != nil {
+			return tenantQ
+		}
+		return productQ
+	}
+	projectQ := qg.GetQueryByLevelAndName(AUDIT_QUERY.PROJECT, levelID, query)
+	if projectQ != nil {
+		return projectQ
+	}
+	if applicationQ != nil {
+		return applicationQ
+	}
+	if tenantQ != nil {
+		return tenantQ
+	}
+	return productQ
+}
+
+func (qc SASTQueryCollection) GetClosestQueryByLevelAndID(level, levelID, language, group string, queryID uint64) *SASTQuery {
+	ql := qc.GetQueryLanguageByName(language)
+	if ql == nil {
+		return nil
+	}
+	qg := ql.GetQueryGroupByName(group)
+	if qg == nil {
+		return nil
+	}
+
+	productQ := qg.GetQueryByLevelAndID(AUDIT_QUERY.PRODUCT, AUDIT_QUERY.PRODUCT, queryID)
+	if level == AUDIT_QUERY.PRODUCT {
+		return productQ
+	}
+	tenantQ := qg.GetQueryByLevelAndID(AUDIT_QUERY.TENANT, AUDIT_QUERY.TENANT, queryID)
+	if level == AUDIT_QUERY.TENANT {
+		if tenantQ != nil {
+			return tenantQ
+		}
+		return productQ
+	}
+	applicationQ := qg.GetQueryByLevelAndID(AUDIT_QUERY.APPLICATION, levelID, queryID)
+	if level == AUDIT_QUERY.APPLICATION {
+		if applicationQ != nil {
+			return applicationQ
+		}
+		if tenantQ != nil {
+			return tenantQ
+		}
+		return productQ
+	}
+	projectQ := qg.GetQueryByLevelAndID(AUDIT_QUERY.PROJECT, levelID, queryID)
+	if projectQ != nil {
+		return projectQ
+	}
+	if applicationQ != nil {
+		return applicationQ
+	}
+	if tenantQ != nil {
+		return tenantQ
+	}
+	return productQ
+}
+
 func (qc SASTQueryCollection) GetQueryByName(language, group, query string) *SASTQuery {
 	ql := qc.GetQueryLanguageByName(language)
 	if ql == nil {

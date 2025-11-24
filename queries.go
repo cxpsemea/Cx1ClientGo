@@ -54,8 +54,9 @@ func (q AuditQuery_v312) ToQuery() SASTQuery {
 	}
 }
 
+// This function uses the cx-audit/queries endpoint, which will at some point be deprecated.
 func (c Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollection, error) {
-	c.depwarn("GetQueriesByLevelID", "GetAuditQueriesByLevelID")
+	c.depwarn("GetQueriesByLevelID", "GetAuditSASTQueriesByLevelID")
 	c.logger.Debugf("Get all queries for %v", level)
 
 	var url string
@@ -113,11 +114,6 @@ func (c Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollecti
 	collection.AddQueries(&queries)
 
 	return collection, nil
-}
-
-func (c Cx1Client) GetQueries() (SASTQueryCollection, error) {
-	c.depwarn("GetQueries", "Get(SAST|IAC)QueryCollection")
-	return c.GetSASTQueryCollection()
 }
 
 func (c Cx1Client) GetQueryMappings() (map[uint64]uint64, error) {
@@ -216,8 +212,15 @@ func (q *SASTQuery) MergeQuery(nq SASTQuery) {
 	if q.Source == "" && nq.Source != "" {
 		q.Source = nq.Source
 	}
-	if nq.IsExecutable {
-		q.IsExecutable = true
+	q.IsExecutable = nq.IsExecutable
+	if q.CweID == 0 && nq.CweID != 0 {
+		q.CweID = nq.CweID
+	}
+	if q.QueryDescriptionId == 0 && nq.QueryDescriptionId != 0 {
+		q.QueryDescriptionId = nq.QueryDescriptionId
+	}
+	if q.SastID == 0 && nq.SastID != 0 {
+		q.SastID = nq.SastID
 	}
 }
 
