@@ -10,7 +10,6 @@ import (
 	"net/http"
 )
 
-var cxOrigin = "Cx1-Client-GoLang"
 var scanEngineLicenseMap = map[string]string{
 	"sast":       "SAST",
 	"sca":        "SCA",

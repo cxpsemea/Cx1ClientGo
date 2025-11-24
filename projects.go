@@ -20,7 +20,6 @@ func (c Cx1Client) CreateProject(projectname string, cx1_group_ids []string, tag
 		"groups":      []string{},
 		"tags":        map[string]string{},
 		"criticality": 3,
-		"origin":      "",
 	}
 
 	if len(tags) > 0 {
@@ -60,7 +59,6 @@ func (c Cx1Client) CreateProjectInApplicationWOPolling(projectname string, cx1_g
 		"groups":      []string{},
 		"tags":        map[string]string{},
 		"criticality": 3,
-		"origin":      cxOrigin,
 	}
 
 	if len(tags) > 0 {
