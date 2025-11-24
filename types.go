@@ -350,6 +350,7 @@ type AuditIACQuery struct {
 type AuditIACQueryMetadata struct {
 	Aggregation    string `json:"aggregation,omitempty"`
 	Category       string `json:"category,omitempty"`
+	CloudProvider  string `json:"cloudprovider,omitempty"`
 	Cwe            string `json:"cwe,omitempty"`
 	Description    string `json:"description,omitempty"`
 	DescriptionID  string `json:"descriptionId,omitempty"`
@@ -570,7 +571,7 @@ type IACQuery struct {
 	DescriptionID  string `json:"descriptionId"`
 	DescriptionURL string `json:"descriptionUrl"`
 	Platform       string `json:"platform"`
-	Group          string `json:"group"`
+	Group          string `json:"group"` // aka cloudprovider?
 	Category       string `json:"category"`
 	Severity       string `json:"severity"`
 	CWE            string `json:"cwe"`

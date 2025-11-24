@@ -249,6 +249,7 @@ func (q *IACQuery) MergeQuery(nq IACQuery) {
 	if q.Group == "" && nq.Group != "" {
 		q.Group = nq.Group
 	}
+
 	if q.Platform == "" && nq.Platform != "" {
 		q.Platform = nq.Platform
 	}
