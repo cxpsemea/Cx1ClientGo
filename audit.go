@@ -57,10 +57,17 @@ func (c Cx1Client) QueryTypeProject() string {
 	return AUDIT_QUERY.PROJECT
 }
 
+// This function will be deprecated - use GetAuditSession instead
+// They are functionally identical but this function name is misleading
+func (c Cx1Client) AuditCreateSession(engine, language string) (AuditSession, error) {
+	c.depwarn("AuditCreateSession", "GetAuditSession")
+	return c.GetAuditSession(engine, language)
+}
+
 // Create an audit session on the tenant-level
 // eg: engine = "sast", language = "go"
 // The session will expire unless you call AuditSessionKeepAlive periodically
-func (c Cx1Client) AuditCreateSession(engine, language string) (AuditSession, error) {
+func (c Cx1Client) GetAuditSession(engine, language string) (AuditSession, error) {
 	c.logger.Debugf("Trying to create a tenant-level audit session for engine %v and language %v", engine, language)
 
 	body := map[string]string{
@@ -322,6 +329,8 @@ func (c Cx1Client) AuditSessionKeepAlive(auditSession *AuditSession) error {
 }
 
 // Get a new Audit session for a specific project and scan ID
+// This will allow you to create Tenant-level queries, Project-level queries,
+// and Application-level queries (if the project has an application associated)
 // The session will expire unless you call AuditSessionKeepAlive periodically
 func (c Cx1Client) GetAuditSessionByID(engine, projectId, scanId string) (AuditSession, error) {
 	// TODO: convert the audit session to an object that also does the polling/keepalive
