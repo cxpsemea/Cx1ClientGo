@@ -206,8 +206,14 @@ func (c Cx1Client) auditCreateSessionByID(engine, projectId, scanId string) (Aud
 	return session, nil
 }
 
-// Delete an audit session. Frees up a slot for new sessions.
+// Please use DeleteAuditSession instead (renamed for consistency)
 func (c Cx1Client) AuditDeleteSession(auditSession *AuditSession) error {
+	c.depwarn("AuditDeleteSession", "DeleteAuditSession")
+	return c.DeleteAuditSession(auditSession)
+}
+
+// Delete an audit session. Frees up a slot for new sessions.
+func (c Cx1Client) DeleteAuditSession(auditSession *AuditSession) error {
 	if auditSession == nil {
 		c.logger.Errorf("Attempt to run AuditDeleteSession with a nil session")
 		return nil
@@ -305,7 +311,11 @@ func (c Cx1Client) auditRequestStatusPollingByIDWithTimeout(auditSession *AuditS
 			break
 		}
 
-		// TODO: also refresh the audit session
+		err = c.AuditSessionKeepAlive(auditSession)
+		if err != nil {
+			return value, err
+		}
+
 		time.Sleep(time.Duration(delaySeconds) * time.Second)
 		pollingCounter += delaySeconds
 	}
@@ -499,8 +509,7 @@ func (c Cx1Client) GetAuditIACQueryByID(auditSession *AuditSession, queryId stri
 Retrieves the list of queries available for this audit session. Level and LevelID options are:
 QueryTypeProduct(), QueryTypeProduct() : same value for both when retrieving product-default queries
 QueryTypeTenant(), QueryTypeTenant() : same value for both when retrieving tenant-level queries
-QueryTypeApplication(), application.ApplicationID : when retrieving application-level queries
-QueryTypeProject(), project.ProjectID : when retrieving project-level queries
+QueryTypeProject(), project.ProjectID : when retrieving project-level queries (includes application-level queries if the project has an application associated)
 
 The resulting array of queries should be merged into a QueryCollection object returned by the GetQueries function.
 */
@@ -522,8 +531,7 @@ func (c Cx1Client) GetAuditSASTQueriesByLevelID(auditSession *AuditSession, leve
 Retrieves the list of queries available for this audit session. Level and LevelID options are:
 QueryTypeProduct(), QueryTypeProduct() : same value for both when retrieving product-default queries
 QueryTypeTenant(), QueryTypeTenant() : same value for both when retrieving tenant-level queries
-QueryTypeApplication(), application.ApplicationID : when retrieving application-level queries
-QueryTypeProject(), project.ProjectID : when retrieving project-level queries
+QueryTypeProject(), project.ProjectID : when retrieving project-level queries (includes application-level queries if the project has an application associated)
 
 The resulting array of queries should be merged into a QueryCollection object returned by the GetQueries function.
 */
