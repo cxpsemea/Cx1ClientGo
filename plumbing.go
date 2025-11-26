@@ -1,6 +1,7 @@
 package Cx1ClientGo
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -162,6 +163,16 @@ func (c Cx1Client) sendRequestRaw(method, url string, body io.Reader, header htt
 }
 
 func (c Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, error) {
+	// If the request has a body, we need to buffer it so it can be read multiple times for retries.
+	var bodyBytes []byte
+	if request.Body != nil {
+		var err error
+		bodyBytes, err = io.ReadAll(request.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read request body: %w", err)
+		}
+		request.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+	}
 	response, err := c.httpClient.Do(request)
 	if err != nil || (response.StatusCode >= 500 && response.StatusCode < 600) {
 		response, err = c.handleRetries(request, response, err)
@@ -222,12 +233,23 @@ func (c Cx1Client) handleRetries(request *http.Request, response *http.Response,
 
 	delay := c.retryDelay
 	attempt := 1
-	for attempt <= c.maxRetries && ((response.StatusCode >= 500 && response.StatusCode < 600) || isRetryableError(err)) {
+	for attempt <= c.maxRetries && ((response != nil && response.StatusCode >= 500 && response.StatusCode < 600) || isRetryableError(err)) {
 		c.logger.Warnf("Response status %v: waiting %d seconds for retry attempt %d", response.Status, delay, attempt)
 		attempt++
+
+		// If there was a body, create a new reader for the retry from the buffered bytes.
+		if request.GetBody != nil {
+			body, err := request.GetBody()
+			if err != nil {
+				return response, fmt.Errorf("failed to get request body for retry: %w", err)
+			}
+			request.Body = body
+		}
+
 		jitter := time.Duration(rand.Intn(1000)) * time.Millisecond // Up to 1 second of jitter
 		time.Sleep(time.Duration(delay)*time.Second + jitter)
 		response, err = c.httpClient.Do(request)
+		c.logger.Tracef("Retried and got response %v, err %v", response, err)
 		delay *= 2
 	}
 
