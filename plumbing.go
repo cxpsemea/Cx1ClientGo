@@ -96,13 +96,8 @@ func (c *Cx1Client) sendTokenRequest(body io.Reader) (access_token string, err e
 
 func (c *Cx1Client) refreshAccessToken() error {
 	if c.auth.AccessToken == "" || c.auth.Expiry.Before(time.Now().Add(30*time.Second)) {
+		c.logger.Tracef("Refreshing access token (%v) with expiry %v", ShortenGUID(c.auth.AccessToken), c.auth.Expiry)
 		if c.auth.APIKey != "" {
-			claims, err := parseJWT(c.auth.APIKey)
-			if err != nil {
-				return fmt.Errorf("failed to parse API Key JWT: %v", err)
-			}
-			c.SetClaims(claims)
-
 			data := url.Values{}
 			data.Set("grant_type", "refresh_token")
 			data.Set("client_id", "ast-app")
@@ -113,6 +108,12 @@ func (c *Cx1Client) refreshAccessToken() error {
 				return err
 			}
 			c.auth.AccessToken = access_token
+
+			claims, err := parseJWT(c.auth.AccessToken)
+			if err != nil {
+				return fmt.Errorf("failed to parse API Key JWT: %v", err)
+			}
+			c.SetClaims(claims)
 			c.auth.Expiry = c.claims.ExpiryTime
 		} else if c.auth.ClientID != "" && c.auth.ClientSecret != "" && c.iamUrl != "" && c.tenant != "" {
 			data := url.Values{}
@@ -125,6 +126,11 @@ func (c *Cx1Client) refreshAccessToken() error {
 				return err
 			}
 			c.auth.AccessToken = access_token
+			claims, err := parseJWT(c.auth.AccessToken)
+			if err != nil {
+				return fmt.Errorf("failed to parse API Key JWT: %v", err)
+			}
+			c.SetClaims(claims)
 			c.auth.Expiry = c.claims.ExpiryTime
 		} else {
 			return fmt.Errorf("invalid input: missing API key or ClientID + ClientSecret + IAMURL + TenantName")
@@ -157,7 +163,7 @@ func (c Cx1Client) sendRequestRaw(method, url string, body io.Reader, header htt
 
 func (c Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, error) {
 	response, err := c.httpClient.Do(request)
-	if err != nil {
+	if err != nil || (response.StatusCode >= 500 && response.StatusCode < 600) {
 		response, err = c.handleRetries(request, response, err)
 	}
 
@@ -209,7 +215,7 @@ func (c Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, er
 }
 
 func (c Cx1Client) handleRetries(request *http.Request, response *http.Response, err error) (*http.Response, error) {
-	if err == nil || (strings.Contains(err.Error(), "tls: user canceled") && request.Method == http.MethodGet) { // tls: user canceled can be due to proxies
+	if err != nil && (strings.Contains(err.Error(), "tls: user canceled") && request.Method == http.MethodGet) { // tls: user canceled can be due to proxies
 		c.logger.Warnf("Potentially benign error from HTTP connection: %s", err)
 		return response, nil
 	}

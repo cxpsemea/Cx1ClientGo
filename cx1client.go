@@ -166,6 +166,7 @@ func (c Cx1Client) String() string {
 
 func (c *Cx1Client) InitializeClient(quick bool) error {
 	c.SetUserAgent("Cx1ClientGo")
+	c.SetRetries(3, 5)
 
 	if err := c.refreshAccessToken(); err != nil {
 		return err
