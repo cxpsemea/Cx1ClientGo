@@ -324,10 +324,10 @@ func (c Cx1Client) auditRequestStatusPollingByIDWithTimeout(auditSession *AuditS
 }
 
 // Refresh an audit session to keep it alive
-// Should be called periodically to prevent session expiration, rate limited to 1 per 5 minutes
+// Should be called periodically to prevent session expiration, rate limited to 1 per 2 minutes
 func (c Cx1Client) AuditSessionKeepAlive(auditSession *AuditSession) error {
-	if time.Since(auditSession.LastHeartbeat) < 5*time.Minute {
-		c.logger.Tracef("Audit session last refreshed within 5 minutes ago, skipping")
+	if time.Since(auditSession.LastHeartbeat) < 2*time.Minute {
+		c.logger.Tracef("Audit session was refreshed within the last 2 minutes, skipping")
 		return nil
 	}
 	_, err := c.sendRequest(http.MethodPatch, fmt.Sprintf("/query-editor/sessions/%v", auditSession.ID), nil, nil)
