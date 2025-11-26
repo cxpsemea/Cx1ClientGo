@@ -19,7 +19,7 @@ import (
 
 // this file is for cx1clientgo internal functionality like sending HTTP requests
 
-func (c Cx1Client) createRequest(method, url string, body io.Reader, header *http.Header, cookies []*http.Cookie) (*http.Request, error) {
+func (c *Cx1Client) createRequest(method, url string, body io.Reader, header *http.Header, cookies []*http.Cookie) (*http.Request, error) {
 	request, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return &http.Request{}, err
@@ -116,6 +116,7 @@ func (c *Cx1Client) refreshAccessToken() error {
 			}
 			c.SetClaims(claims)
 			c.auth.Expiry = c.claims.ExpiryTime
+			c.logger.Tracef("New token (%v) has expiry %v", ShortenGUID(access_token), c.auth.Expiry)
 		} else if c.auth.ClientID != "" && c.auth.ClientSecret != "" && c.iamUrl != "" && c.tenant != "" {
 			data := url.Values{}
 			data.Set("grant_type", "client_credentials")
@@ -133,6 +134,7 @@ func (c *Cx1Client) refreshAccessToken() error {
 			}
 			c.SetClaims(claims)
 			c.auth.Expiry = c.claims.ExpiryTime
+			c.logger.Tracef("New token (%v) has expiry %v", ShortenGUID(access_token), c.auth.Expiry)
 		} else {
 			return fmt.Errorf("invalid input: missing API key or ClientID + ClientSecret + IAMURL + TenantName")
 		}
@@ -249,7 +251,6 @@ func (c Cx1Client) handleRetries(request *http.Request, response *http.Response,
 		jitter := time.Duration(rand.Intn(1000)) * time.Millisecond // Up to 1 second of jitter
 		time.Sleep(time.Duration(delay)*time.Second + jitter)
 		response, err = c.httpClient.Do(request)
-		c.logger.Tracef("Retried and got response %v, err %v", response, err)
 		delay *= 2
 	}
 
