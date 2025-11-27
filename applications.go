@@ -13,7 +13,7 @@ import (
 
 // Get the first count Applications
 // uses the pagination behind the scenes
-func (c Cx1Client) GetApplications(count uint64) ([]Application, error) {
+func (c *Cx1Client) GetApplications(count uint64) ([]Application, error) {
 	c.logger.Debugf("Get Cx1 Applications")
 
 	_, applications, err := c.GetXApplicationsFiltered(ApplicationFilter{
@@ -24,7 +24,7 @@ func (c Cx1Client) GetApplications(count uint64) ([]Application, error) {
 }
 
 // Get all applications
-func (c Cx1Client) GetAllApplications() ([]Application, error) {
+func (c *Cx1Client) GetAllApplications() ([]Application, error) {
 	c.logger.Debugf("Get Cx1 Applications")
 
 	_, applications, err := c.GetAllApplicationsFiltered(ApplicationFilter{
@@ -35,7 +35,7 @@ func (c Cx1Client) GetAllApplications() ([]Application, error) {
 }
 
 // Get a specific application by ID
-func (c Cx1Client) GetApplicationByID(id string) (Application, error) {
+func (c *Cx1Client) GetApplicationByID(id string) (Application, error) {
 	c.logger.Debugf("Get Cx1 Applications by id: %v", id)
 	var application Application
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/applications/%v", id), nil, nil)
@@ -55,7 +55,7 @@ func (c Cx1Client) GetApplicationByID(id string) (Application, error) {
 // Get all applications matching 'name'
 // As of 2024-10-17, this function no longer takes a specific limit as a parameter
 // To set limits, offsets, and other parameters directly, use GetApplicationsFiltered
-func (c Cx1Client) GetApplicationsByName(name string) ([]Application, error) {
+func (c *Cx1Client) GetApplicationsByName(name string) ([]Application, error) {
 	c.logger.Debugf("Get Cx1 Applications by name: %v", name)
 
 	_, applications, err := c.GetAllApplicationsFiltered(ApplicationFilter{
@@ -67,7 +67,7 @@ func (c Cx1Client) GetApplicationsByName(name string) ([]Application, error) {
 }
 
 // returns the application matching exactly (case sensitive) the name
-func (c Cx1Client) GetApplicationByName(name string) (Application, error) {
+func (c *Cx1Client) GetApplicationByName(name string) (Application, error) {
 	apps, err := c.GetApplicationsByName(name)
 	if err != nil {
 		return Application{}, err
@@ -85,7 +85,7 @@ func (c Cx1Client) GetApplicationByName(name string) (Application, error) {
 // Underlying function used by many GetApplications* calls
 // Returns the number of applications matching the filter and the array of matching applications
 // with one page (filter.Offset to filter.Offset+filter.Limit) of results
-func (c Cx1Client) GetApplicationsFiltered(filter ApplicationFilter) (uint64, []Application, error) {
+func (c *Cx1Client) GetApplicationsFiltered(filter ApplicationFilter) (uint64, []Application, error) {
 	params, _ := query.Values(filter)
 
 	var ApplicationResponse struct {
@@ -114,7 +114,7 @@ func (c Cx1Client) GetApplicationsFiltered(filter ApplicationFilter) (uint64, []
 
 // retrieves all applications matching the filter
 // using pagination set via filter.Limit or Get/SetPaginationSettings
-func (c Cx1Client) GetAllApplicationsFiltered(filter ApplicationFilter) (uint64, []Application, error) {
+func (c *Cx1Client) GetAllApplicationsFiltered(filter ApplicationFilter) (uint64, []Application, error) {
 	var applications []Application
 
 	count, err := c.GetApplicationCountFiltered(filter)
@@ -127,7 +127,7 @@ func (c Cx1Client) GetAllApplicationsFiltered(filter ApplicationFilter) (uint64,
 
 // retrieves the first X applications matching the filter
 // using pagination set via filter.Limit or Get/SetPaginationSettings
-func (c Cx1Client) GetXApplicationsFiltered(filter ApplicationFilter, count uint64) (uint64, []Application, error) {
+func (c *Cx1Client) GetXApplicationsFiltered(filter ApplicationFilter, count uint64) (uint64, []Application, error) {
 	var applications []Application
 
 	_, apps, err := c.GetApplicationsFiltered(filter)
@@ -147,7 +147,7 @@ func (c Cx1Client) GetXApplicationsFiltered(filter ApplicationFilter, count uint
 }
 
 // Create a new application
-func (c Cx1Client) CreateApplication(appname string) (Application, error) {
+func (c *Cx1Client) CreateApplication(appname string) (Application, error) {
 	c.logger.Debugf("Create Application: %v", appname)
 	data := map[string]interface{}{ // TODO: direct_app ?
 		"name":        appname,
@@ -177,13 +177,13 @@ func (c Cx1Client) CreateApplication(appname string) (Application, error) {
 
 // Delete an application
 // There is no UNDO
-func (c Cx1Client) DeleteApplication(application *Application) error {
+func (c *Cx1Client) DeleteApplication(application *Application) error {
 	return c.DeleteApplicationByID(application.ApplicationID)
 }
 
 // Delete an application by ID
 // There is no UNDO
-func (c Cx1Client) DeleteApplicationByID(applicationId string) error {
+func (c *Cx1Client) DeleteApplicationByID(applicationId string) error {
 	c.logger.Debugf("Delete Application: %v", applicationId)
 
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/applications/%v", applicationId), nil, nil)
@@ -196,7 +196,7 @@ func (c Cx1Client) DeleteApplicationByID(applicationId string) error {
 }
 
 // Get the number of applications
-func (c Cx1Client) GetApplicationCount() (uint64, error) {
+func (c *Cx1Client) GetApplicationCount() (uint64, error) {
 	c.logger.Debugf("Get Cx1 Application count")
 	count, _, err := c.GetApplicationsFiltered(ApplicationFilter{
 		BaseFilter: BaseFilter{Limit: 1},
@@ -206,7 +206,7 @@ func (c Cx1Client) GetApplicationCount() (uint64, error) {
 }
 
 // Get the number of applications with names containing this substring
-func (c Cx1Client) GetApplicationCountByName(name string) (uint64, error) {
+func (c *Cx1Client) GetApplicationCountByName(name string) (uint64, error) {
 	c.logger.Debugf("Get Cx1 Application count by name: %v", name)
 
 	count, _, err := c.GetApplicationsFiltered(ApplicationFilter{
@@ -218,7 +218,7 @@ func (c Cx1Client) GetApplicationCountByName(name string) (uint64, error) {
 }
 
 // Get the count of applications matching the filter
-func (c Cx1Client) GetApplicationCountFiltered(filter ApplicationFilter) (uint64, error) {
+func (c *Cx1Client) GetApplicationCountFiltered(filter ApplicationFilter) (uint64, error) {
 	filter.Limit = 1
 	params, _ := query.Values(filter)
 	c.logger.Debugf("Get Cx1 Application count matching filter: %v", params.Encode())
@@ -233,7 +233,7 @@ func (a *Application) String() string {
 }
 
 // Gets an application by name, and if it doesn't exist it is created
-func (c Cx1Client) GetOrCreateApplicationByName(name string) (Application, error) {
+func (c *Cx1Client) GetOrCreateApplicationByName(name string) (Application, error) {
 	app, err := c.GetApplicationByName(name)
 	if err == nil {
 		return app, nil
@@ -244,7 +244,7 @@ func (c Cx1Client) GetOrCreateApplicationByName(name string) (Application, error
 
 // Directly assign an application to one or more projects
 // requires the direct_app_association feature
-func (c Cx1Client) AssignApplicationToProjectsByIDs(applicationId string, projectIds []string) error {
+func (c *Cx1Client) AssignApplicationToProjectsByIDs(applicationId string, projectIds []string) error {
 	if flag, _ := c.CheckFlag("DIRECT_APP_ASSOCIATION_ENABLED"); !flag {
 		return fmt.Errorf("direct app association is not enabled")
 	}
@@ -267,7 +267,7 @@ func (c Cx1Client) AssignApplicationToProjectsByIDs(applicationId string, projec
 
 // Directly remove an application from one or more projects
 // requires the direct_app_association feature
-func (c Cx1Client) RemoveApplicationFromProjectsByIDs(applicationId string, projectIds []string) error {
+func (c *Cx1Client) RemoveApplicationFromProjectsByIDs(applicationId string, projectIds []string) error {
 	if flag, _ := c.CheckFlag("DIRECT_APP_ASSOCIATION_ENABLED"); !flag {
 		return fmt.Errorf("direct app association is not enabled")
 	}
@@ -291,13 +291,13 @@ func (c Cx1Client) RemoveApplicationFromProjectsByIDs(applicationId string, proj
 // This function patches a application, changing only the fields supplied to the function.
 // The application behind the supplied pointer is not changed
 // For CheckmarxOne v3.41+
-func (c Cx1Client) PatchApplication(application *Application, update ApplicationPatch) error {
+func (c *Cx1Client) PatchApplication(application *Application, update ApplicationPatch) error {
 	return c.PatchApplicationByID(application.ApplicationID, update)
 }
 
 // This function patches a application, changing only the fields supplied to the function.
 // For CheckmarxOne v3.41+
-func (c Cx1Client) PatchApplicationByID(applicationId string, update ApplicationPatch) error {
+func (c *Cx1Client) PatchApplicationByID(applicationId string, update ApplicationPatch) error {
 	jsonBody, err := json.Marshal(update)
 	if err != nil {
 		return err
@@ -309,7 +309,7 @@ func (c Cx1Client) PatchApplicationByID(applicationId string, update Application
 
 // This updates all fields of the application based on the content of the Application object.
 // The passed-in application object is not modified, you must GetApplication* again for an updated object
-func (c Cx1Client) UpdateApplication(app *Application) error {
+func (c *Cx1Client) UpdateApplication(app *Application) error {
 	c.logger.Debugf("Update application: %v", app.String())
 
 	// This may be temporary depending on how the API changes

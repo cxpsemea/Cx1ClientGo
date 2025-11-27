@@ -11,7 +11,7 @@ import (
 
 // Reports
 // Added the 'sections' variable, originally: "ScanSummary", "ExecutiveSummary", "ScanResults",
-func (c Cx1Client) RequestNewReportByID(scanID, projectID, branch, reportType string, engines, sections []string) (string, error) {
+func (c *Cx1Client) RequestNewReportByID(scanID, projectID, branch, reportType string, engines, sections []string) (string, error) {
 	jsonData := map[string]interface{}{
 		"fileFormat": reportType,
 		"reportType": "ui",
@@ -47,12 +47,12 @@ func (c Cx1Client) RequestNewReportByID(scanID, projectID, branch, reportType st
 // the v2 report is the "improved scan report" which can be used the same as the existing RequestNewReportByID
 // returns the report ID which can be passed to GetReportStatusByID or ReportPollingByID
 // supports pdf, csv, and json format (not xml)
-func (c Cx1Client) RequestNewReportByIDv2(scanID string, scanners []string, format string) (string, error) {
+func (c *Cx1Client) RequestNewReportByIDv2(scanID string, scanners []string, format string) (string, error) {
 	c.depwarn("RequestNewReportByIDv2", "RequestNewReportByScanIDv2")
 	return c.RequestNewReportByScanIDv2(scanID, scanners, []string{}, []string{}, format)
 }
 
-func (c Cx1Client) RequestNewReportByScanIDv2(scanID string, scanners, emails, tags []string, format string) (string, error) {
+func (c *Cx1Client) RequestNewReportByScanIDv2(scanID string, scanners, emails, tags []string, format string) (string, error) {
 	severities := []string{"high", "medium"}
 	if flag, _ := c.CheckFlag("CVSS_V3_ENABLED"); flag {
 		severities = append(severities, "critical")
@@ -70,7 +70,7 @@ func (c Cx1Client) RequestNewReportByScanIDv2(scanID string, scanners, emails, t
 		format)
 }
 
-func (c Cx1Client) RequestNewReportByProjectIDv2(projectIDs, scanners, emails, tags []string, format string) (string, error) {
+func (c *Cx1Client) RequestNewReportByProjectIDv2(projectIDs, scanners, emails, tags []string, format string) (string, error) {
 	severities := []string{"high", "medium"}
 	if flag, _ := c.CheckFlag("CVSS_V3_ENABLED"); flag {
 		severities = append(severities, "critical")
@@ -89,7 +89,7 @@ func (c Cx1Client) RequestNewReportByProjectIDv2(projectIDs, scanners, emails, t
 }
 
 // function used by RequestNewReportByIDv2
-func (c Cx1Client) RequestNewReportByIDsv2(entityType string, ids, sections, scanners, severities, states, statuses, emails, tags []string, format string) (string, error) {
+func (c *Cx1Client) RequestNewReportByIDsv2(entityType string, ids, sections, scanners, severities, states, statuses, emails, tags []string, format string) (string, error) {
 	jsonData := map[string]interface{}{
 		"reportName": fmt.Sprintf("improved-%v-report", entityType),
 		"sections":   sections,
@@ -125,7 +125,7 @@ func (c Cx1Client) RequestNewReportByIDsv2(entityType string, ids, sections, sca
 	return reportResponse.ReportId, err
 }
 
-func (c Cx1Client) GetReportStatusByID(reportID string) (ReportStatus, error) {
+func (c *Cx1Client) GetReportStatusByID(reportID string) (ReportStatus, error) {
 	var response ReportStatus
 
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/reports/%v?returnUrl=true", reportID), nil, nil)
@@ -138,7 +138,7 @@ func (c Cx1Client) GetReportStatusByID(reportID string) (ReportStatus, error) {
 	return response, err
 }
 
-func (c Cx1Client) DownloadReport(reportUrl string) ([]byte, error) {
+func (c *Cx1Client) DownloadReport(reportUrl string) ([]byte, error) {
 	data, err := c.sendRequestInternal(http.MethodGet, reportUrl, nil, nil)
 	if err != nil {
 		return []byte{}, fmt.Errorf("failed to download report from url %v: %s", reportUrl, err)
@@ -147,11 +147,11 @@ func (c Cx1Client) DownloadReport(reportUrl string) ([]byte, error) {
 }
 
 // convenience function, polls and returns the URL to download the report
-func (c Cx1Client) ReportPollingByID(reportID string) (string, error) {
+func (c *Cx1Client) ReportPollingByID(reportID string) (string, error) {
 	return c.ReportPollingByIDWithTimeout(reportID, c.consts.ReportPollingDelaySeconds, c.consts.ReportPollingMaxSeconds)
 }
 
-func (c Cx1Client) ReportPollingByIDWithTimeout(reportID string, delaySeconds, maxSeconds int) (string, error) {
+func (c *Cx1Client) ReportPollingByIDWithTimeout(reportID string, delaySeconds, maxSeconds int) (string, error) {
 	pollingCounter := 0
 	for {
 		status, err := c.GetReportStatusByID(reportID)
@@ -176,7 +176,7 @@ func (c Cx1Client) ReportPollingByIDWithTimeout(reportID string, delaySeconds, m
 
 // SCA-specific Export for SBOM
 // formats: CycloneDxjson, CycloneDxxml, Spdxjson
-func (c Cx1Client) RequestNewExportByID(scanId, format string, hidePrivatePackages, hideDevAndTestDependencies, showOnlyEffectiveLicenses bool) (string, error) {
+func (c *Cx1Client) RequestNewExportByID(scanId, format string, hidePrivatePackages, hideDevAndTestDependencies, showOnlyEffectiveLicenses bool) (string, error) {
 	jsonData := map[string]interface{}{
 		"ScanId":     scanId,
 		"FileFormat": format,
@@ -201,7 +201,7 @@ func (c Cx1Client) RequestNewExportByID(scanId, format string, hidePrivatePackag
 	return exportResponse.ExportId, err
 }
 
-func (c Cx1Client) GetExportStatusByID(exportID string) (ExportStatus, error) {
+func (c *Cx1Client) GetExportStatusByID(exportID string) (ExportStatus, error) {
 	var response ExportStatus
 
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/sca/export/requests?exportId=%v", exportID), nil, nil)
@@ -214,7 +214,7 @@ func (c Cx1Client) GetExportStatusByID(exportID string) (ExportStatus, error) {
 	return response, err
 }
 
-func (c Cx1Client) DownloadExport(exportUrl string) ([]byte, error) {
+func (c *Cx1Client) DownloadExport(exportUrl string) ([]byte, error) {
 	data, err := c.sendRequestInternal(http.MethodGet, exportUrl, nil, nil)
 	if err != nil {
 		return []byte{}, fmt.Errorf("failed to download export from url %v: %s", exportUrl, err)
@@ -223,11 +223,11 @@ func (c Cx1Client) DownloadExport(exportUrl string) ([]byte, error) {
 }
 
 // convenience function, polls and returns the URL to download the export
-func (c Cx1Client) ExportPollingByID(exportID string) (string, error) {
+func (c *Cx1Client) ExportPollingByID(exportID string) (string, error) {
 	return c.ExportPollingByIDWithTimeout(exportID, c.consts.ExportPollingDelaySeconds, c.consts.ExportPollingMaxSeconds)
 }
 
-func (c Cx1Client) ExportPollingByIDWithTimeout(exportID string, delaySeconds, maxSeconds int) (string, error) {
+func (c *Cx1Client) ExportPollingByIDWithTimeout(exportID string, delaySeconds, maxSeconds int) (string, error) {
 	pollingCounter := 0
 	for {
 		status, err := c.GetExportStatusByID(exportID)

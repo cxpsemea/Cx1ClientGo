@@ -8,7 +8,7 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
-func (c Cx1Client) GetAllApplicationOverviews() ([]ApplicationOverview, error) {
+func (c *Cx1Client) GetAllApplicationOverviews() ([]ApplicationOverview, error) {
 	c.logger.Debugf("Get All Cx1 Application Overviews")
 	_, applications, err := c.GetAllApplicationOverviewsFiltered(ApplicationOverviewFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Applications},
@@ -19,7 +19,7 @@ func (c Cx1Client) GetAllApplicationOverviews() ([]ApplicationOverview, error) {
 
 // Returns the total number of matching results plus an array of applications with
 // one page of results (from filter.Offset to filter.Offset+filter.Limit)
-func (c Cx1Client) GetApplicationOverviewsFiltered(filter ApplicationOverviewFilter) (uint64, []ApplicationOverview, error) {
+func (c *Cx1Client) GetApplicationOverviewsFiltered(filter ApplicationOverviewFilter) (uint64, []ApplicationOverview, error) {
 	params, _ := query.Values(filter)
 
 	var ApplicationResponse struct {
@@ -38,7 +38,7 @@ func (c Cx1Client) GetApplicationOverviewsFiltered(filter ApplicationOverviewFil
 }
 
 // Retrieves all applications matching the filter
-func (c Cx1Client) GetAllApplicationOverviewsFiltered(filter ApplicationOverviewFilter) (uint64, []ApplicationOverview, error) {
+func (c *Cx1Client) GetAllApplicationOverviewsFiltered(filter ApplicationOverviewFilter) (uint64, []ApplicationOverview, error) {
 	var applications []ApplicationOverview
 
 	count, err := c.GetApplicationOverviewCountFiltered(filter)
@@ -50,7 +50,7 @@ func (c Cx1Client) GetAllApplicationOverviewsFiltered(filter ApplicationOverview
 }
 
 // Retrieves the top 'count' applications matching the filter
-func (c Cx1Client) GetXApplicationOverviewsFiltered(filter ApplicationOverviewFilter, count uint64) (uint64, []ApplicationOverview, error) {
+func (c *Cx1Client) GetXApplicationOverviewsFiltered(filter ApplicationOverviewFilter, count uint64) (uint64, []ApplicationOverview, error) {
 	var applications []ApplicationOverview
 
 	_, projs, err := c.GetApplicationOverviewsFiltered(filter)
@@ -69,7 +69,7 @@ func (c Cx1Client) GetXApplicationOverviewsFiltered(filter ApplicationOverviewFi
 	return count, applications, err
 }
 
-func (c Cx1Client) GetApplicationOverviewCountFiltered(filter ApplicationOverviewFilter) (uint64, error) {
+func (c *Cx1Client) GetApplicationOverviewCountFiltered(filter ApplicationOverviewFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	filter.Limit = 1
 	c.logger.Debugf("Get Cx1 Application count matching filter: %v", params.Encode())

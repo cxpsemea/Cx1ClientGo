@@ -11,7 +11,7 @@ import (
 )
 
 // Get all scan schedules - v3.44+
-func (c Cx1Client) GetAllScanSchedules() ([]ProjectScanSchedule, error) {
+func (c *Cx1Client) GetAllScanSchedules() ([]ProjectScanSchedule, error) {
 	_, schedules, err := c.GetAllScanSchedulesFiltered(ProjectScanScheduleFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.ScanSchedules},
 	})
@@ -20,7 +20,7 @@ func (c Cx1Client) GetAllScanSchedules() ([]ProjectScanSchedule, error) {
 
 // Returns the total number of matching results plus an array of schedules with
 // one page of results (from filter.Offset to filter.Offset+filter.Limit)
-func (c Cx1Client) GetScanSchedulesFiltered(filter ProjectScanScheduleFilter) (uint64, []ProjectScanSchedule, error) {
+func (c *Cx1Client) GetScanSchedulesFiltered(filter ProjectScanScheduleFilter) (uint64, []ProjectScanSchedule, error) {
 	params, _ := query.Values(filter)
 
 	var scheduleResponse struct {
@@ -45,7 +45,7 @@ func (c Cx1Client) GetScanSchedulesFiltered(filter ProjectScanScheduleFilter) (u
 }
 
 // Retrieves all projects matching the filter
-func (c Cx1Client) GetAllScanSchedulesFiltered(filter ProjectScanScheduleFilter) (uint64, []ProjectScanSchedule, error) {
+func (c *Cx1Client) GetAllScanSchedulesFiltered(filter ProjectScanScheduleFilter) (uint64, []ProjectScanSchedule, error) {
 	var projects []ProjectScanSchedule
 
 	count, err := c.GetScanScheduleCountFiltered(filter)
@@ -57,7 +57,7 @@ func (c Cx1Client) GetAllScanSchedulesFiltered(filter ProjectScanScheduleFilter)
 }
 
 // Retrieves the top 'count' projects matching the filter
-func (c Cx1Client) GetXScanSchedulesFiltered(filter ProjectScanScheduleFilter, count uint64) (uint64, []ProjectScanSchedule, error) {
+func (c *Cx1Client) GetXScanSchedulesFiltered(filter ProjectScanScheduleFilter, count uint64) (uint64, []ProjectScanSchedule, error) {
 	var projects []ProjectScanSchedule
 
 	_, projs, err := c.GetScanSchedulesFiltered(filter)
@@ -76,7 +76,7 @@ func (c Cx1Client) GetXScanSchedulesFiltered(filter ProjectScanScheduleFilter, c
 	return count, projects, err
 }
 
-func (c Cx1Client) GetScanScheduleCountFiltered(filter ProjectScanScheduleFilter) (uint64, error) {
+func (c *Cx1Client) GetScanScheduleCountFiltered(filter ProjectScanScheduleFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	filter.Limit = 1
 	c.logger.Debugf("Get Cx1 Project count matching filter: %v", params.Encode())
@@ -85,7 +85,7 @@ func (c Cx1Client) GetScanScheduleCountFiltered(filter ProjectScanScheduleFilter
 }
 
 // Get scan schedules for a project
-func (c Cx1Client) GetScanSchedulesByID(projectId string) ([]ProjectScanSchedule, error) {
+func (c *Cx1Client) GetScanSchedulesByID(projectId string) ([]ProjectScanSchedule, error) {
 	schedules := []ProjectScanSchedule{}
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/projects/schedules/%v", projectId), nil, nil)
 	if err != nil {
@@ -128,13 +128,13 @@ func prepareScanScheduleBody(s ProjectScanSchedule) ([]byte, error) {
 	return json.Marshal(schedule)
 }
 
-func (c Cx1Client) CreateScanSchedule(project *Project, s ProjectScanSchedule) error {
+func (c *Cx1Client) CreateScanSchedule(project *Project, s ProjectScanSchedule) error {
 	if project == nil {
 		return fmt.Errorf("project cannot be nil")
 	}
 	return c.CreateScanScheduleByID(project.ProjectID, s)
 }
-func (c Cx1Client) CreateScanScheduleByID(projectId string, s ProjectScanSchedule) error {
+func (c *Cx1Client) CreateScanScheduleByID(projectId string, s ProjectScanSchedule) error {
 	jsonBody, err := prepareScanScheduleBody(s)
 	if err != nil {
 		return err
@@ -143,13 +143,13 @@ func (c Cx1Client) CreateScanScheduleByID(projectId string, s ProjectScanSchedul
 	return err
 }
 
-func (c Cx1Client) UpdateScanSchedule(project *Project, schedule ProjectScanSchedule) error {
+func (c *Cx1Client) UpdateScanSchedule(project *Project, schedule ProjectScanSchedule) error {
 	if project == nil {
 		return fmt.Errorf("project cannot be nil")
 	}
 	return c.UpdateScanScheduleByID(project.ProjectID, schedule)
 }
-func (c Cx1Client) UpdateScanScheduleByID(projectId string, schedule ProjectScanSchedule) error {
+func (c *Cx1Client) UpdateScanScheduleByID(projectId string, schedule ProjectScanSchedule) error {
 	jsonBody, err := prepareScanScheduleBody(schedule)
 	if err != nil {
 		return err
@@ -158,10 +158,10 @@ func (c Cx1Client) UpdateScanScheduleByID(projectId string, schedule ProjectScan
 	return err
 }
 
-func (c Cx1Client) DeleteScanSchedules(project *Project) error {
+func (c *Cx1Client) DeleteScanSchedules(project *Project) error {
 	return c.DeleteScanSchedulesByID(project.ProjectID)
 }
-func (c Cx1Client) DeleteScanSchedulesByID(projectId string) error {
+func (c *Cx1Client) DeleteScanSchedulesByID(projectId string) error {
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/projects/schedules/%v", projectId), nil, nil)
 	return err
 }

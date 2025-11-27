@@ -33,7 +33,7 @@ func (r *Role) HasRole(name string) bool {
 	return false
 }
 
-func (c Cx1Client) GetIAMRoles() ([]Role, error) {
+func (c *Cx1Client) GetIAMRoles() ([]Role, error) {
 	c.logger.Debugf("Getting KeyCloak Roles")
 	var roles []Role
 
@@ -47,7 +47,7 @@ func (c Cx1Client) GetIAMRoles() ([]Role, error) {
 	return roles, err
 }
 
-func (c Cx1Client) GetIAMRoleByName(name string) (Role, error) {
+func (c *Cx1Client) GetIAMRoleByName(name string) (Role, error) {
 	c.logger.Debugf("Getting KeyCloak Role named %v", name)
 	var role Role
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/roles/%v", url.QueryEscape(name)), nil, nil)
@@ -59,7 +59,7 @@ func (c Cx1Client) GetIAMRoleByName(name string) (Role, error) {
 	return role, err
 }
 
-func (c Cx1Client) GetIAMRolesByName(name string) ([]Role, error) {
+func (c *Cx1Client) GetIAMRolesByName(name string) ([]Role, error) {
 	c.logger.Debugf("Getting KeyCloak Roles with name matching %v", name)
 	var roles []Role
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/roles/?search=%v&briefRepresentation=false", url.QueryEscape(name)), nil, nil)
@@ -71,7 +71,7 @@ func (c Cx1Client) GetIAMRolesByName(name string) ([]Role, error) {
 	return roles, err
 }
 
-func (c Cx1Client) GetRolesByClientID(clientId string) ([]Role, error) {
+func (c *Cx1Client) GetRolesByClientID(clientId string) ([]Role, error) {
 	c.logger.Debugf("Getting roles for client %v", clientId)
 	var roles []Role
 
@@ -85,7 +85,7 @@ func (c Cx1Client) GetRolesByClientID(clientId string) ([]Role, error) {
 	return roles, err
 }
 
-func (c Cx1Client) GetRoleByClientIDAndName(clientId string, name string) (Role, error) {
+func (c *Cx1Client) GetRoleByClientIDAndName(clientId string, name string) (Role, error) {
 	c.logger.Debugf("Getting KeyCloak Roles for client %v with name %v", clientId, name)
 	var role Role
 
@@ -98,7 +98,7 @@ func (c Cx1Client) GetRoleByClientIDAndName(clientId string, name string) (Role,
 	return role, err
 }
 
-func (c Cx1Client) GetRolesByClientIDAndName(clientId string, name string) ([]Role, error) {
+func (c *Cx1Client) GetRolesByClientIDAndName(clientId string, name string) ([]Role, error) {
 	c.logger.Debugf("Getting KeyCloak Roles for client %v with name matching %v", clientId, name)
 	var roles []Role
 
@@ -112,7 +112,7 @@ func (c Cx1Client) GetRolesByClientIDAndName(clientId string, name string) ([]Ro
 }
 
 // returns all sub-roles assigned to a specific composite role, including nested composites
-func (c Cx1Client) GetAllRoleComposites(role *Role) ([]Role, error) {
+func (c *Cx1Client) GetAllRoleComposites(role *Role) ([]Role, error) {
 	c.logger.Debugf("Getting all composites for role %v", role.String())
 	var all_roles []Role
 	var role_ids []string
@@ -146,7 +146,7 @@ func (c Cx1Client) GetAllRoleComposites(role *Role) ([]Role, error) {
 }
 
 // returns the sub-roles assigned to a specific composite role and also fills role.SubRoles
-func (c Cx1Client) GetRoleComposites(role *Role) ([]Role, error) {
+func (c *Cx1Client) GetRoleComposites(role *Role) ([]Role, error) {
 	var roles []Role
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/roles-by-id/%v/composites", role.RoleID), nil, nil)
 	if err != nil {
@@ -162,7 +162,7 @@ func (c Cx1Client) GetRoleComposites(role *Role) ([]Role, error) {
 	return roles, nil
 }
 
-func (c Cx1Client) AddRoleComposites(role *Role, roles *[]Role) error {
+func (c *Cx1Client) AddRoleComposites(role *Role, roles *[]Role) error {
 	if len(*roles) == 0 {
 		return fmt.Errorf("no role IDs provided")
 	}
@@ -184,7 +184,7 @@ func (c Cx1Client) AddRoleComposites(role *Role, roles *[]Role) error {
 	return nil
 }
 
-func (c Cx1Client) RemoveRoleComposites(role *Role, roles *[]Role) error {
+func (c *Cx1Client) RemoveRoleComposites(role *Role, roles *[]Role) error {
 	if len(*roles) == 0 {
 		return fmt.Errorf("no role IDs provided")
 	}
@@ -205,7 +205,7 @@ func (c Cx1Client) RemoveRoleComposites(role *Role, roles *[]Role) error {
 	return nil
 }
 
-func (c Cx1Client) CreateAppRole(roleName, createdBy string) (Role, error) {
+func (c *Cx1Client) CreateAppRole(roleName, createdBy string) (Role, error) {
 	c.logger.Debugf("User %v creating client role %v", createdBy, roleName)
 	data := map[string]interface{}{
 		"name":       roleName,
@@ -233,7 +233,7 @@ func (c Cx1Client) CreateAppRole(roleName, createdBy string) (Role, error) {
 }
 
 // roles are returned without sub-roles, use GetRoleComposites(&role) to fill
-func (c Cx1Client) GetRoleByID(roleId string) (Role, error) {
+func (c *Cx1Client) GetRoleByID(roleId string) (Role, error) {
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/roles-by-id/%v", roleId), nil, nil)
 	var role Role
 	if err != nil {
@@ -244,29 +244,29 @@ func (c Cx1Client) GetRoleByID(roleId string) (Role, error) {
 	return role, err
 }
 
-func (c Cx1Client) DeleteRoleByID(roleId string) error {
+func (c *Cx1Client) DeleteRoleByID(roleId string) error {
 	_, err := c.sendRequestIAM(http.MethodDelete, "/auth/admin", fmt.Sprintf("/roles-by-id/%v", roleId), nil, nil)
 	return err
 }
 
-func (c Cx1Client) GetAppRoles() ([]Role, error) {
+func (c *Cx1Client) GetAppRoles() ([]Role, error) {
 	c.logger.Debugf("Getting roles set for ast-app client")
 	return c.GetRolesByClientID(c.GetASTAppID())
 }
 
-func (c Cx1Client) GetAppRoleByName(name string) (Role, error) {
+func (c *Cx1Client) GetAppRoleByName(name string) (Role, error) {
 	c.logger.Debugf("Getting role named %v in ast-app client", name)
 	return c.GetRoleByClientIDAndName(c.GetASTAppID(), name)
 }
 
-func (c Cx1Client) GetAppRolesByName(name string) ([]Role, error) {
+func (c *Cx1Client) GetAppRolesByName(name string) ([]Role, error) {
 	c.logger.Debugf("Getting roles matching %v in ast-app client", name)
 	return c.GetRolesByClientIDAndName(c.GetASTAppID(), name)
 }
 
 // convenience function to get both KeyCloak (system) roles plus the AST-APP-specific roles
 // roles are returned without sub-roles, use GetRoleComposites(&role) to fill
-func (c Cx1Client) GetRoles() ([]Role, error) {
+func (c *Cx1Client) GetRoles() ([]Role, error) {
 	c.logger.Debugf("Getting all available roles")
 	ast_roles, err := c.GetAppRoles()
 	if err != nil {
@@ -282,7 +282,7 @@ func (c Cx1Client) GetRoles() ([]Role, error) {
 }
 
 // roles are returned without sub-roles, use GetRoleComposites(&role) to fill
-func (c Cx1Client) GetRoleByName(name string) (Role, error) {
+func (c *Cx1Client) GetRoleByName(name string) (Role, error) {
 	c.logger.Debugf("Getting any role named: %v", name)
 
 	role, err := c.GetAppRoleByName(name)
@@ -298,7 +298,7 @@ func (c Cx1Client) GetRoleByName(name string) (Role, error) {
 }
 
 // roles are returned without sub-roles, use GetRoleComposites(&role) to fill
-func (c Cx1Client) GetRolesByName(name string) ([]Role, error) {
+func (c *Cx1Client) GetRolesByName(name string) ([]Role, error) {
 	c.logger.Debugf("Getting any roles matching %v", name)
 	var all_roles []Role
 	roles, err := c.GetAppRolesByName(name)
@@ -316,6 +316,6 @@ func (c Cx1Client) GetRolesByName(name string) ([]Role, error) {
 	return all_roles, nil
 }
 
-func (c Cx1Client) RoleLink(r *Role) string {
+func (c *Cx1Client) RoleLink(r *Role) string {
 	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/roles/%v", c.iamUrl, c.tenant, c.tenant, r.RoleID)
 }

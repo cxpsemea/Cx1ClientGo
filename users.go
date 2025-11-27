@@ -24,7 +24,7 @@ func (c *Cx1Client) GetCurrentUser() (User, error) {
 }
 
 // this no longer works as of 2024-09-13 / version 3.21.5
-func (c Cx1Client) Whoami() (WhoAmI, error) {
+func (c *Cx1Client) Whoami() (WhoAmI, error) {
 	var me WhoAmI
 	response, err := c.sendRequestOther(http.MethodGet, "/auth/admin", "/console/whoami", nil, nil)
 	if err != nil {
@@ -36,7 +36,7 @@ func (c Cx1Client) Whoami() (WhoAmI, error) {
 }
 
 // retrieves the first 'count' users
-func (c Cx1Client) GetUsers(count uint64) ([]User, error) {
+func (c *Cx1Client) GetUsers(count uint64) ([]User, error) {
 	c.logger.Debugf("Get %d Cx1 Users", count)
 
 	_, users, err := c.GetXUsersFiltered(UserFilter{
@@ -46,7 +46,7 @@ func (c Cx1Client) GetUsers(count uint64) ([]User, error) {
 	return users, err
 }
 
-func (c Cx1Client) GetAllUsers() ([]User, error) {
+func (c *Cx1Client) GetAllUsers() ([]User, error) {
 	c.logger.Debugf("Get all Cx1 Users")
 
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
@@ -56,7 +56,7 @@ func (c Cx1Client) GetAllUsers() ([]User, error) {
 	return users, err
 }
 
-func (c Cx1Client) GetUserByID(userID string) (User, error) {
+func (c *Cx1Client) GetUserByID(userID string) (User, error) {
 	c.logger.Debugf("Get Cx1 User by ID %v", userID)
 
 	var user UserWithAttributes
@@ -70,7 +70,7 @@ func (c Cx1Client) GetUserByID(userID string) (User, error) {
 	return toUser(&user), err
 }
 
-func (c Cx1Client) GetUserByUserName(username string) (User, error) {
+func (c *Cx1Client) GetUserByUserName(username string) (User, error) {
 	c.logger.Debugf("Get Cx1 User by Username: %v", username)
 
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
@@ -89,7 +89,7 @@ func (c Cx1Client) GetUserByUserName(username string) (User, error) {
 	return users[0], err
 }
 
-func (c Cx1Client) GetUsersByUserName(username string) ([]User, error) {
+func (c *Cx1Client) GetUsersByUserName(username string) ([]User, error) {
 	c.logger.Debugf("Get Cx1 Users matching search: %v", username)
 
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
@@ -101,7 +101,7 @@ func (c Cx1Client) GetUsersByUserName(username string) ([]User, error) {
 	return users, err
 }
 
-func (c Cx1Client) GetUserByEmail(email string) (User, error) {
+func (c *Cx1Client) GetUserByEmail(email string) (User, error) {
 	c.logger.Debugf("Get Cx1 User by email: %v", email)
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
 		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Users},
@@ -121,13 +121,13 @@ func (c Cx1Client) GetUserByEmail(email string) (User, error) {
 	return users[0], nil
 }
 
-func (c Cx1Client) GetUserCount() (uint64, error) {
+func (c *Cx1Client) GetUserCount() (uint64, error) {
 	c.logger.Debugf("Get Cx1 User count")
 
 	return c.GetUserCountFiltered(UserFilter{BaseIAMFilter: BaseIAMFilter{Max: 1}})
 }
 
-func (c Cx1Client) GetUserCountFiltered(filter UserFilter) (uint64, error) {
+func (c *Cx1Client) GetUserCountFiltered(filter UserFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	c.logger.Debugf("Get Cx1 User count with filter %v", params.Encode())
 
@@ -142,7 +142,7 @@ func (c Cx1Client) GetUserCountFiltered(filter UserFilter) (uint64, error) {
 
 // Underlying function used by many GetUsers* calls
 // Returns the number of applications matching the filter and the array of matching applications
-func (c Cx1Client) GetUsersFiltered(filter UserFilter) ([]User, error) {
+func (c *Cx1Client) GetUsersFiltered(filter UserFilter) ([]User, error) {
 	var users []User
 	var uwa []UserWithAttributes
 	params, _ := query.Values(filter)
@@ -166,7 +166,7 @@ func (c Cx1Client) GetUsersFiltered(filter UserFilter) ([]User, error) {
 }
 
 // returns all users matching the filter
-func (c Cx1Client) GetAllUsersFiltered(filter UserFilter) (uint64, []User, error) {
+func (c *Cx1Client) GetAllUsersFiltered(filter UserFilter) (uint64, []User, error) {
 	var users []User
 	count, err := c.GetUserCountFiltered(filter)
 	if err != nil {
@@ -176,7 +176,7 @@ func (c Cx1Client) GetAllUsersFiltered(filter UserFilter) (uint64, []User, error
 }
 
 // returns first X users matching the filter
-func (c Cx1Client) GetXUsersFiltered(filter UserFilter, count uint64) (uint64, []User, error) {
+func (c *Cx1Client) GetXUsersFiltered(filter UserFilter, count uint64) (uint64, []User, error) {
 	var users []User
 
 	gs, err := c.GetUsersFiltered(filter)
@@ -195,7 +195,7 @@ func (c Cx1Client) GetXUsersFiltered(filter UserFilter, count uint64) (uint64, [
 	return count, users, err
 }
 
-func (c Cx1Client) CreateUser(newuser User) (User, error) {
+func (c *Cx1Client) CreateUser(newuser User) (User, error) {
 	c.logger.Debugf("Creating a new user %v", newuser.String())
 	newuser.UserID = ""
 	jsonBody, err := json.Marshal(newuser)
@@ -224,7 +224,7 @@ func (c Cx1Client) CreateUser(newuser User) (User, error) {
 CreateSAMLUser will directly create a user that can log in via SAML, requiring the internal identifiers that are used within the identity provider.
 This function requires some special behavior that's not supported by the standard user type, and requires a two-step process of creating and then updating the user.
 */
-func (c Cx1Client) CreateSAMLUser(newuser User, idpAlias, idpUserId, idpUserName string) (User, error) {
+func (c *Cx1Client) CreateSAMLUser(newuser User, idpAlias, idpUserId, idpUserName string) (User, error) {
 	var samlUser User
 	jsonData, err := json.Marshal(newuser)
 	if err != nil {
@@ -284,7 +284,7 @@ func (c Cx1Client) CreateSAMLUser(newuser User, idpAlias, idpUserId, idpUserName
 	return c.GetUserByID(guid)
 }
 
-func (c Cx1Client) UpdateUser(user *User) error {
+func (c *Cx1Client) UpdateUser(user *User) error {
 	c.logger.Debugf("Updating user %v", user.String())
 	jsonBody, err := json.Marshal(user)
 	if err != nil {
@@ -296,11 +296,11 @@ func (c Cx1Client) UpdateUser(user *User) error {
 	return err
 }
 
-func (c Cx1Client) DeleteUser(user *User) error {
+func (c *Cx1Client) DeleteUser(user *User) error {
 	return c.DeleteUserByID(user.UserID)
 }
 
-func (c Cx1Client) DeleteUserByID(userid string) error {
+func (c *Cx1Client) DeleteUserByID(userid string) error {
 	c.logger.Debugf("Deleting a user %v", userid)
 
 	_, err := c.sendRequestIAM(http.MethodDelete, "/auth/admin", fmt.Sprintf("/users/%v", userid), nil, nil)
@@ -311,11 +311,11 @@ func (c Cx1Client) DeleteUserByID(userid string) error {
 	return nil
 }
 
-func (c Cx1Client) UserLink(u *User) string {
+func (c *Cx1Client) UserLink(u *User) string {
 	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/users/%v", c.iamUrl, c.tenant, c.tenant, u.UserID)
 }
 
-func (c Cx1Client) UserIsTenantOwner(u *User) (bool, error) {
+func (c *Cx1Client) UserIsTenantOwner(u *User) (bool, error) {
 	owner, err := c.GetTenantOwner()
 	if err != nil {
 		return false, err
@@ -324,7 +324,7 @@ func (c Cx1Client) UserIsTenantOwner(u *User) (bool, error) {
 	return (u.UserID == owner.UserID), nil
 }
 
-func (c Cx1Client) GetUserGroups(user *User) ([]Group, error) {
+func (c *Cx1Client) GetUserGroups(user *User) ([]Group, error) {
 	var usergroups []Group
 
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/users/%v/groups", user.UserID), nil, nil)
@@ -346,7 +346,7 @@ func (c Cx1Client) GetUserGroups(user *User) ([]Group, error) {
 	return user.Groups, nil
 }
 
-func (c Cx1Client) AssignUserToGroupByID(user *User, groupId string) error {
+func (c *Cx1Client) AssignUserToGroupByID(user *User, groupId string) error {
 	inGroup, err := user.IsInGroupByID(groupId)
 	if err != nil {
 		return err
@@ -382,7 +382,7 @@ func (c Cx1Client) AssignUserToGroupByID(user *User, groupId string) error {
 	return nil
 }
 
-func (c Cx1Client) RemoveUserFromGroupByID(user *User, groupId string) error {
+func (c *Cx1Client) RemoveUserFromGroupByID(user *User, groupId string) error {
 	inGroup, err := user.IsInGroupByID(groupId)
 	if err != nil {
 		return err
@@ -426,7 +426,7 @@ func (c Cx1Client) RemoveUserFromGroupByID(user *User, groupId string) error {
 
 // Get all roles for the user - those directly assigned, and those inherited from group membership & hierarchy
 // Unlike GetUserRoles, this does not update the user.Roles list
-func (c Cx1Client) GetAllUserRoles(user *User) ([]Role, error) {
+func (c *Cx1Client) GetAllUserRoles(user *User) ([]Role, error) {
 	roles, err := c.GetUserAssignedRoles(user)
 	if err != nil {
 		return []Role{}, fmt.Errorf("failed to get user's assigned roles: %v", err)
@@ -457,14 +457,14 @@ func (c Cx1Client) GetAllUserRoles(user *User) ([]Role, error) {
 // now you can use GetUserAssignedRoles (roles assigned directly to user),
 // GetUserInheritedRoles (roles inherited from group membership) or
 // GetAllUserRoles (GetUserAssignedRoles + GetUserInheritedRoles)
-func (c Cx1Client) GetUserRoles(user *User) ([]Role, error) {
+func (c *Cx1Client) GetUserRoles(user *User) ([]Role, error) {
 	c.depwarn("GetUserRoles", "GetAllUserRoles, GetUserAssignedRoles, or GetUserInheritedRoles")
 	return c.GetUserAssignedRoles(user)
 }
 
 // this returns the roles that are directly assigned to the user
 // does not include roles inherited from group membership
-func (c Cx1Client) GetUserAssignedRoles(user *User) ([]Role, error) {
+func (c *Cx1Client) GetUserAssignedRoles(user *User) ([]Role, error) {
 	appRoles, err := c.getUserRolesByClientID(user.UserID, c.GetASTAppID())
 	if err != nil {
 		return []Role{}, nil
@@ -482,7 +482,7 @@ func (c Cx1Client) GetUserAssignedRoles(user *User) ([]Role, error) {
 }
 
 // this returns the roles inherited from groups to which the user belongs
-func (c Cx1Client) GetUserInheritedRoles(user *User) (roles []Role, err error) {
+func (c *Cx1Client) GetUserInheritedRoles(user *User) (roles []Role, err error) {
 	c.logger.Debugf("Get user inherited roles for user %v", user.String())
 	// get user's groups
 	// get all roles from user's groups
@@ -540,7 +540,7 @@ func (c Cx1Client) GetUserInheritedRoles(user *User) (roles []Role, err error) {
 }
 
 // internal function used by Get*InheritedRoles calls
-func (c Cx1Client) resolveRealmAndClientRoleLists(realmRoles *[]string, clientRoles *map[string][]string) (realmRoleList []Role, clientRoleList []Role, err error) {
+func (c *Cx1Client) resolveRealmAndClientRoleLists(realmRoles *[]string, clientRoles *map[string][]string) (realmRoleList []Role, clientRoleList []Role, err error) {
 	realmRoleList = []Role{}
 
 	for _, r := range *realmRoles {
@@ -575,7 +575,7 @@ func (c Cx1Client) resolveRealmAndClientRoleLists(realmRoles *[]string, clientRo
 	return realmRoleList, clientRoleList, nil
 }
 
-func (c Cx1Client) AddUserRoles(user *User, roles *[]Role) error {
+func (c *Cx1Client) AddUserRoles(user *User, roles *[]Role) error {
 	appRoles := []Role{}
 	iamRoles := []Role{}
 
@@ -610,7 +610,7 @@ func (c Cx1Client) AddUserRoles(user *User, roles *[]Role) error {
 	return nil
 }
 
-func (c Cx1Client) RemoveUserRoles(user *User, roles *[]Role) error {
+func (c *Cx1Client) RemoveUserRoles(user *User, roles *[]Role) error {
 	appRoles := []Role{} // roles to remove
 	iamRoles := []Role{} // roles to remove
 	remainingRoles := []Role{}
@@ -675,27 +675,27 @@ func (c Cx1Client) RemoveUserRoles(user *User, roles *[]Role) error {
 
 */
 
-func (c Cx1Client) GetUserAppRoles(user *User) ([]Role, error) {
+func (c *Cx1Client) GetUserAppRoles(user *User) ([]Role, error) {
 	return c.getUserRolesByClientID(user.UserID, c.GetASTAppID())
 }
-func (c Cx1Client) AddUserAppRoles(user *User, roles *[]Role) error {
+func (c *Cx1Client) AddUserAppRoles(user *User, roles *[]Role) error {
 	return c.addUserRolesByClientID(user.UserID, c.GetASTAppID(), roles)
 }
-func (c Cx1Client) RemoveUserAppRoles(user *User, roles *[]Role) error {
+func (c *Cx1Client) RemoveUserAppRoles(user *User, roles *[]Role) error {
 	return c.removeUserRolesByClientID(user.UserID, c.GetASTAppID(), roles)
 }
 
-func (c Cx1Client) GetUserIAMRoles(user *User) ([]Role, error) {
+func (c *Cx1Client) GetUserIAMRoles(user *User) ([]Role, error) {
 	return c.getUserKCRoles(user.UserID)
 }
-func (c Cx1Client) AddUserIAMRoles(user *User, roles *[]Role) error {
+func (c *Cx1Client) AddUserIAMRoles(user *User, roles *[]Role) error {
 	return c.addUserKCRoles(user.UserID, roles)
 }
-func (c Cx1Client) RemoveUserIAMRoles(user *User, roles *[]Role) error {
+func (c *Cx1Client) RemoveUserIAMRoles(user *User, roles *[]Role) error {
 	return c.removeUserKCRoles(user.UserID, roles)
 }
 
-func (c Cx1Client) getUserRolesByClientID(userID string, clientID string) ([]Role, error) {
+func (c *Cx1Client) getUserRolesByClientID(userID string, clientID string) ([]Role, error) {
 	c.logger.Debugf("Get Cx1 Rolemappings for userid %v and clientid %v", userID, clientID)
 
 	var roles []Role
@@ -706,7 +706,7 @@ func (c Cx1Client) getUserRolesByClientID(userID string, clientID string) ([]Rol
 	err = json.Unmarshal(response, &roles)
 	return roles, err
 }
-func (c Cx1Client) addUserRolesByClientID(userID string, clientID string, roles *[]Role) error {
+func (c *Cx1Client) addUserRolesByClientID(userID string, clientID string, roles *[]Role) error {
 	c.logger.Debugf("Add Cx1 Rolemappings for userid %v and clientid %v", userID, clientID)
 
 	jsonBody, err := json.Marshal(roles)
@@ -718,7 +718,7 @@ func (c Cx1Client) addUserRolesByClientID(userID string, clientID string, roles 
 	_, err = c.sendRequestIAM(http.MethodPost, "/auth/admin", fmt.Sprintf("/users/%v/role-mappings/clients/%v", userID, clientID), bytes.NewReader(jsonBody), nil)
 	return err
 }
-func (c Cx1Client) removeUserRolesByClientID(userID string, clientID string, roles *[]Role) error {
+func (c *Cx1Client) removeUserRolesByClientID(userID string, clientID string, roles *[]Role) error {
 	c.logger.Debugf("Add Cx1 Rolemappings for userid %v and clientid %v", userID, clientID)
 
 	jsonBody, err := json.Marshal(roles)
@@ -731,7 +731,7 @@ func (c Cx1Client) removeUserRolesByClientID(userID string, clientID string, rol
 	return err
 }
 
-func (c Cx1Client) getUserKCRoles(userID string) ([]Role, error) {
+func (c *Cx1Client) getUserKCRoles(userID string) ([]Role, error) {
 	c.logger.Debugf("Get Cx1 Tenant realm Rolemappings for userid %v", userID)
 
 	var roles []Role
@@ -742,7 +742,7 @@ func (c Cx1Client) getUserKCRoles(userID string) ([]Role, error) {
 	err = json.Unmarshal(response, &roles)
 	return roles, err
 }
-func (c Cx1Client) addUserKCRoles(userID string, roles *[]Role) error {
+func (c *Cx1Client) addUserKCRoles(userID string, roles *[]Role) error {
 	c.logger.Debugf("Add Cx1 Tenant realm Rolemappings for userid %v", userID)
 
 	jsonBody, err := json.Marshal(roles)
@@ -754,7 +754,7 @@ func (c Cx1Client) addUserKCRoles(userID string, roles *[]Role) error {
 	_, err = c.sendRequestIAM(http.MethodPost, "/auth/admin", fmt.Sprintf("/users/%v/role-mappings/realm", userID), bytes.NewReader(jsonBody), nil)
 	return err
 }
-func (c Cx1Client) removeUserKCRoles(userID string, roles *[]Role) error {
+func (c *Cx1Client) removeUserKCRoles(userID string, roles *[]Role) error {
 	c.logger.Debugf("Add Cx1 Tenant realm Rolemappings for userid %v", userID)
 
 	jsonBody, err := json.Marshal(roles)

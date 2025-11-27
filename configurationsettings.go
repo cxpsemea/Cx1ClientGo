@@ -37,14 +37,14 @@ var ConfigurationSettings = struct {
 }
 
 // the ByName version of this function will be deprecated in favor of the correctly-named ByKey version
-func (c Cx1Client) GetConfigurationByName(config *[]ConfigurationSetting, configKey string) *ConfigurationSetting {
+func (c *Cx1Client) GetConfigurationByName(config *[]ConfigurationSetting, configKey string) *ConfigurationSetting {
 	c.depwarn("GetConfigurationByName", "GetConfigurationByKey")
 	return getConfigurationByKey(config, configKey)
 }
 
 // Get the configuration for a specific key from a list of configuration settings
 // You can fetch the list of settings via Get(Tenant/Project/Scan)Configuration functions
-func (c Cx1Client) GetConfigurationByKey(config *[]ConfigurationSetting, configKey string) *ConfigurationSetting {
+func (c *Cx1Client) GetConfigurationByKey(config *[]ConfigurationSetting, configKey string) *ConfigurationSetting {
 	return getConfigurationByKey(config, configKey)
 }
 

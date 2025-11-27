@@ -8,7 +8,7 @@ import (
 
 // miscellaneous functions (ClientVars & Pagination)
 
-func (c Cx1Client) GetClientVars() ClientVars {
+func (c *Cx1Client) GetClientVars() ClientVars {
 	return c.consts
 }
 
@@ -45,7 +45,7 @@ func (c *Cx1Client) GetDefaultClientVars() ClientVars {
 
 // Retrieve the configured default "limit" values for paging when retrieving various object types
 // Two default settings are available via GetPaginationDefaults(SingleTenant|MultiTenant)
-func (c Cx1Client) GetPaginationSettings() PaginationSettings {
+func (c *Cx1Client) GetPaginationSettings() PaginationSettings {
 	c.logger.Debugf("Retrieving pagination settings")
 	return c.pagination
 }

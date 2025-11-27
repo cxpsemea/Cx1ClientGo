@@ -17,7 +17,7 @@ var IAMResourceTypes = []string{"tenant", "application", "project"}
 // Retrieves a specific entity-resource assignment from Access Management
 // As of Nov '25 this will not consider implied permissions
 // eg: user in group + group has access = user has access but no access assignment
-func (c Cx1Client) GetAccessAssignmentByID(entityId, resourceId string) (AccessAssignment, error) {
+func (c *Cx1Client) GetAccessAssignmentByID(entityId, resourceId string) (AccessAssignment, error) {
 	c.logger.Debugf("Getting access assignment for entityId %v and resourceId %v", entityId, resourceId)
 	var aa AccessAssignment
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/?entity-id=%v&resource-id=%v", entityId, resourceId), nil, nil)
@@ -31,7 +31,7 @@ func (c Cx1Client) GetAccessAssignmentByID(entityId, resourceId string) (AccessA
 }
 
 // Add a specific access assignment
-func (c Cx1Client) AddAccessAssignment(access AccessAssignment) error {
+func (c *Cx1Client) AddAccessAssignment(access AccessAssignment) error {
 	c.logger.Debugf("Creating access assignment for entityId %v and resourceId %v", access.EntityID, access.ResourceID)
 
 	type AccessAssignmentPOST struct {
@@ -81,7 +81,7 @@ func (c Cx1Client) AddAccessAssignment(access AccessAssignment) error {
 // Get a list of entities that have been granted direct access to a specific resource
 // As of Nov '25 this will not consider implied permissions
 // eg: user in group + group has access = user has access but no access assignment
-func (c Cx1Client) GetEntitiesAccessToResourceByID(resourceId, resourceType string) ([]AccessAssignment, error) {
+func (c *Cx1Client) GetEntitiesAccessToResourceByID(resourceId, resourceType string) ([]AccessAssignment, error) {
 	c.logger.Debugf("Getting the entities with access assignment for resourceId %v", resourceId)
 	var aas []AccessAssignment
 
@@ -97,7 +97,7 @@ func (c Cx1Client) GetEntitiesAccessToResourceByID(resourceId, resourceType stri
 // Get a list of resources to which this entity has been granted direct access
 // As of Nov '25 this will not consider implied permissions
 // eg: user in group + group has access = user has access but no access assignment
-func (c Cx1Client) GetResourcesAccessibleToEntityByID(entityId, entityType string, resourceTypes []string) ([]AccessAssignment, error) {
+func (c *Cx1Client) GetResourcesAccessibleToEntityByID(entityId, entityType string, resourceTypes []string) ([]AccessAssignment, error) {
 	var aas []AccessAssignment
 	c.logger.Debugf("Getting the resources accessible to entity %v", entityId)
 
@@ -115,7 +115,7 @@ func (c Cx1Client) GetResourcesAccessibleToEntityByID(entityId, entityType strin
 }
 
 // Check if the current user has access to execute a specific action on this resource
-func (c Cx1Client) CheckAccessToResourceByID(resourceId, resourceType, action string) (bool, error) {
+func (c *Cx1Client) CheckAccessToResourceByID(resourceId, resourceType, action string) (bool, error) {
 	c.logger.Debugf("Checking current user access for resource %v and action %v", resourceId, action)
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/has-access?resource-id=%v&resource-type=%v&action=%v", resourceId, resourceType, action), nil, nil)
 	if err != nil {
@@ -131,7 +131,7 @@ func (c Cx1Client) CheckAccessToResourceByID(resourceId, resourceType, action st
 }
 
 // Check which resources are accessible to this user
-func (c Cx1Client) CheckAccessibleResources(resourceTypes []string, action string) (bool, []AccessibleResource, error) {
+func (c *Cx1Client) CheckAccessibleResources(resourceTypes []string, action string) (bool, []AccessibleResource, error) {
 	c.logger.Debugf("Checking current user accessible resources for action %v", action)
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/get-resources?resource-types=%v&action=%v", strings.Join(resourceTypes, ","), action), nil, nil)
 	var responseStruct struct {
@@ -147,14 +147,14 @@ func (c Cx1Client) CheckAccessibleResources(resourceTypes []string, action strin
 	return responseStruct.All, responseStruct.Resources, err
 }
 
-func (c Cx1Client) DeleteAccessAssignmentByID(entityId, resourceId string) error {
+func (c *Cx1Client) DeleteAccessAssignmentByID(entityId, resourceId string) error {
 	c.logger.Debugf("Deleting access assignment between entity %v and resource %v", entityId, resourceId)
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/access-management?resource-id=%v&entity-id=%v", resourceId, entityId), nil, nil)
 	return err
 }
 
 // IAM phase2?
-func (c Cx1Client) GetMyGroups(search string, subgroups bool, limit, offset uint64) ([]Group, error) {
+func (c *Cx1Client) GetMyGroups(search string, subgroups bool, limit, offset uint64) ([]Group, error) {
 	params := url.Values{}
 	params.Add("search", search)
 	params.Add("subgroups", strconv.FormatBool(subgroups))
@@ -170,7 +170,7 @@ func (c Cx1Client) GetMyGroups(search string, subgroups bool, limit, offset uint
 	return groups, err
 }
 
-func (c Cx1Client) GetAvailableGroups(search string, projectId string, limit, offset uint64) ([]Group, error) {
+func (c *Cx1Client) GetAvailableGroups(search string, projectId string, limit, offset uint64) ([]Group, error) {
 	params := url.Values{}
 	params.Add("search", search)
 	params.Add("project-id", projectId)
@@ -193,7 +193,7 @@ func (c Cx1Client) GetAvailableGroups(search string, projectId string, limit, of
 // These functions will eventually replace the existing Keycloak-backed ones.
 
 // Get groups (from access-management)
-func (c Cx1Client) GetAMGroups(search string, groupIds []string, limit, offset uint64) ([]Group, error) {
+func (c *Cx1Client) GetAMGroups(search string, groupIds []string, limit, offset uint64) ([]Group, error) {
 	params := url.Values{}
 	params.Add("search", search)
 	params.Add("ids", strings.Join(groupIds, ","))
@@ -211,7 +211,7 @@ func (c Cx1Client) GetAMGroups(search string, groupIds []string, limit, offset u
 }
 
 // Get users (from access-management)
-func (c Cx1Client) GetAMUsers(search string, limit, offset uint64) ([]User, error) {
+func (c *Cx1Client) GetAMUsers(search string, limit, offset uint64) ([]User, error) {
 	params := url.Values{}
 	params.Add("search", search)
 	params.Add("limit", strconv.FormatUint(limit, 10))
@@ -229,7 +229,7 @@ func (c Cx1Client) GetAMUsers(search string, limit, offset uint64) ([]User, erro
 
 // Get clients (from access-management)
 // IAM phase2?
-func (c Cx1Client) GetAMClients(search string, limit, offset uint64) ([]OIDCClient, error) {
+func (c *Cx1Client) GetAMClients(search string, limit, offset uint64) ([]OIDCClient, error) {
 	params := url.Values{}
 	params.Add("search", search)
 	params.Add("limit", strconv.FormatUint(limit, 10))
@@ -247,7 +247,7 @@ func (c Cx1Client) GetAMClients(search string, limit, offset uint64) ([]OIDCClie
 
 // Get applications (from access-management)
 // IAM phase2?
-func (c Cx1Client) GetAMApplications(action string, name string, tagsKeys []string, tagsValues []string, limit, offset uint64) ([]Application, error) {
+func (c *Cx1Client) GetAMApplications(action string, name string, tagsKeys []string, tagsValues []string, limit, offset uint64) ([]Application, error) {
 	params := url.Values{}
 	params.Add("action", action)
 	params.Add("name", name)
@@ -273,7 +273,7 @@ func (c Cx1Client) GetAMApplications(action string, name string, tagsKeys []stri
 
 // Get projects (from access-management)
 // IAM phase2?
-func (c Cx1Client) GetAMProjects(action string, name string, tagsKeys []string, tagsValues []string, limit, offset uint64) ([]Project, error) {
+func (c *Cx1Client) GetAMProjects(action string, name string, tagsKeys []string, tagsValues []string, limit, offset uint64) ([]Project, error) {
 	params := url.Values{}
 	params.Add("action", action)
 	params.Add("name", name)
@@ -305,7 +305,7 @@ func (c Cx1Client) GetAMProjects(action string, name string, tagsKeys []string, 
 //
 //	if true, access to an application will return application+projects in app
 //	if false, will not list projects in the app (unless those are explicitly assigned)
-func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string, types []string, includeImplied bool) ([]AccessibleResource, error) {
+func (c *Cx1Client) GetAllResourcesAccessibleToUserByID(userID string, types []string, includeImplied bool) ([]AccessibleResource, error) {
 	resources := []AccessibleResource{}
 	if err := c.isIAMVersion(1); err != nil {
 		return []AccessibleResource{}, err
@@ -386,7 +386,7 @@ func (c Cx1Client) GetAllResourcesAccessibleToUserByID(userID string, types []st
 //
 //	if true, access to an application will return application+projects in app
 //	if false, will not list projects in the app (unless those are explicitly assigned)
-func (c Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string, types []string, includeImplied bool) ([]AccessibleResource, error) {
+func (c *Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string, types []string, includeImplied bool) ([]AccessibleResource, error) {
 	resources := []AccessibleResource{}
 	if err := c.isIAMVersion(1); err != nil {
 		return resources, err
@@ -442,7 +442,7 @@ func (c Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string, types []
 	return resources, nil
 }
 
-func (c Cx1Client) CheckIAMVersion() (int, error) {
+func (c *Cx1Client) CheckIAMVersion() (int, error) {
 	flag, err := c.CheckFlag("ACCESS_MANAGEMENT_ENABLED")
 	if err != nil {
 		return -1, err
@@ -461,7 +461,7 @@ func (c Cx1Client) CheckIAMVersion() (int, error) {
 	return 1, nil
 }
 
-func (c Cx1Client) isIAMVersion(version int) error {
+func (c *Cx1Client) isIAMVersion(version int) error {
 	iamversion, err := c.CheckIAMVersion()
 	if err != nil {
 		return err
@@ -537,7 +537,7 @@ func mergeAccessibleResourceRoles(r1, r2 AccessibleResource) AccessibleResource 
 // AccessibleResource objects unless an application is explicitly assigned another permission
 // if a user has application-level access, this will propagate the application-level permissions into project-level
 // AccessibleResource objects unless a project is explicitly assigned another permission
-func (c Cx1Client) fillMissingResources(resources []AccessibleResource) ([]AccessibleResource, error) {
+func (c *Cx1Client) fillMissingResources(resources []AccessibleResource) ([]AccessibleResource, error) {
 	// first check there is any tenant access
 	var tenantAccess *AccessibleResource
 	for _, r := range resources {

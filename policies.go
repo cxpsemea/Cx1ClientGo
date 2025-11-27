@@ -12,7 +12,7 @@ func (f *BasePolicyFilter) Bump() {
 	f.Page++
 }
 
-func (c Cx1Client) GetAllPolicies() ([]Policy, error) {
+func (c *Cx1Client) GetAllPolicies() ([]Policy, error) {
 	_, policies, err := c.GetAllPoliciesFiltered(PolicyFilter{BasePolicyFilter{Limit: c.pagination.Policies, Page: 1}})
 	return policies, err
 }
@@ -20,7 +20,7 @@ func (c Cx1Client) GetAllPolicies() ([]Policy, error) {
 // Underlying function used by many GetPolicy* calls
 // Returns the total number of matching results plus an array of policies with
 // one page of results (from filter.Page*filter.Limit to (filter.Page+1)*filter.Limit)
-func (c Cx1Client) GetPoliciesFiltered(filter PolicyFilter) (uint64, []Policy, error) {
+func (c *Cx1Client) GetPoliciesFiltered(filter PolicyFilter) (uint64, []Policy, error) {
 	params, _ := query.Values(filter)
 
 	var PolicyResponse struct {
@@ -39,7 +39,7 @@ func (c Cx1Client) GetPoliciesFiltered(filter PolicyFilter) (uint64, []Policy, e
 }
 
 // Retrieves all policies matching the filter
-func (c Cx1Client) GetAllPoliciesFiltered(filter PolicyFilter) (uint64, []Policy, error) {
+func (c *Cx1Client) GetAllPoliciesFiltered(filter PolicyFilter) (uint64, []Policy, error) {
 	var policies []Policy
 
 	count, err := c.GetPolicyCountFiltered(filter)
@@ -51,7 +51,7 @@ func (c Cx1Client) GetAllPoliciesFiltered(filter PolicyFilter) (uint64, []Policy
 }
 
 // Retrieves the top 'count' policies matching the filter
-func (c Cx1Client) GetXPoliciesFiltered(filter PolicyFilter, count uint64) (uint64, []Policy, error) {
+func (c *Cx1Client) GetXPoliciesFiltered(filter PolicyFilter, count uint64) (uint64, []Policy, error) {
 	var policies []Policy
 
 	_, projs, err := c.GetPoliciesFiltered(filter)
@@ -70,7 +70,7 @@ func (c Cx1Client) GetXPoliciesFiltered(filter PolicyFilter, count uint64) (uint
 	return count, policies, err
 }
 
-func (c Cx1Client) GetPolicyCountFiltered(filter PolicyFilter) (uint64, error) {
+func (c *Cx1Client) GetPolicyCountFiltered(filter PolicyFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	filter.Limit = 1
 	c.logger.Debugf("Get Cx1 Policy count matching filter: %v", params.Encode())
@@ -78,7 +78,7 @@ func (c Cx1Client) GetPolicyCountFiltered(filter PolicyFilter) (uint64, error) {
 	return count, err
 }
 
-func (c Cx1Client) GetAllPolicyViolations() ([]PolicyViolation, error) {
+func (c *Cx1Client) GetAllPolicyViolations() ([]PolicyViolation, error) {
 	_, PolicyViolations, err := c.GetAllPolicyViolationsFiltered(PolicyViolationFilter{BasePolicyFilter{Limit: c.pagination.PolicyViolations, Page: 1}})
 	return PolicyViolations, err
 }
@@ -86,7 +86,7 @@ func (c Cx1Client) GetAllPolicyViolations() ([]PolicyViolation, error) {
 // Underlying function used by many GetPolicyViolation* calls
 // Returns the total number of matching results plus an array of PolicyViolations with
 // one page of results (from filter.Page*filter.Limit to (filter.Page+1)*filter.Limit)
-func (c Cx1Client) GetPolicyViolationsFiltered(filter PolicyViolationFilter) (uint64, []PolicyViolation, error) {
+func (c *Cx1Client) GetPolicyViolationsFiltered(filter PolicyViolationFilter) (uint64, []PolicyViolation, error) {
 	params, _ := query.Values(filter)
 
 	var PolicyViolationResponse struct {
@@ -104,7 +104,7 @@ func (c Cx1Client) GetPolicyViolationsFiltered(filter PolicyViolationFilter) (ui
 }
 
 // Retrieves all PolicyViolations matching the filter
-func (c Cx1Client) GetAllPolicyViolationsFiltered(filter PolicyViolationFilter) (uint64, []PolicyViolation, error) {
+func (c *Cx1Client) GetAllPolicyViolationsFiltered(filter PolicyViolationFilter) (uint64, []PolicyViolation, error) {
 	var PolicyViolations []PolicyViolation
 
 	count, err := c.GetPolicyViolationCountFiltered(filter)
@@ -116,7 +116,7 @@ func (c Cx1Client) GetAllPolicyViolationsFiltered(filter PolicyViolationFilter) 
 }
 
 // Retrieves the top 'count' PolicyViolations matching the filter
-func (c Cx1Client) GetXPolicyViolationsFiltered(filter PolicyViolationFilter, count uint64) (uint64, []PolicyViolation, error) {
+func (c *Cx1Client) GetXPolicyViolationsFiltered(filter PolicyViolationFilter, count uint64) (uint64, []PolicyViolation, error) {
 	var PolicyViolations []PolicyViolation
 
 	_, projs, err := c.GetPolicyViolationsFiltered(filter)
@@ -135,7 +135,7 @@ func (c Cx1Client) GetXPolicyViolationsFiltered(filter PolicyViolationFilter, co
 	return count, PolicyViolations, err
 }
 
-func (c Cx1Client) GetPolicyViolationCountFiltered(filter PolicyViolationFilter) (uint64, error) {
+func (c *Cx1Client) GetPolicyViolationCountFiltered(filter PolicyViolationFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	filter.Limit = 1
 	c.logger.Debugf("Get Cx1 PolicyViolation count matching filter: %v", params.Encode())
@@ -158,7 +158,7 @@ func (pv PolicyViolation) String() string {
 	return fmt.Sprintf("[%v] [%d] %v - Project %v (scan [%v])", pv.ScanDate, pv.ViolationID, pv.PolicyName, pv.ProjectName, ShortenGUID(pv.ScanID))
 }
 
-func (c Cx1Client) GetPolicyViolationDetailsByID(projectId string, scanId string) (PolicyViolationDetails, error) {
+func (c *Cx1Client) GetPolicyViolationDetailsByID(projectId string, scanId string) (PolicyViolationDetails, error) {
 	var details PolicyViolationDetails
 
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/policy_management_service_uri/evaluation?astProjectId=%v&scanId=%v", projectId, scanId), nil, nil)

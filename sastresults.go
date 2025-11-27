@@ -8,7 +8,7 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
-func (c Cx1Client) GetScanSASTResultsByID(scanID string, limit uint64) ([]ScanSASTResult, error) {
+func (c *Cx1Client) GetScanSASTResultsByID(scanID string, limit uint64) ([]ScanSASTResult, error) {
 	c.logger.Debugf("Get %d Cx1 Scan Results for scan %v", limit, scanID)
 
 	_, results, err := c.GetXScanSASTResultsFiltered(ScanSASTResultsFilter{
@@ -22,7 +22,7 @@ func (c Cx1Client) GetScanSASTResultsByID(scanID string, limit uint64) ([]ScanSA
 	return results, err
 }
 
-func (c Cx1Client) GetAllScanSASTResultsByID(scanID string) ([]ScanSASTResult, error) {
+func (c *Cx1Client) GetAllScanSASTResultsByID(scanID string) ([]ScanSASTResult, error) {
 	c.logger.Debugf("Get all Cx1 Scan Results for scan %v", scanID)
 
 	_, results, err := c.GetAllScanSASTResultsFiltered(ScanSASTResultsFilter{
@@ -36,7 +36,7 @@ func (c Cx1Client) GetAllScanSASTResultsByID(scanID string) ([]ScanSASTResult, e
 	return results, err
 }
 
-func (c Cx1Client) GetScanSASTResultsCountByID(scanID string) (uint64, error) {
+func (c *Cx1Client) GetScanSASTResultsCountByID(scanID string) (uint64, error) {
 	c.logger.Debugf("Get Cx1 Scan Results count for scan %v", scanID)
 	count, _, err := c.GetScanSASTResultsFiltered(ScanSASTResultsFilter{
 		BaseFilter:      BaseFilter{Limit: 0},
@@ -50,7 +50,7 @@ func (c Cx1Client) GetScanSASTResultsCountByID(scanID string) (uint64, error) {
 
 // returns one 'page' of a scan's SAST results matching the filter
 // returns items (filter.Offset*filter.Limit) to (filter.Offset + 1)*filter.Limit
-func (c Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (uint64, []ScanSASTResult, error) {
+func (c *Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (uint64, []ScanSASTResult, error) {
 	params, _ := query.Values(filter)
 
 	// this API returns a slightly different format result, with some fields that appear empty and are skipped in this struct
@@ -142,7 +142,7 @@ func (s *ScanSASTResultsFilter) Bump() { // this one does offset in items
 // gets all of the results available matching a filter
 // the counter returned represents the total number of results which were parsed
 // this may not include some of the returned results depending on Cx1ClientGo support
-func (c Cx1Client) GetAllScanSASTResultsFiltered(filter ScanSASTResultsFilter) (uint64, []ScanSASTResult, error) {
+func (c *Cx1Client) GetAllScanSASTResultsFiltered(filter ScanSASTResultsFilter) (uint64, []ScanSASTResult, error) {
 
 	var results []ScanSASTResult
 
@@ -159,7 +159,7 @@ func (c Cx1Client) GetAllScanSASTResultsFiltered(filter ScanSASTResultsFilter) (
 
 // will return at least X results matching the filter
 // May return more due to paging eg: requesting 101 with a 100-item page can return 200 results
-func (c Cx1Client) GetXScanSASTResultsFiltered(filter ScanSASTResultsFilter, desiredcount uint64) (uint64, []ScanSASTResult, error) {
+func (c *Cx1Client) GetXScanSASTResultsFiltered(filter ScanSASTResultsFilter, desiredcount uint64) (uint64, []ScanSASTResult, error) {
 	var results []ScanSASTResult
 
 	_, rs, err := c.GetScanSASTResultsFiltered(filter)

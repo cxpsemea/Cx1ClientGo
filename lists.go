@@ -7,7 +7,7 @@ import (
 
 // lists of constants from cx1
 
-func (c Cx1Client) GetResultStates() ([]string, error) {
+func (c *Cx1Client) GetResultStates() ([]string, error) {
 	c.logger.Debugf("Getting result states")
 	var states []string
 
@@ -21,7 +21,7 @@ func (c Cx1Client) GetResultStates() ([]string, error) {
 	return states, err
 }
 
-func (c Cx1Client) GetResultStatuses() ([]string, error) {
+func (c *Cx1Client) GetResultStatuses() ([]string, error) {
 	c.logger.Debugf("Getting result statuses")
 	var statuses []string
 
@@ -35,7 +35,7 @@ func (c Cx1Client) GetResultStatuses() ([]string, error) {
 	return statuses, err
 }
 
-func (c Cx1Client) GetResultSeverities() ([]string, error) {
+func (c *Cx1Client) GetResultSeverities() ([]string, error) {
 	c.logger.Debugf("Getting severities")
 	var severities []string
 

@@ -1,6 +1,7 @@
 package Cx1ClientGo
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,7 +19,7 @@ import (
 
 // this file is for cx1clientgo internal functionality like sending HTTP requests
 
-func (c Cx1Client) createRequest(method, url string, body io.Reader, header *http.Header, cookies []*http.Cookie) (*http.Request, error) {
+func (c *Cx1Client) createRequest(method, url string, body io.Reader, header *http.Header, cookies []*http.Cookie) (*http.Request, error) {
 	request, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return &http.Request{}, err
@@ -96,13 +97,8 @@ func (c *Cx1Client) sendTokenRequest(body io.Reader) (access_token string, err e
 
 func (c *Cx1Client) refreshAccessToken() error {
 	if c.auth.AccessToken == "" || c.auth.Expiry.Before(time.Now().Add(30*time.Second)) {
+		c.logger.Tracef("Refreshing access token (%v) with expiry %v", ShortenGUID(c.auth.AccessToken), c.auth.Expiry)
 		if c.auth.APIKey != "" {
-			claims, err := parseJWT(c.auth.APIKey)
-			if err != nil {
-				return fmt.Errorf("failed to parse API Key JWT: %v", err)
-			}
-			c.SetClaims(claims)
-
 			data := url.Values{}
 			data.Set("grant_type", "refresh_token")
 			data.Set("client_id", "ast-app")
@@ -113,7 +109,14 @@ func (c *Cx1Client) refreshAccessToken() error {
 				return err
 			}
 			c.auth.AccessToken = access_token
+
+			claims, err := parseJWT(c.auth.AccessToken)
+			if err != nil {
+				return fmt.Errorf("failed to parse API Key JWT: %v", err)
+			}
+			c.SetClaims(claims)
 			c.auth.Expiry = c.claims.ExpiryTime
+			c.logger.Tracef("New token (%v) has expiry %v", ShortenGUID(access_token), c.auth.Expiry)
 		} else if c.auth.ClientID != "" && c.auth.ClientSecret != "" && c.iamUrl != "" && c.tenant != "" {
 			data := url.Values{}
 			data.Set("grant_type", "client_credentials")
@@ -125,7 +128,13 @@ func (c *Cx1Client) refreshAccessToken() error {
 				return err
 			}
 			c.auth.AccessToken = access_token
+			claims, err := parseJWT(c.auth.AccessToken)
+			if err != nil {
+				return fmt.Errorf("failed to parse API Key JWT: %v", err)
+			}
+			c.SetClaims(claims)
 			c.auth.Expiry = c.claims.ExpiryTime
+			c.logger.Tracef("New token (%v) has expiry %v", ShortenGUID(access_token), c.auth.Expiry)
 		} else {
 			return fmt.Errorf("invalid input: missing API key or ClientID + ClientSecret + IAMURL + TenantName")
 		}
@@ -133,7 +142,7 @@ func (c *Cx1Client) refreshAccessToken() error {
 	return nil
 }
 
-func (c Cx1Client) sendRequestInternal(method, url string, body io.Reader, header http.Header) ([]byte, error) {
+func (c *Cx1Client) sendRequestInternal(method, url string, body io.Reader, header http.Header) ([]byte, error) {
 	response, err := c.sendRequestRaw(method, url, body, header)
 	var resBody []byte
 	if response != nil && response.Body != nil {
@@ -144,7 +153,7 @@ func (c Cx1Client) sendRequestInternal(method, url string, body io.Reader, heade
 	return resBody, err
 }
 
-func (c Cx1Client) sendRequestRaw(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
+func (c *Cx1Client) sendRequestRaw(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
 	c.logger.Tracef("Sending %v request to URL %v", method, url)
 	request, err := c.createRequest(method, url, body, &header, nil)
 	if err != nil {
@@ -155,9 +164,19 @@ func (c Cx1Client) sendRequestRaw(method, url string, body io.Reader, header htt
 	return c.handleHTTPResponse(request)
 }
 
-func (c Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, error) {
+func (c *Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, error) {
+	// If the request has a body, we need to buffer it so it can be read multiple times for retries.
+	var bodyBytes []byte
+	if request.Body != nil {
+		var err error
+		bodyBytes, err = io.ReadAll(request.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read request body: %w", err)
+		}
+		request.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+	}
 	response, err := c.httpClient.Do(request)
-	if err != nil {
+	if err != nil || (response.StatusCode >= 500 && response.StatusCode < 600) {
 		response, err = c.handleRetries(request, response, err)
 	}
 
@@ -208,17 +227,27 @@ func (c Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, er
 	return response, nil
 }
 
-func (c Cx1Client) handleRetries(request *http.Request, response *http.Response, err error) (*http.Response, error) {
-	if err == nil || (strings.Contains(err.Error(), "tls: user canceled") && request.Method == http.MethodGet) { // tls: user canceled can be due to proxies
+func (c *Cx1Client) handleRetries(request *http.Request, response *http.Response, err error) (*http.Response, error) {
+	if err != nil && (strings.Contains(err.Error(), "tls: user canceled") && request.Method == http.MethodGet) { // tls: user canceled can be due to proxies
 		c.logger.Warnf("Potentially benign error from HTTP connection: %s", err)
 		return response, nil
 	}
 
 	delay := c.retryDelay
 	attempt := 1
-	for attempt <= c.maxRetries && ((response.StatusCode >= 500 && response.StatusCode < 600) || isRetryableError(err)) {
+	for attempt <= c.maxRetries && ((response != nil && response.StatusCode >= 500 && response.StatusCode < 600) || isRetryableError(err)) {
 		c.logger.Warnf("Response status %v: waiting %d seconds for retry attempt %d", response.Status, delay, attempt)
 		attempt++
+
+		// If there was a body, create a new reader for the retry from the buffered bytes.
+		if request.GetBody != nil {
+			body, err := request.GetBody()
+			if err != nil {
+				return response, fmt.Errorf("failed to get request body for retry: %w", err)
+			}
+			request.Body = body
+		}
+
 		jitter := time.Duration(rand.Intn(1000)) * time.Millisecond // Up to 1 second of jitter
 		time.Sleep(time.Duration(delay)*time.Second + jitter)
 		response, err = c.httpClient.Do(request)
@@ -251,28 +280,28 @@ func isRetryableError(err error) bool {
 	return false
 }
 
-func (c Cx1Client) sendRequest(method, url string, body io.Reader, header http.Header) ([]byte, error) {
+func (c *Cx1Client) sendRequest(method, url string, body io.Reader, header http.Header) ([]byte, error) {
 	cx1url := fmt.Sprintf("%v/api%v", c.baseUrl, url)
 	return c.sendRequestInternal(method, cx1url, body, header)
 }
 
-func (c Cx1Client) sendRequestRawCx1(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
+func (c *Cx1Client) sendRequestRawCx1(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
 	cx1url := fmt.Sprintf("%v/api%v", c.baseUrl, url)
 	return c.sendRequestRaw(method, cx1url, body, header)
 }
 
-func (c Cx1Client) sendRequestIAM(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
+func (c *Cx1Client) sendRequestIAM(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
 	iamurl := fmt.Sprintf("%v%v/realms/%v%v", c.iamUrl, base, c.tenant, url)
 	return c.sendRequestInternal(method, iamurl, body, header)
 }
 
-func (c Cx1Client) sendRequestRawIAM(method, base, url string, body io.Reader, header http.Header) (*http.Response, error) {
+func (c *Cx1Client) sendRequestRawIAM(method, base, url string, body io.Reader, header http.Header) (*http.Response, error) {
 	iamurl := fmt.Sprintf("%v%v/realms/%v%v", c.iamUrl, base, c.tenant, url)
 	return c.sendRequestRaw(method, iamurl, body, header)
 }
 
 // not sure what to call this one? used for /console/ calls, not part of the /realms/ path
-func (c Cx1Client) sendRequestOther(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
+func (c *Cx1Client) sendRequestOther(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
 	iamurl := fmt.Sprintf("%v%v/%v%v", c.iamUrl, base, c.tenant, url)
 	return c.sendRequestInternal(method, iamurl, body, header)
 }
@@ -316,14 +345,14 @@ func parseJWT(jwtToken string) (claims Cx1Claims, err error) {
 	return
 }
 
-func (c Cx1Client) GetUserAgent() string {
+func (c *Cx1Client) GetUserAgent() string {
 	return c.cx1UserAgent
 }
 func (c *Cx1Client) SetUserAgent(ua string) {
 	c.cx1UserAgent = ua
 }
 
-func (c Cx1Client) GetRetries() (retries, delay int) {
+func (c *Cx1Client) GetRetries() (retries, delay int) {
 	return c.maxRetries, c.retryDelay
 }
 

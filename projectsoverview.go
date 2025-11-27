@@ -9,7 +9,7 @@ import (
 )
 
 // Return overviews for all projects
-func (c Cx1Client) GetAllProjectOverviews() ([]ProjectOverview, error) {
+func (c *Cx1Client) GetAllProjectOverviews() ([]ProjectOverview, error) {
 	c.logger.Debugf("Get All Cx1 Project Overviews")
 	_, projects, err := c.GetAllProjectOverviewsFiltered(ProjectOverviewFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.ProjectOverviews},
@@ -19,7 +19,7 @@ func (c Cx1Client) GetAllProjectOverviews() ([]ProjectOverview, error) {
 
 // Returns the total number of matching results plus an array of projects with
 // one page of results (from filter.Offset to filter.Offset+filter.Limit)
-func (c Cx1Client) GetProjectOverviewsFiltered(filter ProjectOverviewFilter) (uint64, []ProjectOverview, error) {
+func (c *Cx1Client) GetProjectOverviewsFiltered(filter ProjectOverviewFilter) (uint64, []ProjectOverview, error) {
 	params, _ := query.Values(filter)
 
 	var ProjectResponse struct {
@@ -38,7 +38,7 @@ func (c Cx1Client) GetProjectOverviewsFiltered(filter ProjectOverviewFilter) (ui
 }
 
 // Retrieves all projects matching the filter
-func (c Cx1Client) GetAllProjectOverviewsFiltered(filter ProjectOverviewFilter) (uint64, []ProjectOverview, error) {
+func (c *Cx1Client) GetAllProjectOverviewsFiltered(filter ProjectOverviewFilter) (uint64, []ProjectOverview, error) {
 	var projects []ProjectOverview
 
 	count, err := c.GetProjectOverviewCountFiltered(filter)
@@ -50,7 +50,7 @@ func (c Cx1Client) GetAllProjectOverviewsFiltered(filter ProjectOverviewFilter) 
 }
 
 // Retrieves the top 'count' projects matching the filter
-func (c Cx1Client) GetXProjectOverviewsFiltered(filter ProjectOverviewFilter, count uint64) (uint64, []ProjectOverview, error) {
+func (c *Cx1Client) GetXProjectOverviewsFiltered(filter ProjectOverviewFilter, count uint64) (uint64, []ProjectOverview, error) {
 	var projects []ProjectOverview
 
 	_, projs, err := c.GetProjectOverviewsFiltered(filter)
@@ -70,7 +70,7 @@ func (c Cx1Client) GetXProjectOverviewsFiltered(filter ProjectOverviewFilter, co
 }
 
 // Get the number of projects/project overviews matching a filter
-func (c Cx1Client) GetProjectOverviewCountFiltered(filter ProjectOverviewFilter) (uint64, error) {
+func (c *Cx1Client) GetProjectOverviewCountFiltered(filter ProjectOverviewFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	filter.Limit = 1
 	c.logger.Debugf("Get Cx1 Project overview count matching filter: %v", params.Encode())

@@ -12,7 +12,7 @@ import (
 	This file contains the generic query-related functions that do not need a valid audit session.
 */
 
-func (c Cx1Client) GetQueryByName_v310(level, levelid, language, group, query string) (AuditQuery_v310, error) {
+func (c *Cx1Client) GetQueryByName_v310(level, levelid, language, group, query string) (AuditQuery_v310, error) {
 	c.depwarn("GetQueryByName_v310", "GetQueries + QueryCollection.Get*")
 	c.logger.Debugf("Get %v query by name: %v -> %v -> %v", level, language, group, query)
 
@@ -31,7 +31,7 @@ func (c Cx1Client) GetQueryByName_v310(level, levelid, language, group, query st
 	return aq, nil
 }
 
-func (c Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery_v310, error) {
+func (c *Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery_v310, error) {
 	c.depwarn("GetQueryByLevelID_v310", "GetAuditQueryByLevelID")
 	c.logger.Debugf("Get all queries for %v", level)
 
@@ -89,7 +89,7 @@ func (c Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery
 	return queries_v310, nil
 }
 
-func (c Cx1Client) FindQueryByName_v310(queries []AuditQuery_v310, level, language, group, name string) (AuditQuery_v310, error) {
+func (c *Cx1Client) FindQueryByName_v310(queries []AuditQuery_v310, level, language, group, name string) (AuditQuery_v310, error) {
 	return FindQueryByName_v310(queries, level, language, group, name)
 }
 
@@ -107,11 +107,11 @@ func FindQueryByName_v310(queries []AuditQuery_v310, level, language, group, nam
 	return AuditQuery_v310{}, fmt.Errorf("no query found matching [%v] %v -> %v -> %v", level, language, group, name)
 }
 
-func (c Cx1Client) DeleteQuery_v310(query AuditQuery_v310) error {
+func (c *Cx1Client) DeleteQuery_v310(query AuditQuery_v310) error {
 	return c.DeleteQueryByName_v310(query.Level, query.LevelID, query.Language, query.Group, query.Name)
 }
 
-func (c Cx1Client) DeleteQueryByName_v310(level, levelID, language, group, query string) error {
+func (c *Cx1Client) DeleteQueryByName_v310(level, levelID, language, group, query string) error {
 	c.depwarn("DeleteQueryByName_v310", "DeleteAuditQueryByName")
 	c.logger.Debugf("Delete %v query by name: %v -> %v -> %v", level, language, group, query)
 	path := fmt.Sprintf("queries%%2F%v%%2F%v%%2F%v%%2F%v", language, group, query, query)
@@ -141,7 +141,7 @@ func (c Cx1Client) DeleteQueryByName_v310(level, levelID, language, group, query
 	return nil
 }
 
-func (c Cx1Client) AuditNewQuery_v310(language, group, name string) (AuditQuery_v310, error) {
+func (c *Cx1Client) AuditNewQuery_v310(language, group, name string) (AuditQuery_v310, error) {
 	c.depwarn("AuditNewQuery_v310", "CreateQueryOverride")
 	newQuery, err := c.GetQueryByName_v310(AUDIT_QUERY_v310.TENANT, AUDIT_QUERY_v310.TENANT, language, "CxDefaultQueryGroup", "CxDefaultQuery")
 	if err != nil {
@@ -154,7 +154,7 @@ func (c Cx1Client) AuditNewQuery_v310(language, group, name string) (AuditQuery_
 }
 
 // PUT is the only option to create an override on the project-level (and maybe in the future on application-level)
-func (c Cx1Client) UpdateQuery_v310(query AuditQuery_v310) error {
+func (c *Cx1Client) UpdateQuery_v310(query AuditQuery_v310) error {
 	c.depwarn("UpdateQuery_v310", "UpdateQuery*")
 	c.logger.Debugf("Saving query %v on level %v", query.Path, query.Level)
 
@@ -172,7 +172,7 @@ func (c Cx1Client) UpdateQuery_v310(query AuditQuery_v310) error {
 	return c.UpdateQueries_v310(query.Level, query.LevelID, []QueryUpdate_v310{q})
 }
 
-func (c Cx1Client) UpdateQueries_v310(level, levelid string, queries []QueryUpdate_v310) error {
+func (c *Cx1Client) UpdateQueries_v310(level, levelid string, queries []QueryUpdate_v310) error {
 	c.depwarn("UpdateQuery_v310/UpdateQueries_v310", "UpdateQuery*")
 	jsonBody, _ := json.Marshal(queries)
 	if levelid == "Tenant" {
@@ -233,7 +233,7 @@ func (c Cx1Client) UpdateQueries_v310(level, levelid string, queries []QueryUpda
 	}
 }
 
-func (c Cx1Client) UpdateQueryMetadata_v310(query AuditQuery_v310) error {
+func (c *Cx1Client) UpdateQueryMetadata_v310(query AuditQuery_v310) error {
 	c.depwarn("UpdateQueryMetadata_v310", "UpdateQuery*Metadata")
 	c.logger.Debugf("Saving query %v on level %v", query.Path, query.Level)
 
@@ -251,7 +251,7 @@ func (c Cx1Client) UpdateQueryMetadata_v310(query AuditQuery_v310) error {
 	return c.UpdateQueriesMetadata_v310(query.Level, query.LevelID, []QueryUpdate_v310{q})
 }
 
-func (c Cx1Client) UpdateQueriesMetadata_v310(level, levelid string, queries []QueryUpdate_v310) error {
+func (c *Cx1Client) UpdateQueriesMetadata_v310(level, levelid string, queries []QueryUpdate_v310) error {
 	c.depwarn("UpdateQueriesMetadata_v310", "UpdateQuery*Metadata")
 
 	type QueryUpdateMetadataOnly struct {
@@ -325,7 +325,7 @@ func (c Cx1Client) UpdateQueriesMetadata_v310(level, levelid string, queries []Q
 	}
 }
 
-func (c Cx1Client) GetQueries_v310() (SASTQueryCollection, error) {
+func (c *Cx1Client) GetQueries_v310() (SASTQueryCollection, error) {
 	c.depwarn("GetQueries_v310", "GetQueries/GetAuditQueries*")
 	//var qc SASTQueryCollection
 	qc, err := c.GetSASTPresetQueries()
