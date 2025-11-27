@@ -829,12 +829,23 @@ func (c *Cx1Client) CreateNewSASTQuery(auditSession *AuditSession, query SASTQue
 
 	queryKey := data.(map[string]interface{})["id"].(string)
 
-	queryFail, err = c.updateSASTQuerySourceByKey(auditSession, queryKey, query.Source)
+	newQuery, err := c.GetAuditSASTQueryByKey(auditSession, queryKey)
 	if err != nil {
 		return SASTQuery{}, queryFail, err
 	}
 
-	newQuery, err := c.GetAuditSASTQueryByKey(auditSession, queryKey)
+	if newQuery.Source != query.Source {
+		queryFail, err = c.updateSASTQuerySourceByKey(auditSession, queryKey, query.Source)
+		if err != nil {
+			return SASTQuery{}, queryFail, err
+		}
+	}
+
+	newQuery, err = c.GetAuditSASTQueryByKey(auditSession, queryKey)
+	if err != nil {
+		return SASTQuery{}, queryFail, err
+	}
+
 	return newQuery, queryFail, err
 }
 
