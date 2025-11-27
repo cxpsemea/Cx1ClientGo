@@ -160,7 +160,7 @@ func NewClient(client *http.Client, logger Logger) (*Cx1Client, error) {
 	}
 }
 
-func (c Cx1Client) String() string {
+func (c *Cx1Client) String() string {
 	return fmt.Sprintf("%v on %v ", c.tenant, c.baseUrl)
 }
 
@@ -251,15 +251,15 @@ func (c *Cx1Client) RefreshFlags() error {
 	return nil
 }
 
-func (c Cx1Client) GetFlags() map[string]bool {
+func (c *Cx1Client) GetFlags() map[string]bool {
 	return c.flags
 }
 
-func (c Cx1Client) GetLicense() ASTLicense {
+func (c *Cx1Client) GetLicense() ASTLicense {
 	return c.claims.Cx1License
 }
 
-func (c Cx1Client) GetClaims() Cx1Claims {
+func (c *Cx1Client) GetClaims() Cx1Claims {
 	return c.claims
 }
 func (c *Cx1Client) SetClaims(claims Cx1Claims) {
@@ -286,7 +286,7 @@ func (c *Cx1Client) SetClaims(claims Cx1Claims) {
 }
 
 // Check if the license allows a specific engine: SAST, SCA, IAC/KICS, Containers
-func (c Cx1Client) IsEngineAllowed(engine string) (string, bool) {
+func (c *Cx1Client) IsEngineAllowed(engine string) (string, bool) {
 	var engineName string
 	var licenseName string
 	for long, license := range scanEngineLicenseMap {
@@ -310,7 +310,7 @@ func (c Cx1Client) IsEngineAllowed(engine string) (string, bool) {
 }
 
 // Check if a feature flag is set
-func (c Cx1Client) CheckFlag(flag string) (bool, error) {
+func (c *Cx1Client) CheckFlag(flag string) (bool, error) {
 	if len(c.flags) == 0 {
 		c.logger.Debugf("No flags defined, refreshing")
 		err := c.RefreshFlags()
@@ -347,7 +347,7 @@ func (c *Cx1Client) GetTenantOwner() (TenantOwner, error) {
 }
 
 // Retrieve the version strings for various system components
-func (c Cx1Client) GetVersion() (VersionInfo, error) {
+func (c *Cx1Client) GetVersion() (VersionInfo, error) {
 	if c.version != nil {
 		return *c.version, nil
 	}
@@ -381,8 +381,8 @@ func (c *Cx1Client) SetLogger(logger Logger) {
 
 // returns a copy of this client which can be used separately
 // they will not share access tokens or other data after the clone.
-func (c Cx1Client) Clone() Cx1Client {
-	return c
+func (c *Cx1Client) Clone() Cx1Client {
+	return *c
 }
 
 // If you are heavily using functions that throw deprecation warnings you can mute them here
@@ -391,7 +391,7 @@ func (c *Cx1Client) SetDeprecationWarning(logged bool) {
 	c.suppressdepwarn = !logged
 }
 
-func (c Cx1Client) GetTenantID() string {
+func (c *Cx1Client) GetTenantID() string {
 	if c.tenantID != "" {
 		return c.tenantID
 	}
@@ -425,14 +425,14 @@ func (c Cx1Client) GetTenantID() string {
 	return c.tenantID
 }
 
-func (c Cx1Client) GetTenantName() string {
+func (c *Cx1Client) GetTenantName() string {
 	return c.tenant
 }
 
-func (c Cx1Client) GetBaseURL() string {
+func (c *Cx1Client) GetBaseURL() string {
 	return c.baseUrl
 }
 
-func (c Cx1Client) GetIAMURL() string {
+func (c *Cx1Client) GetIAMURL() string {
 	return c.iamUrl
 }

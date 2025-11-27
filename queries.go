@@ -55,7 +55,7 @@ func (q AuditQuery_v312) ToQuery() SASTQuery {
 }
 
 // This function uses the cx-audit/queries endpoint, which will at some point be deprecated.
-func (c Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollection, error) {
+func (c *Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollection, error) {
 	c.depwarn("GetQueriesByLevelID", "GetAuditSASTQueriesByLevelID")
 	c.logger.Debugf("Get all queries for %v", level)
 
@@ -116,7 +116,7 @@ func (c Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollecti
 	return collection, nil
 }
 
-func (c Cx1Client) GetQueryMappings() (map[uint64]uint64, error) {
+func (c *Cx1Client) GetQueryMappings() (map[uint64]uint64, error) {
 	var mapping map[uint64]uint64 = make(map[uint64]uint64)
 	var responsemap struct {
 		Mappings []struct {
@@ -144,7 +144,7 @@ func (c Cx1Client) GetQueryMappings() (map[uint64]uint64, error) {
 }
 
 // convenience
-func (c Cx1Client) GetSeverityID(severity string) uint {
+func (c *Cx1Client) GetSeverityID(severity string) uint {
 	return GetSeverityID(severity)
 }
 
@@ -166,11 +166,11 @@ func GetSeverityID(severity string) uint {
 	return 0
 }
 
-func (c Cx1Client) GetSeverity(severity uint) string {
+func (c *Cx1Client) GetSeverity(severity uint) string {
 	return GetSeverity(severity)
 }
 
-func (c Cx1Client) GetCx1QueryFromSAST(sastId uint64, language, group, name string, mapping *map[uint64]uint64, qc *SASTQueryCollection) *SASTQuery {
+func (c *Cx1Client) GetCx1QueryFromSAST(sastId uint64, language, group, name string, mapping *map[uint64]uint64, qc *SASTQueryCollection) *SASTQuery {
 	if cx1id, ok := (*mapping)[sastId]; ok {
 		return qc.GetQueryByID(cx1id)
 	}
@@ -347,6 +347,6 @@ func (q IACQuery) MetadataDifferent(metadata AuditIACQueryMetadata) bool {
 		!strings.EqualFold(q.Severity, metadata.Severity)
 }
 
-func (c Cx1Client) QueryLink(q *SASTQuery) string {
+func (c *Cx1Client) QueryLink(q *SASTQuery) string {
 	return fmt.Sprintf("%v/audit/?queryid=%d", c.baseUrl, q.QueryID)
 }

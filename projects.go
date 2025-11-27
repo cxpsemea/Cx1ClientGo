@@ -13,7 +13,7 @@ import (
 )
 
 // Create a new project
-func (c Cx1Client) CreateProject(projectname string, cx1_group_ids []string, tags map[string]string) (Project, error) {
+func (c *Cx1Client) CreateProject(projectname string, cx1_group_ids []string, tags map[string]string) (Project, error) {
 	c.logger.Debugf("Create Project: %v", projectname)
 	data := map[string]interface{}{
 		"name":        projectname,
@@ -52,7 +52,7 @@ func (c Cx1Client) CreateProject(projectname string, cx1_group_ids []string, tag
 
 // Create a new project inside an application
 // Does not wait/poll until the project is created and attached to the application
-func (c Cx1Client) CreateProjectInApplicationWOPolling(projectname string, cx1_group_ids []string, tags map[string]string, applicationId string) (Project, error) {
+func (c *Cx1Client) CreateProjectInApplicationWOPolling(projectname string, cx1_group_ids []string, tags map[string]string, applicationId string) (Project, error) {
 	c.logger.Debugf("Create Project %v in applicationId %v", projectname, applicationId)
 	data := map[string]interface{}{
 		"name":        projectname,
@@ -114,7 +114,7 @@ func (c Cx1Client) CreateProjectInApplicationWOPolling(projectname string, cx1_g
 }
 
 // Create a project in an application and poll until the project is created and attached to the application
-func (c Cx1Client) CreateProjectInApplication(projectname string, cx1_group_ids []string, tags map[string]string, applicationId string) (Project, error) {
+func (c *Cx1Client) CreateProjectInApplication(projectname string, cx1_group_ids []string, tags map[string]string, applicationId string) (Project, error) {
 	project, err := c.CreateProjectInApplicationWOPolling(projectname, cx1_group_ids, tags, applicationId)
 	if err != nil {
 		return project, err
@@ -124,13 +124,13 @@ func (c Cx1Client) CreateProjectInApplication(projectname string, cx1_group_ids 
 }
 
 // Poll a specific project until it shows as attached to the application, by ID
-func (c Cx1Client) ProjectInApplicationPollingByID(projectId, applicationId string) (Project, error) {
+func (c *Cx1Client) ProjectInApplicationPollingByID(projectId, applicationId string) (Project, error) {
 	return c.ProjectInApplicationPollingByIDWithTimeout(projectId, applicationId, c.consts.ProjectApplicationLinkPollingDelaySeconds, c.consts.ProjectApplicationLinkPollingMaxSeconds)
 }
 
 // Poll a specific project until it shows as attached to the application, by ID
 // Polling occurs every delaySeconds until maxSeconds is reached
-func (c Cx1Client) ProjectInApplicationPollingByIDWithTimeout(projectId, applicationId string, delaySeconds, maxSeconds int) (Project, error) {
+func (c *Cx1Client) ProjectInApplicationPollingByIDWithTimeout(projectId, applicationId string, delaySeconds, maxSeconds int) (Project, error) {
 	project, err := c.GetProjectByID(projectId)
 	pollingCounter := 0
 	for err != nil || !slices.Contains(*project.Applications, applicationId) {
@@ -147,7 +147,7 @@ func (c Cx1Client) ProjectInApplicationPollingByIDWithTimeout(projectId, applica
 
 // Get up to count # of projects
 // behind the scenes this will use the configured pagination (Get/SetPaginationSettings)
-func (c Cx1Client) GetProjects(count uint64) ([]Project, error) {
+func (c *Cx1Client) GetProjects(count uint64) ([]Project, error) {
 	c.logger.Debugf("Get %d Cx1 Projects", count)
 	_, projects, err := c.GetXProjectsFiltered(ProjectFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
@@ -159,7 +159,7 @@ func (c Cx1Client) GetProjects(count uint64) ([]Project, error) {
 // Get all of the projects
 // behind the scenes this will use the configured pagination (Get/SetPaginationSettings)
 // behaves the same as GetProjects(# of projects in the environment)
-func (c Cx1Client) GetAllProjects() ([]Project, error) {
+func (c *Cx1Client) GetAllProjects() ([]Project, error) {
 	c.logger.Debugf("Get All Cx1 Projects")
 	_, projects, err := c.GetAllProjectsFiltered(ProjectFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
@@ -168,7 +168,7 @@ func (c Cx1Client) GetAllProjects() ([]Project, error) {
 }
 
 // Get a specific project by ID
-func (c Cx1Client) GetProjectByID(projectID string) (Project, error) {
+func (c *Cx1Client) GetProjectByID(projectID string) (Project, error) {
 	c.logger.Debugf("Getting Project with ID %v...", projectID)
 	var project Project
 
@@ -192,7 +192,7 @@ func (c Cx1Client) GetProjectByID(projectID string) (Project, error) {
 }
 
 // case-sensitive exact match for a project name
-func (c Cx1Client) GetProjectByName(name string) (Project, error) {
+func (c *Cx1Client) GetProjectByName(name string) (Project, error) {
 	_, projects, err := c.GetAllProjectsFiltered(ProjectFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
 		Names:      []string{name},
@@ -215,7 +215,7 @@ func (c Cx1Client) GetProjectByName(name string) (Project, error) {
 // Get all projects with names matching the search 'name'
 // As of 2024-10-17 this function no longer takes a specific limit as a parameter
 // To set limits, offsets, and other parameters directly, use GetProjectsFiltered
-func (c Cx1Client) GetProjectsByName(name string) ([]Project, error) {
+func (c *Cx1Client) GetProjectsByName(name string) ([]Project, error) {
 	c.logger.Debugf("Get Cx1 Projects By Name: %v", name)
 
 	_, projects, err := c.GetAllProjectsFiltered(ProjectFilter{
@@ -227,7 +227,7 @@ func (c Cx1Client) GetProjectsByName(name string) ([]Project, error) {
 }
 
 // Get all projects in the group 'groupID' with names matching the search 'name'
-func (c Cx1Client) GetProjectsByNameAndGroupID(projectName string, groupID string) ([]Project, error) {
+func (c *Cx1Client) GetProjectsByNameAndGroupID(projectName string, groupID string) ([]Project, error) {
 	c.logger.Debugf("Getting projects with name %v of group ID %v...", projectName, groupID)
 
 	_, projects, err := c.GetAllProjectsFiltered(ProjectFilter{
@@ -242,7 +242,7 @@ func (c Cx1Client) GetProjectsByNameAndGroupID(projectName string, groupID strin
 // Underlying function used by many GetProject* calls
 // Returns the total number of matching results plus an array of projects with
 // one page of results (from filter.Offset to filter.Offset+filter.Limit)
-func (c Cx1Client) GetProjectsFiltered(filter ProjectFilter) (uint64, []Project, error) {
+func (c *Cx1Client) GetProjectsFiltered(filter ProjectFilter) (uint64, []Project, error) {
 	params, _ := query.Values(filter)
 
 	var ProjectResponse struct {
@@ -261,7 +261,7 @@ func (c Cx1Client) GetProjectsFiltered(filter ProjectFilter) (uint64, []Project,
 }
 
 // Retrieves all projects matching the filter
-func (c Cx1Client) GetAllProjectsFiltered(filter ProjectFilter) (uint64, []Project, error) {
+func (c *Cx1Client) GetAllProjectsFiltered(filter ProjectFilter) (uint64, []Project, error) {
 	var projects []Project
 
 	count, err := c.GetProjectCountFiltered(filter)
@@ -273,7 +273,7 @@ func (c Cx1Client) GetAllProjectsFiltered(filter ProjectFilter) (uint64, []Proje
 }
 
 // Retrieves the top 'count' projects matching the filter
-func (c Cx1Client) GetXProjectsFiltered(filter ProjectFilter, count uint64) (uint64, []Project, error) {
+func (c *Cx1Client) GetXProjectsFiltered(filter ProjectFilter, count uint64) (uint64, []Project, error) {
 	var projects []Project
 
 	_, projs, err := c.GetProjectsFiltered(filter)
@@ -331,7 +331,7 @@ func (p *Project) IsInApplication(app *Application) bool {
 }
 
 // Get the project's configuration and update the project.Configuration field
-func (c Cx1Client) GetProjectConfiguration(project *Project) error {
+func (c *Cx1Client) GetProjectConfiguration(project *Project) error {
 	configurations, err := c.GetProjectConfigurationByID(project.ProjectID)
 	project.Configuration = configurations
 	return err
@@ -339,7 +339,7 @@ func (c Cx1Client) GetProjectConfiguration(project *Project) error {
 
 // return the configuration settings for scans set on the tenant level
 // this will list default configurations like presets, incremental scan settings etc if set
-func (c Cx1Client) GetTenantConfiguration() ([]ConfigurationSetting, error) {
+func (c *Cx1Client) GetTenantConfiguration() ([]ConfigurationSetting, error) {
 	c.logger.Debugf("Getting tenant configuration")
 	var tenantConfigurations []ConfigurationSetting
 	data, err := c.sendRequest(http.MethodGet, "/configuration/tenant", nil, nil)
@@ -355,7 +355,7 @@ func (c Cx1Client) GetTenantConfiguration() ([]ConfigurationSetting, error) {
 
 // return the configuration settings for scans set on the project level
 // this will list default configurations like presets, incremental scan settings etc if set
-func (c Cx1Client) GetProjectConfigurationByID(projectID string) ([]ConfigurationSetting, error) {
+func (c *Cx1Client) GetProjectConfigurationByID(projectID string) ([]ConfigurationSetting, error) {
 	c.logger.Debugf("Getting project configuration for project %v", projectID)
 	var projectConfigurations []ConfigurationSetting
 	params := url.Values{
@@ -373,13 +373,13 @@ func (c Cx1Client) GetProjectConfigurationByID(projectID string) ([]Configuratio
 }
 
 // updates the configuration of the project eg: preset, incremental scans
-func (c Cx1Client) UpdateProjectConfiguration(project *Project, settings []ConfigurationSetting) error {
+func (c *Cx1Client) UpdateProjectConfiguration(project *Project, settings []ConfigurationSetting) error {
 	project.Configuration = settings
 	return c.UpdateProjectConfigurationByID(project.ProjectID, settings)
 }
 
 // update the project's configuration
-func (c Cx1Client) UpdateProjectConfigurationByID(projectID string, settings []ConfigurationSetting) error {
+func (c *Cx1Client) UpdateProjectConfigurationByID(projectID string, settings []ConfigurationSetting) error {
 	if len(settings) == 0 {
 		return fmt.Errorf("empty list of settings provided")
 	}
@@ -403,7 +403,7 @@ func (c Cx1Client) UpdateProjectConfigurationByID(projectID string, settings []C
 }
 
 // Set a project's configured git branch
-func (c Cx1Client) SetProjectBranchByID(projectID, branch string, allowOverride bool) error {
+func (c *Cx1Client) SetProjectBranchByID(projectID, branch string, allowOverride bool) error {
 	var setting ConfigurationSetting
 	setting.Key = "scan.handler.git.branch"
 	setting.Value = branch
@@ -413,7 +413,7 @@ func (c Cx1Client) SetProjectBranchByID(projectID, branch string, allowOverride 
 }
 
 // retrieves all branches for a project
-func (c Cx1Client) GetProjectBranchesByID(projectID string) ([]string, error) {
+func (c *Cx1Client) GetProjectBranchesByID(projectID string) ([]string, error) {
 	return c.GetAllProjectBranchesFiltered(ProjectBranchFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Branches},
 		ProjectID:  projectID,
@@ -421,7 +421,7 @@ func (c Cx1Client) GetProjectBranchesByID(projectID string) ([]string, error) {
 }
 
 // retrieves a page (filter.Offset to filter.Offset+filter.Limit) of branches for a project
-func (c Cx1Client) GetProjectBranchesFiltered(filter ProjectBranchFilter) ([]string, error) {
+func (c *Cx1Client) GetProjectBranchesFiltered(filter ProjectBranchFilter) ([]string, error) {
 	params, _ := query.Values(filter)
 	branches := []string{}
 
@@ -437,7 +437,7 @@ func (c Cx1Client) GetProjectBranchesFiltered(filter ProjectBranchFilter) ([]str
 }
 
 // returns all of a project's branches matching a filter
-func (c Cx1Client) GetAllProjectBranchesFiltered(filter ProjectBranchFilter) ([]string, error) {
+func (c *Cx1Client) GetAllProjectBranchesFiltered(filter ProjectBranchFilter) ([]string, error) {
 	var branches []string
 
 	bs, err := c.GetProjectBranchesFiltered(filter)
@@ -453,7 +453,7 @@ func (c Cx1Client) GetAllProjectBranchesFiltered(filter ProjectBranchFilter) ([]
 }
 
 // retrieves the first X of a project's branches matching a filter
-func (c Cx1Client) GetXProjectBranchesFiltered(filter ProjectBranchFilter, count uint64) ([]string, error) {
+func (c *Cx1Client) GetXProjectBranchesFiltered(filter ProjectBranchFilter, count uint64) ([]string, error) {
 	var branches []string
 
 	bs, err := c.GetProjectBranchesFiltered(filter)
@@ -473,14 +473,14 @@ func (c Cx1Client) GetXProjectBranchesFiltered(filter ProjectBranchFilter, count
 }
 
 // Get the count of all projects in the system
-func (c Cx1Client) GetProjectCount() (uint64, error) {
+func (c *Cx1Client) GetProjectCount() (uint64, error) {
 	c.logger.Debugf("Get Cx1 Projects Count")
 	count, _, err := c.GetProjectsFiltered(ProjectFilter{BaseFilter: BaseFilter{Limit: 1}})
 	return count, err
 }
 
 // returns the number of projects with names matching a search string 'name'
-func (c Cx1Client) GetProjectCountByName(name string) (uint64, error) {
+func (c *Cx1Client) GetProjectCountByName(name string) (uint64, error) {
 	c.logger.Debugf("Get Cx1 Project count by name: %v", name)
 	count, _, err := c.GetProjectsFiltered(ProjectFilter{
 		BaseFilter: BaseFilter{Limit: 1},
@@ -490,7 +490,7 @@ func (c Cx1Client) GetProjectCountByName(name string) (uint64, error) {
 }
 
 // Get the count of all projects matching the filter
-func (c Cx1Client) GetProjectCountFiltered(filter ProjectFilter) (uint64, error) {
+func (c *Cx1Client) GetProjectCountFiltered(filter ProjectFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	filter.Limit = 1
 	c.logger.Debugf("Get Cx1 Project count matching filter: %v", params.Encode())
@@ -499,12 +499,12 @@ func (c Cx1Client) GetProjectCountFiltered(filter ProjectFilter) (uint64, error)
 }
 
 // Returns a URL to the project's overview page
-func (c Cx1Client) ProjectLink(p *Project) string {
+func (c *Cx1Client) ProjectLink(p *Project) string {
 	return fmt.Sprintf("%v/projects/%v/overview", c.baseUrl, p.ProjectID)
 }
 
 // Sets a project's default repository configuration
-func (c Cx1Client) SetProjectRepositoryByID(projectID, repository string, allowOverride bool) error {
+func (c *Cx1Client) SetProjectRepositoryByID(projectID, repository string, allowOverride bool) error {
 	var setting ConfigurationSetting
 	setting.Key = "scan.handler.git.repository"
 	setting.Value = repository
@@ -514,7 +514,7 @@ func (c Cx1Client) SetProjectRepositoryByID(projectID, repository string, allowO
 }
 
 // Sets a project's default preset configuration
-func (c Cx1Client) SetProjectPresetByID(projectID, presetName string, allowOverride bool) error {
+func (c *Cx1Client) SetProjectPresetByID(projectID, presetName string, allowOverride bool) error {
 	var setting ConfigurationSetting
 	setting.Key = "scan.config.sast.presetName"
 	setting.Value = presetName
@@ -524,7 +524,7 @@ func (c Cx1Client) SetProjectPresetByID(projectID, presetName string, allowOverr
 }
 
 // Sets a project's default language mode (single/multi language scanning)
-func (c Cx1Client) SetProjectLanguageModeByID(projectID, languageMode string, allowOverride bool) error {
+func (c *Cx1Client) SetProjectLanguageModeByID(projectID, languageMode string, allowOverride bool) error {
 	var setting ConfigurationSetting
 	setting.Key = "scan.config.sast.languageMode"
 	setting.Value = languageMode
@@ -534,7 +534,7 @@ func (c Cx1Client) SetProjectLanguageModeByID(projectID, languageMode string, al
 }
 
 // Sets a projet's default file filter
-func (c Cx1Client) SetProjectFileFilterByID(projectID, filter string, allowOverride bool) error {
+func (c *Cx1Client) SetProjectFileFilterByID(projectID, filter string, allowOverride bool) error {
 	var setting ConfigurationSetting
 	setting.Key = "scan.config.sast.filter"
 	setting.Value = filter
@@ -547,7 +547,7 @@ func (c Cx1Client) SetProjectFileFilterByID(projectID, filter string, allowOverr
 
 // Directly assign a project to one or more applications
 // This should be used separately from the Project.AssignApplication + UpdateProject(Project) flow
-func (c Cx1Client) AssignProjectToApplicationsByIDs(projectId string, applicationIds []string) error {
+func (c *Cx1Client) AssignProjectToApplicationsByIDs(projectId string, applicationIds []string) error {
 	if flag, _ := c.CheckFlag("DIRECT_APP_ASSOCIATION_ENABLED"); !flag {
 		return fmt.Errorf("direct app association is not enabled")
 	}
@@ -566,7 +566,7 @@ func (c Cx1Client) AssignProjectToApplicationsByIDs(projectId string, applicatio
 
 // Directly assign a project to one or more applications
 // This should be used separately from the Project.AssignApplication + UpdateProject(Project) flow
-func (c Cx1Client) RemoveProjectFromApplicationsByIDs(projectId string, applicationIds []string) error {
+func (c *Cx1Client) RemoveProjectFromApplicationsByIDs(projectId string, applicationIds []string) error {
 	if flag, _ := c.CheckFlag("DIRECT_APP_ASSOCIATION_ENABLED"); !flag {
 		return fmt.Errorf("direct app association is not enabled")
 	}
@@ -586,13 +586,13 @@ func (c Cx1Client) RemoveProjectFromApplicationsByIDs(projectId string, applicat
 // This function patches a project, changing only the fields supplied to the function.
 // The project behind the supplied pointer is not changed
 // For CheckmarxOne v3.41+
-func (c Cx1Client) PatchProject(project *Project, update ProjectPatch) error {
+func (c *Cx1Client) PatchProject(project *Project, update ProjectPatch) error {
 	return c.PatchProjectByID(project.ProjectID, update)
 }
 
 // This function patches a project, changing only the fields supplied to the function.
 // For CheckmarxOne v3.41+
-func (c Cx1Client) PatchProjectByID(projectId string, update ProjectPatch) error {
+func (c *Cx1Client) PatchProjectByID(projectId string, update ProjectPatch) error {
 	jsonBody, err := json.Marshal(update)
 	if err != nil {
 		return err
@@ -605,7 +605,7 @@ func (c Cx1Client) PatchProjectByID(projectId string, update ProjectPatch) error
 // This updates a project, including any changes in Application membership. All fields are updated based on the provided data.
 // The project behind the supplied pointer is not changed
 // For partial updates use PatchProject
-func (c Cx1Client) UpdateProject(project *Project) error {
+func (c *Cx1Client) UpdateProject(project *Project) error {
 	c.logger.Debugf("Updating project %v", project.String())
 
 	// This may be temporary depending on how the API changes
@@ -645,7 +645,7 @@ func (c Cx1Client) UpdateProject(project *Project) error {
 
 // Delete the project
 // There is no UNDO
-func (c Cx1Client) DeleteProject(p *Project) error {
+func (c *Cx1Client) DeleteProject(p *Project) error {
 	c.logger.Debugf("Deleting Project %v", p.String())
 
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/projects/%v", p.ProjectID), nil, nil)
@@ -709,7 +709,7 @@ func (p *Project) RemoveApplicationByID(appID string) {
 	p.Applications = &newApps
 }
 
-func (c Cx1Client) GetOrCreateProjectByName(name string) (Project, error) {
+func (c *Cx1Client) GetOrCreateProjectByName(name string) (Project, error) {
 	project, err := c.GetProjectByName(name)
 	if err == nil {
 		return project, nil
@@ -720,7 +720,7 @@ func (c Cx1Client) GetOrCreateProjectByName(name string) (Project, error) {
 
 // Find a specific project by name. Should be in a specific application by name.
 // If the project doesn't exist, it is created
-func (c Cx1Client) GetOrCreateProjectInApplicationByName(projectName, applicationName string) (Project, Application, error) {
+func (c *Cx1Client) GetOrCreateProjectInApplicationByName(projectName, applicationName string) (Project, Application, error) {
 	var application Application
 	var project Project
 	var err error
@@ -750,7 +750,7 @@ func (c Cx1Client) GetOrCreateProjectInApplicationByName(projectName, applicatio
 
 // Moves a project from one application to another in one operation
 // This is necessary for limited-permission users with application-based access assignments
-func (c Cx1Client) MoveProjectBetweenApplications(project *Project, sourceApplicationIDs, destinationApplicationIDs []string) error {
+func (c *Cx1Client) MoveProjectBetweenApplications(project *Project, sourceApplicationIDs, destinationApplicationIDs []string) error {
 	var requestBody struct {
 		Source []string `json:"applicationIdsToDisassociate"`
 		Dest   []string `json:"applicationIdsToAssociate"`

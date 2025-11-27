@@ -13,7 +13,7 @@ func ShortenGUID(guid string) string {
 	return fmt.Sprintf("%v..%v", guid[:2], guid[len(guid)-2:])
 }
 
-func (c Cx1Client) depwarn(old, new string) {
+func (c *Cx1Client) depwarn(old, new string) {
 	if !c.suppressdepwarn {
 		if new == "" {
 			c.logger.Warnf("Cx1ClientGo deprecation notice: %v will be deprecated", old)

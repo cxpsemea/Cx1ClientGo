@@ -13,7 +13,7 @@ import (
 )
 
 // Get all OIDC Clients in the system
-func (c Cx1Client) GetClients() ([]OIDCClient, error) {
+func (c *Cx1Client) GetClients() ([]OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC Clients")
 	_, clients, err := c.GetAllClientsFiltered(OIDCClientFilter{
 		BaseIAMFilter: BaseIAMFilter{
@@ -25,7 +25,7 @@ func (c Cx1Client) GetClients() ([]OIDCClient, error) {
 }
 
 // Get details about a specific OIDC Client by GUID
-func (c Cx1Client) GetClientByID(guid string) (OIDCClient, error) {
+func (c *Cx1Client) GetClientByID(guid string) (OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC client with ID %v", guid)
 	var client OIDCClient
 
@@ -44,7 +44,7 @@ func (c Cx1Client) GetClientByID(guid string) (OIDCClient, error) {
 }
 
 // Get all OIDC Clients matching a string
-func (c Cx1Client) GetClientsByName(clientName string) ([]OIDCClient, error) {
+func (c *Cx1Client) GetClientsByName(clientName string) ([]OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC clients matching name %v", clientName)
 	_, clients, err := c.GetAllClientsFiltered(OIDCClientFilter{
 		BaseIAMFilter: BaseIAMFilter{
@@ -59,7 +59,7 @@ func (c Cx1Client) GetClientsByName(clientName string) ([]OIDCClient, error) {
 }
 
 // Gets a specific OIDC client with the client id matching this name exactly
-func (c Cx1Client) GetClientByName(clientName string) (OIDCClient, error) {
+func (c *Cx1Client) GetClientByName(clientName string) (OIDCClient, error) {
 	c.logger.Debugf("Getting OIDC client with name %v", clientName)
 
 	var client OIDCClient
@@ -83,7 +83,7 @@ func (c Cx1Client) GetClientByName(clientName string) (OIDCClient, error) {
 
 // Gets the secret for an OIDC Client
 // Only available to the creator of the OIDC Client
-func (c Cx1Client) GetClientSecret(client *OIDCClient) (string, error) {
+func (c *Cx1Client) GetClientSecret(client *OIDCClient) (string, error) {
 	c.logger.Debugf("Getting OIDC client secret for %v", client.String())
 
 	var responseBody struct {
@@ -104,7 +104,7 @@ func (c Cx1Client) GetClientSecret(client *OIDCClient) (string, error) {
 }
 
 // Create a new OIDC client
-func (c Cx1Client) CreateClient(name string, notificationEmails []string, secretExpiration int) (OIDCClient, error) {
+func (c *Cx1Client) CreateClient(name string, notificationEmails []string, secretExpiration int) (OIDCClient, error) {
 	c.logger.Debugf("Creating OIDC client with name %v", name)
 
 	notificationEmailsStr := "[\"" + strings.Join(notificationEmails, "\",\"") + "\"]"
@@ -225,7 +225,7 @@ func (c *OIDCClient) clientToMap() {
 The UpdateClient function should be used sparingly - it will use the contents of the OIDCClient.OIDCClientRaw variable of type map[string]interface{} in the PUT request.
 As a result, changes to the member variables in the OIDCClient object itself (creator & clientsecretexpiry) will not be saved using this method unless they are also updated in OIDCClientRaw.
 */
-func (c Cx1Client) UpdateClient(client OIDCClient) error {
+func (c *Cx1Client) UpdateClient(client OIDCClient) error {
 	c.logger.Debugf("Updating OIDC client with name %v", client.ClientID)
 	client.clientToMap()
 
@@ -240,7 +240,7 @@ func (c Cx1Client) UpdateClient(client OIDCClient) error {
 }
 
 // review Keycloak documentation for correct usage
-func (c Cx1Client) AddClientScopeByID(guid, clientScopeId string) error {
+func (c *Cx1Client) AddClientScopeByID(guid, clientScopeId string) error {
 	c.logger.Debugf("Adding client scope %v to OIDC Client %v", clientScopeId, guid)
 
 	_, err := c.sendRequestIAM(http.MethodPut, "/auth/admin", fmt.Sprintf("/clients/%v/default-client-scopes/%v", guid, clientScopeId), nil, nil)
@@ -248,7 +248,7 @@ func (c Cx1Client) AddClientScopeByID(guid, clientScopeId string) error {
 }
 
 // Delete an OIDC Client
-func (c Cx1Client) DeleteClientByID(guid string) error {
+func (c *Cx1Client) DeleteClientByID(guid string) error {
 	c.logger.Debugf("Deleting OIDC client with ID %v", guid)
 	if strings.EqualFold(guid, c.GetASTAppID()) {
 		return fmt.Errorf("attempt to delete the ast-app client (ID: %v) prevented - this will break your tenant", guid)
@@ -259,7 +259,7 @@ func (c Cx1Client) DeleteClientByID(guid string) error {
 
 // Retrieve the user account behind the OIDC Client
 // The user account stores the roles, group access, and other mappings
-func (c Cx1Client) GetServiceAccountByID(guid string) (User, error) {
+func (c *Cx1Client) GetServiceAccountByID(guid string) (User, error) {
 	c.logger.Debugf("Getting service account user behind OIDC client with ID %v", guid)
 	var user User
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/clients/%v/service-account-user", guid), nil, nil)
@@ -271,7 +271,7 @@ func (c Cx1Client) GetServiceAccountByID(guid string) (User, error) {
 	return user, err
 }
 
-func (c Cx1Client) GetClientScopes() ([]OIDCClientScope, error) {
+func (c *Cx1Client) GetClientScopes() ([]OIDCClientScope, error) {
 	c.logger.Debugf("Getting OIDC Client Scopes")
 	var clientscopes []OIDCClientScope
 
@@ -285,7 +285,7 @@ func (c Cx1Client) GetClientScopes() ([]OIDCClientScope, error) {
 	return clientscopes, err
 }
 
-func (c Cx1Client) GetClientScopeByName(name string) (OIDCClientScope, error) {
+func (c *Cx1Client) GetClientScopeByName(name string) (OIDCClientScope, error) {
 	clientScopes, err := c.GetClientScopes()
 	if err != nil {
 		return OIDCClientScope{}, err
@@ -330,7 +330,7 @@ func (c *Cx1Client) GetASTAppID() string {
 	return c.astAppID
 }
 
-func (c Cx1Client) RegenerateClientSecret(client OIDCClient) (string, error) {
+func (c *Cx1Client) RegenerateClientSecret(client OIDCClient) (string, error) {
 	clientId := client.ID
 	body := map[string]interface{}{
 		"realm":  c.tenant,
@@ -361,7 +361,7 @@ func (client OIDCClient) String() string {
 	return fmt.Sprintf("[%v] %v", ShortenGUID(client.ID), client.ClientID)
 }
 
-func (c Cx1Client) GetClientsFiltered(filter OIDCClientFilter) ([]OIDCClient, error) {
+func (c *Cx1Client) GetClientsFiltered(filter OIDCClientFilter) ([]OIDCClient, error) {
 	var clients []OIDCClient
 	if filter.Max < 10 {
 		filter.Max = 10
@@ -390,7 +390,7 @@ func (c Cx1Client) GetClientsFiltered(filter OIDCClientFilter) ([]OIDCClient, er
 	return clients, err
 }
 
-func (c Cx1Client) GetAllClientsFiltered(filter OIDCClientFilter) (uint64, []OIDCClient, error) {
+func (c *Cx1Client) GetAllClientsFiltered(filter OIDCClientFilter) (uint64, []OIDCClient, error) {
 	var clients []OIDCClient
 	// paginate until we get all results.
 	count := uint64(0)
@@ -409,7 +409,7 @@ func (c Cx1Client) GetAllClientsFiltered(filter OIDCClientFilter) (uint64, []OID
 	return count, clients, err
 }
 
-func (c Cx1Client) GetXClientsFiltered(filter OIDCClientFilter, count uint64) (uint64, []OIDCClient, error) {
+func (c *Cx1Client) GetXClientsFiltered(filter OIDCClientFilter, count uint64) (uint64, []OIDCClient, error) {
 	var clients []OIDCClient
 
 	cs, err := c.GetClientsFiltered(filter)

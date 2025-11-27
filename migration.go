@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func (c Cx1Client) StartMigration(dataArchive, projectMapping []byte, encryptionKey string) (string, error) {
+func (c *Cx1Client) StartMigration(dataArchive, projectMapping []byte, encryptionKey string) (string, error) {
 	dataUrl, err := c.UploadBytes(&dataArchive)
 	if err != nil {
 		return "", fmt.Errorf("error uploading migration data: %s", err)
@@ -33,7 +33,7 @@ func (c Cx1Client) StartMigration(dataArchive, projectMapping []byte, encryption
 	return c.StartImport(dataFilename, mappingFilename, encryptionKey)
 }
 
-func (c Cx1Client) StartImport(dataFilename, mappingFilename, encryptionKey string) (string, error) {
+func (c *Cx1Client) StartImport(dataFilename, mappingFilename, encryptionKey string) (string, error) {
 	jsonBody := map[string]interface{}{
 		"fileName":                dataFilename,
 		"projectsMappingFileName": mappingFilename,
@@ -57,7 +57,7 @@ func (c Cx1Client) StartImport(dataFilename, mappingFilename, encryptionKey stri
 	return responseBody.MigrationId, nil
 }
 
-func (c Cx1Client) GetImports() ([]DataImport, error) {
+func (c *Cx1Client) GetImports() ([]DataImport, error) {
 	response, err := c.sendRequest(http.MethodGet, "/imports", nil, nil)
 	var imports []DataImport
 	if err != nil {
@@ -68,7 +68,7 @@ func (c Cx1Client) GetImports() ([]DataImport, error) {
 	return imports, err
 }
 
-func (c Cx1Client) GetImportByID(importID string) (DataImport, error) {
+func (c *Cx1Client) GetImportByID(importID string) (DataImport, error) {
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/imports/%v", importID), nil, nil)
 	var di DataImport
 	if err != nil {
@@ -79,7 +79,7 @@ func (c Cx1Client) GetImportByID(importID string) (DataImport, error) {
 	return di, err
 }
 
-func (c Cx1Client) GetImportLogsByID(importID string) ([]byte, error) {
+func (c *Cx1Client) GetImportLogsByID(importID string) ([]byte, error) {
 	c.logger.Debugf("Fetching import logs for import %v", importID)
 
 	response, err := c.sendRequestRawCx1(http.MethodGet, fmt.Sprintf("/imports/%v/logs/download", importID), nil, nil)
@@ -104,11 +104,11 @@ func (c Cx1Client) GetImportLogsByID(importID string) ([]byte, error) {
 	return data, err
 }
 
-func (c Cx1Client) ImportPollingByID(importID string) (string, error) {
+func (c *Cx1Client) ImportPollingByID(importID string) (string, error) {
 	return c.ImportPollingByIDWithTimeout(importID, c.consts.MigrationPollingDelaySeconds, c.consts.MigrationPollingMaxSeconds)
 }
 
-func (c Cx1Client) ImportPollingByIDWithTimeout(importID string, delaySeconds, maxSeconds int) (string, error) {
+func (c *Cx1Client) ImportPollingByIDWithTimeout(importID string, delaySeconds, maxSeconds int) (string, error) {
 	fail_counter := 5 // allow up to 5 failures while waiting for the import ID to be valid
 	pollingCounter := 0
 	for {

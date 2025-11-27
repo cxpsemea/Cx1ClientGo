@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func (c Cx1Client) GetAuthenticationProviders() ([]AuthenticationProvider, error) {
+func (c *Cx1Client) GetAuthenticationProviders() ([]AuthenticationProvider, error) {
 	var idps []AuthenticationProvider
 
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", "/identity-provider/instances", nil, nil)
@@ -20,7 +20,7 @@ func (c Cx1Client) GetAuthenticationProviders() ([]AuthenticationProvider, error
 	return idps, err
 }
 
-func (c Cx1Client) GetAuthenticationProviderByAlias(alias string) (AuthenticationProvider, error) {
+func (c *Cx1Client) GetAuthenticationProviderByAlias(alias string) (AuthenticationProvider, error) {
 	var idp AuthenticationProvider
 
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/identity-provider/instances/%v", alias), nil, nil)
@@ -32,7 +32,7 @@ func (c Cx1Client) GetAuthenticationProviderByAlias(alias string) (Authenticatio
 	return idp, err
 }
 
-func (c Cx1Client) CreateAuthenticationProvider(alias, providerId string) (AuthenticationProvider, error) {
+func (c *Cx1Client) CreateAuthenticationProvider(alias, providerId string) (AuthenticationProvider, error) {
 	idp := AuthenticationProvider{
 		Alias:      alias,
 		ProviderID: providerId,
@@ -47,7 +47,7 @@ func (c Cx1Client) CreateAuthenticationProvider(alias, providerId string) (Authe
 	return c.GetAuthenticationProviderByAlias(alias)
 }
 
-func (c Cx1Client) DeleteAuthenticationProvider(provider AuthenticationProvider) error {
+func (c *Cx1Client) DeleteAuthenticationProvider(provider AuthenticationProvider) error {
 	_, err := c.sendRequestIAM(http.MethodDelete, "/auth/admin", fmt.Sprintf("/identity-provider/instances/%v", provider.Alias), nil, nil)
 	return err
 }
@@ -56,7 +56,7 @@ func (p AuthenticationProvider) String() string {
 	return fmt.Sprintf("[%v] %v (%v)", ShortenGUID(p.ID), p.Alias, strings.ToUpper(p.ProviderID))
 }
 
-func (c Cx1Client) GetAuthenticationProviderMappers(provider AuthenticationProvider) ([]AuthenticationProviderMapper, error) {
+func (c *Cx1Client) GetAuthenticationProviderMappers(provider AuthenticationProvider) ([]AuthenticationProviderMapper, error) {
 	var mappers []AuthenticationProviderMapper
 
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/identity-provider/instances/%v/mappers", provider.Alias), nil, nil)
@@ -68,14 +68,14 @@ func (c Cx1Client) GetAuthenticationProviderMappers(provider AuthenticationProvi
 	return mappers, err
 }
 
-func (c Cx1Client) AddAuthenticationProviderMapper(mapper AuthenticationProviderMapper) error {
+func (c *Cx1Client) AddAuthenticationProviderMapper(mapper AuthenticationProviderMapper) error {
 	jsonBody, _ := json.Marshal(mapper)
 
 	_, err := c.sendRequestIAM(http.MethodPost, "/auth/admin", fmt.Sprintf("/identity-provider/instances/%v/mappers", mapper.Alias), bytes.NewReader(jsonBody), nil)
 	return err
 }
 
-func (c Cx1Client) DeleteAuthenticationProviderMapper(mapper AuthenticationProviderMapper) error {
+func (c *Cx1Client) DeleteAuthenticationProviderMapper(mapper AuthenticationProviderMapper) error {
 	_, err := c.sendRequestIAM(http.MethodDelete, "/auth/admin", fmt.Sprintf("/identity-provider/instances/%v/mappers/%v", mapper.Alias, mapper.ID), nil, nil)
 	return err
 }

@@ -8,7 +8,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func (c Cx1Client) GetSASTQueryCollection() (SASTQueryCollection, error) {
+func (c *Cx1Client) GetSASTQueryCollection() (SASTQueryCollection, error) {
 	//var qc SASTQueryCollection
 
 	var qc SASTQueryCollection
@@ -553,11 +553,11 @@ func (qc SASTQueryCollection) GetQueryFamilies(executableOnly bool) []QueryFamil
 	return queryFamilies
 }
 
-func (c Cx1Client) QueryGroupLink(q *SASTQueryGroup) string {
+func (c *Cx1Client) QueryGroupLink(q *SASTQueryGroup) string {
 	return fmt.Sprintf("%v/audit/?language=%v&group=%v", c.baseUrl, q.Language, q.Name)
 }
 
-func (c Cx1Client) QueryLanguageLink(q *SASTQueryLanguage) string {
+func (c *Cx1Client) QueryLanguageLink(q *SASTQueryLanguage) string {
 	return fmt.Sprintf("%v/audit/?language=%v", c.baseUrl, q.Name)
 }
 

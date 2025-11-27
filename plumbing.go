@@ -142,7 +142,7 @@ func (c *Cx1Client) refreshAccessToken() error {
 	return nil
 }
 
-func (c Cx1Client) sendRequestInternal(method, url string, body io.Reader, header http.Header) ([]byte, error) {
+func (c *Cx1Client) sendRequestInternal(method, url string, body io.Reader, header http.Header) ([]byte, error) {
 	response, err := c.sendRequestRaw(method, url, body, header)
 	var resBody []byte
 	if response != nil && response.Body != nil {
@@ -153,7 +153,7 @@ func (c Cx1Client) sendRequestInternal(method, url string, body io.Reader, heade
 	return resBody, err
 }
 
-func (c Cx1Client) sendRequestRaw(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
+func (c *Cx1Client) sendRequestRaw(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
 	c.logger.Tracef("Sending %v request to URL %v", method, url)
 	request, err := c.createRequest(method, url, body, &header, nil)
 	if err != nil {
@@ -164,7 +164,7 @@ func (c Cx1Client) sendRequestRaw(method, url string, body io.Reader, header htt
 	return c.handleHTTPResponse(request)
 }
 
-func (c Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, error) {
+func (c *Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, error) {
 	// If the request has a body, we need to buffer it so it can be read multiple times for retries.
 	var bodyBytes []byte
 	if request.Body != nil {
@@ -227,7 +227,7 @@ func (c Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, er
 	return response, nil
 }
 
-func (c Cx1Client) handleRetries(request *http.Request, response *http.Response, err error) (*http.Response, error) {
+func (c *Cx1Client) handleRetries(request *http.Request, response *http.Response, err error) (*http.Response, error) {
 	if err != nil && (strings.Contains(err.Error(), "tls: user canceled") && request.Method == http.MethodGet) { // tls: user canceled can be due to proxies
 		c.logger.Warnf("Potentially benign error from HTTP connection: %s", err)
 		return response, nil
@@ -280,28 +280,28 @@ func isRetryableError(err error) bool {
 	return false
 }
 
-func (c Cx1Client) sendRequest(method, url string, body io.Reader, header http.Header) ([]byte, error) {
+func (c *Cx1Client) sendRequest(method, url string, body io.Reader, header http.Header) ([]byte, error) {
 	cx1url := fmt.Sprintf("%v/api%v", c.baseUrl, url)
 	return c.sendRequestInternal(method, cx1url, body, header)
 }
 
-func (c Cx1Client) sendRequestRawCx1(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
+func (c *Cx1Client) sendRequestRawCx1(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
 	cx1url := fmt.Sprintf("%v/api%v", c.baseUrl, url)
 	return c.sendRequestRaw(method, cx1url, body, header)
 }
 
-func (c Cx1Client) sendRequestIAM(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
+func (c *Cx1Client) sendRequestIAM(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
 	iamurl := fmt.Sprintf("%v%v/realms/%v%v", c.iamUrl, base, c.tenant, url)
 	return c.sendRequestInternal(method, iamurl, body, header)
 }
 
-func (c Cx1Client) sendRequestRawIAM(method, base, url string, body io.Reader, header http.Header) (*http.Response, error) {
+func (c *Cx1Client) sendRequestRawIAM(method, base, url string, body io.Reader, header http.Header) (*http.Response, error) {
 	iamurl := fmt.Sprintf("%v%v/realms/%v%v", c.iamUrl, base, c.tenant, url)
 	return c.sendRequestRaw(method, iamurl, body, header)
 }
 
 // not sure what to call this one? used for /console/ calls, not part of the /realms/ path
-func (c Cx1Client) sendRequestOther(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
+func (c *Cx1Client) sendRequestOther(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
 	iamurl := fmt.Sprintf("%v%v/%v%v", c.iamUrl, base, c.tenant, url)
 	return c.sendRequestInternal(method, iamurl, body, header)
 }
@@ -345,14 +345,14 @@ func parseJWT(jwtToken string) (claims Cx1Claims, err error) {
 	return
 }
 
-func (c Cx1Client) GetUserAgent() string {
+func (c *Cx1Client) GetUserAgent() string {
 	return c.cx1UserAgent
 }
 func (c *Cx1Client) SetUserAgent(ua string) {
 	c.cx1UserAgent = ua
 }
 
-func (c Cx1Client) GetRetries() (retries, delay int) {
+func (c *Cx1Client) GetRetries() (retries, delay int) {
 	return c.maxRetries, c.retryDelay
 }
 

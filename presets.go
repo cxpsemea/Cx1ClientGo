@@ -22,7 +22,7 @@ func (p Preset) String() string {
 
 }
 
-func (c Cx1Client) newPresetsEnabled() bool {
+func (c *Cx1Client) newPresetsEnabled() bool {
 	flag, _ := c.CheckFlag("NEW_PRESET_MANAGEMENT_ENABLED")
 	if !flag {
 		c.logger.Debugf("The New Preset Management feature is not enabled in this environment. Old /api/presets endpoints will be used, but these will be disabled in Cx1 Multi-Tenant EOY 2025 and removed from Cx1ClientGo at that time. Ensure your environment has the new feature if you wish to use newer Cx1ClientGo library versions in 2026.")
@@ -31,16 +31,16 @@ func (c Cx1Client) newPresetsEnabled() bool {
 }
 
 // Presets do not include the contents of the preset (query families etc) - use GetPresetContents to fill or GetPresetByID
-func (c Cx1Client) GetSASTPresets(count uint64) ([]Preset, error) {
+func (c *Cx1Client) GetSASTPresets(count uint64) ([]Preset, error) {
 	return c.GetPresets("sast", count)
 }
 
 // Presets do not include the contents of the preset (query families etc) - use Get*PresetContents to fill or Get*PresetByID
-func (c Cx1Client) GetIACPresets(count uint64) ([]Preset, error) {
+func (c *Cx1Client) GetIACPresets(count uint64) ([]Preset, error) {
 	return c.GetPresets("iac", count)
 }
 
-func (c Cx1Client) GetPresets(engine string, count uint64) ([]Preset, error) {
+func (c *Cx1Client) GetPresets(engine string, count uint64) ([]Preset, error) {
 	c.logger.Debugf("Get Cx1 %v Presets", engine)
 	if !c.newPresetsEnabled() {
 		if engine == "sast" {
@@ -86,14 +86,14 @@ func (c Cx1Client) GetPresets(engine string, count uint64) ([]Preset, error) {
 	return preset_response.Presets, err
 }
 
-func (c Cx1Client) GetSASTPresetCount() (uint64, error) {
+func (c *Cx1Client) GetSASTPresetCount() (uint64, error) {
 	return c.GetPresetCount("sast")
 }
-func (c Cx1Client) GetIACPresetCount() (uint64, error) {
+func (c *Cx1Client) GetIACPresetCount() (uint64, error) {
 	return c.GetPresetCount("iac")
 }
 
-func (c Cx1Client) GetPresetCount(engine string) (uint64, error) {
+func (c *Cx1Client) GetPresetCount(engine string) (uint64, error) {
 	c.logger.Debugf("Get Cx1 %v Presets count", engine)
 
 	if !c.newPresetsEnabled() {
@@ -123,16 +123,16 @@ func (c Cx1Client) GetPresetCount(engine string) (uint64, error) {
 }
 
 // Does not include the contents of the preset (query families etc) - use GetPresetContents to fill or GetPresetByID
-func (c Cx1Client) GetSASTPresetByName(name string) (Preset, error) {
+func (c *Cx1Client) GetSASTPresetByName(name string) (Preset, error) {
 	return c.GetPresetByName("sast", name)
 }
 
 // Does not include the contents of the preset (query families etc) - use GetPresetContents to fill or GetPresetByID
-func (c Cx1Client) GetIACPresetByName(name string) (Preset, error) {
+func (c *Cx1Client) GetIACPresetByName(name string) (Preset, error) {
 	return c.GetPresetByName("iac", name)
 }
 
-func (c Cx1Client) GetPresetByName(engine, name string) (Preset, error) {
+func (c *Cx1Client) GetPresetByName(engine, name string) (Preset, error) {
 	c.logger.Debugf("Get preset by name %v for %v", name, engine)
 
 	if !c.newPresetsEnabled() {
@@ -181,7 +181,7 @@ func (c Cx1Client) GetPresetByName(engine, name string) (Preset, error) {
 	return preset_response.Presets[0], nil
 }
 
-func (c Cx1Client) GetPresetByID(engine, id string) (Preset, error) {
+func (c *Cx1Client) GetPresetByID(engine, id string) (Preset, error) {
 	var preset Preset
 	if !c.newPresetsEnabled() {
 		if engine == "sast" {
@@ -211,17 +211,17 @@ func (c Cx1Client) GetPresetByID(engine, id string) (Preset, error) {
 }
 
 // Includes the contents (query families/queries) of the preset as well
-func (c Cx1Client) GetSASTPresetByID(id uint64) (Preset, error) {
+func (c *Cx1Client) GetSASTPresetByID(id uint64) (Preset, error) {
 	return c.GetPresetByID("sast", fmt.Sprintf("%d", id))
 }
 
 // Includes the contents (query families/queries) of the preset as well
-func (c Cx1Client) GetIACPresetByID(id string) (Preset, error) {
+func (c *Cx1Client) GetIACPresetByID(id string) (Preset, error) {
 	return c.GetPresetByID("iac", id)
 }
 
 // this will return a list of queries that can be added to a preset, meaning only executable queries
-func (c Cx1Client) GetSASTPresetQueries() (SASTQueryCollection, error) {
+func (c *Cx1Client) GetSASTPresetQueries() (SASTQueryCollection, error) {
 	collection := SASTQueryCollection{}
 	if c.newPresetsEnabled() {
 		querytree, err := c.getPresetQueries("sast")
@@ -236,7 +236,7 @@ func (c Cx1Client) GetSASTPresetQueries() (SASTQueryCollection, error) {
 	}
 }
 
-func (c Cx1Client) GetIACPresetQueries() (IACQueryCollection, error) {
+func (c *Cx1Client) GetIACPresetQueries() (IACQueryCollection, error) {
 	collection := IACQueryCollection{}
 	querytree, err := c.getPresetQueries("iac")
 	if err != nil {
@@ -247,7 +247,7 @@ func (c Cx1Client) GetIACPresetQueries() (IACQueryCollection, error) {
 	return collection, nil
 }
 
-func (c Cx1Client) getPresetQueries(engine string) ([]AuditQueryTree, error) {
+func (c *Cx1Client) getPresetQueries(engine string) ([]AuditQueryTree, error) {
 	families, err := c.GetQueryFamilies(engine)
 	querytree := []AuditQueryTree{}
 	if err != nil {
@@ -265,13 +265,13 @@ func (c Cx1Client) getPresetQueries(engine string) ([]AuditQueryTree, error) {
 	return querytree, nil
 }
 
-func (c Cx1Client) GetIACQueryFamilies() ([]string, error) {
+func (c *Cx1Client) GetIACQueryFamilies() ([]string, error) {
 	return c.GetQueryFamilies("iac")
 }
-func (c Cx1Client) GetSASTQueryFamilies() ([]string, error) {
+func (c *Cx1Client) GetSASTQueryFamilies() ([]string, error) {
 	return c.GetQueryFamilies("sast")
 }
-func (c Cx1Client) GetQueryFamilies(engine string) ([]string, error) {
+func (c *Cx1Client) GetQueryFamilies(engine string) ([]string, error) {
 	var families []string
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/preset-manager/%v/query-families", engine), nil, nil)
 	if err != nil {
@@ -282,7 +282,7 @@ func (c Cx1Client) GetQueryFamilies(engine string) ([]string, error) {
 	return families, err
 }
 
-func (c Cx1Client) GetIACQueryFamilyContents(family string) (IACQueryCollection, error) {
+func (c *Cx1Client) GetIACQueryFamilyContents(family string) (IACQueryCollection, error) {
 	collection := IACQueryCollection{}
 	tree, err := c.getQueryFamilyContents("iac", family)
 	if err != nil {
@@ -293,7 +293,7 @@ func (c Cx1Client) GetIACQueryFamilyContents(family string) (IACQueryCollection,
 
 	return collection, nil
 }
-func (c Cx1Client) GetSASTQueryFamilyContents(family string) (SASTQueryCollection, error) {
+func (c *Cx1Client) GetSASTQueryFamilyContents(family string) (SASTQueryCollection, error) {
 	collection := SASTQueryCollection{}
 	tree, err := c.getQueryFamilyContents("sast", family)
 	if err != nil {
@@ -304,7 +304,7 @@ func (c Cx1Client) GetSASTQueryFamilyContents(family string) (SASTQueryCollectio
 
 	return collection, nil
 }
-func (c Cx1Client) getQueryFamilyContents(engine, family string) ([]AuditQueryTree, error) {
+func (c *Cx1Client) getQueryFamilyContents(engine, family string) ([]AuditQueryTree, error) {
 	var families []AuditQueryTree
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/preset-manager/%v/query-families/%v/queries", engine, family), nil, nil)
 	if err != nil {
@@ -333,7 +333,7 @@ func (c Cx1Client) getQueryFamilyContents(engine, family string) ([]AuditQueryTr
 	return qfamily, err
 }
 
-func (c Cx1Client) GetPresetContents(p *Preset) error {
+func (c *Cx1Client) GetPresetContents(p *Preset) error {
 	if p.Engine == "sast" && !c.newPresetsEnabled() {
 		queries, err := c.GetSASTPresetQueries()
 		if err != nil {
@@ -371,7 +371,7 @@ func (p *SASTPreset) LinkQueries(qc *SASTQueryCollection) {
 */
 
 // convenience
-func (c Cx1Client) GetAllSASTPresets() ([]Preset, error) {
+func (c *Cx1Client) GetAllSASTPresets() ([]Preset, error) {
 	count, err := c.GetSASTPresetCount()
 	if err != nil {
 		return []Preset{}, err
@@ -380,7 +380,7 @@ func (c Cx1Client) GetAllSASTPresets() ([]Preset, error) {
 	return c.GetSASTPresets(count)
 }
 
-func (c Cx1Client) CreateSASTPreset(name, description string, collection SASTQueryCollection) (Preset, error) {
+func (c *Cx1Client) CreateSASTPreset(name, description string, collection SASTQueryCollection) (Preset, error) {
 	c.logger.Debugf("Creating preset %v for sast", name)
 	if !c.newPresetsEnabled() {
 		new_preset, err := c.CreatePreset_v330(name, description, collection.GetQueryIDs())
@@ -405,7 +405,7 @@ func (c Cx1Client) CreateSASTPreset(name, description string, collection SASTQue
 	return c.GetSASTPresetByID(u)
 }
 
-func (c Cx1Client) GetAllIACPresets() ([]Preset, error) {
+func (c *Cx1Client) GetAllIACPresets() ([]Preset, error) {
 	count, err := c.GetIACPresetCount()
 	if err != nil {
 		return []Preset{}, err
@@ -414,7 +414,7 @@ func (c Cx1Client) GetAllIACPresets() ([]Preset, error) {
 	return c.GetIACPresets(count)
 }
 
-func (c Cx1Client) CreateIACPreset(name, description string, collection IACQueryCollection) (Preset, error) {
+func (c *Cx1Client) CreateIACPreset(name, description string, collection IACQueryCollection) (Preset, error) {
 	c.logger.Debugf("Creating preset %v for iac", name)
 
 	if len(description) > 60 {
@@ -431,7 +431,7 @@ func (c Cx1Client) CreateIACPreset(name, description string, collection IACQuery
 	return c.GetIACPresetByID(presetID)
 }
 
-func (c Cx1Client) createPreset(engine, name, description string, families []QueryFamily) (string, error) {
+func (c *Cx1Client) createPreset(engine, name, description string, families []QueryFamily) (string, error) {
 	body := map[string]interface{}{
 		"name":        name,
 		"description": description,
@@ -457,7 +457,7 @@ func (c Cx1Client) createPreset(engine, name, description string, families []Que
 	return responseStruct.Id, err
 }
 
-func (c Cx1Client) UpdateSASTPreset(preset Preset) error {
+func (c *Cx1Client) UpdateSASTPreset(preset Preset) error {
 	if !c.newPresetsEnabled() {
 		p := preset.ToPreset_v330()
 		return c.UpdatePreset_v330(&p)
@@ -465,12 +465,12 @@ func (c Cx1Client) UpdateSASTPreset(preset Preset) error {
 	c.logger.Debugf("Saving sast preset %v", preset.Name)
 	return c.updatePreset("sast", preset.PresetID, preset.Name, preset.Description, preset.QueryFamilies)
 }
-func (c Cx1Client) UpdateIACPreset(preset Preset) error {
+func (c *Cx1Client) UpdateIACPreset(preset Preset) error {
 	c.logger.Debugf("Saving iac preset %v", preset.Name)
 	return c.updatePreset("iac", preset.PresetID, preset.Name, preset.Description, preset.QueryFamilies)
 }
 
-func (c Cx1Client) updatePreset(engine, id, name, description string, families []QueryFamily) error {
+func (c *Cx1Client) updatePreset(engine, id, name, description string, families []QueryFamily) error {
 	if len(description) > 60 {
 		c.logger.Warnf("Description is longer than 60 characters, will be truncated")
 		description = description[:60]
@@ -491,7 +491,7 @@ func (c Cx1Client) updatePreset(engine, id, name, description string, families [
 	return err
 }
 
-func (c Cx1Client) DeletePreset(preset Preset) error {
+func (c *Cx1Client) DeletePreset(preset Preset) error {
 	if !c.newPresetsEnabled() {
 		p := preset.ToPreset_v330()
 		return c.DeletePreset_v330(&p)
@@ -505,7 +505,7 @@ func (c Cx1Client) DeletePreset(preset Preset) error {
 	return err
 }
 
-func (c Cx1Client) PresetLink(p *Preset) string {
+func (c *Cx1Client) PresetLink(p *Preset) string {
 	c.depwarn("PresetLink", "will be removed")
 	return fmt.Sprintf("%v/resourceManagement/presets?presetId=%v", c.baseUrl, p.PresetID)
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
-func (c Cx1Client) GetScanResultsByID(scanID string, limit uint64) (ScanResultSet, error) {
+func (c *Cx1Client) GetScanResultsByID(scanID string, limit uint64) (ScanResultSet, error) {
 	c.logger.Debugf("Get %d Cx1 Scan Results for scan %v", limit, scanID)
 
 	_, results, err := c.GetXScanResultsFiltered(ScanResultsFilter{
@@ -21,7 +21,7 @@ func (c Cx1Client) GetScanResultsByID(scanID string, limit uint64) (ScanResultSe
 	return results, err
 }
 
-func (c Cx1Client) GetAllScanResultsByID(scanID string) (ScanResultSet, error) {
+func (c *Cx1Client) GetAllScanResultsByID(scanID string) (ScanResultSet, error) {
 	c.logger.Debugf("Get all Cx1 Scan Results for scan %v", scanID)
 
 	_, results, err := c.GetAllScanResultsFiltered(ScanResultsFilter{
@@ -32,7 +32,7 @@ func (c Cx1Client) GetAllScanResultsByID(scanID string) (ScanResultSet, error) {
 	return results, err
 }
 
-func (c Cx1Client) GetScanResultsCountByID(scanID string) (uint64, error) {
+func (c *Cx1Client) GetScanResultsCountByID(scanID string) (uint64, error) {
 	c.logger.Debugf("Get Cx1 Scan Results count for scan %v", scanID)
 	count, _, err := c.GetScanResultsFiltered(ScanResultsFilter{
 		BaseFilter: BaseFilter{Limit: 0},
@@ -46,7 +46,7 @@ func (c Cx1Client) GetScanResultsCountByID(scanID string) (uint64, error) {
 // returns items (filter.Offset*filter.Limit) to (filter.Offset + 1)*filter.Limit
 // returns the count of items retrieved, however some items may not be parsed into the result
 // set depending on support in cx1clientgo
-func (c Cx1Client) GetScanResultsFiltered(filter ScanResultsFilter) (uint64, ScanResultSet, error) {
+func (c *Cx1Client) GetScanResultsFiltered(filter ScanResultsFilter) (uint64, ScanResultSet, error) {
 	params, _ := query.Values(filter)
 
 	results := ScanResultSet{}
@@ -69,7 +69,7 @@ func (s *ScanResultsFilter) Bump() { // this one does offset in pages rather tha
 // gets all of the results available matching a filter
 // the counter returned represents the total number of results which were parsed
 // this may not include some of the returned results depending on Cx1ClientGo support
-func (c Cx1Client) GetAllScanResultsFiltered(filter ScanResultsFilter) (uint64, ScanResultSet, error) {
+func (c *Cx1Client) GetAllScanResultsFiltered(filter ScanResultsFilter) (uint64, ScanResultSet, error) {
 	var results ScanResultSet
 
 	count, rs, err := c.GetScanResultsFiltered(filter)
@@ -86,7 +86,7 @@ func (c Cx1Client) GetAllScanResultsFiltered(filter ScanResultsFilter) (uint64, 
 
 // will return at least X results matching the filter
 // May return more due to paging eg: requesting 101 with a 100-item page can return 200 results
-func (c Cx1Client) GetXScanResultsFiltered(filter ScanResultsFilter, desiredcount uint64) (uint64, ScanResultSet, error) {
+func (c *Cx1Client) GetXScanResultsFiltered(filter ScanResultsFilter, desiredcount uint64) (uint64, ScanResultSet, error) {
 	var results ScanResultSet
 
 	_, rs, err := c.GetScanResultsFiltered(filter)
@@ -127,7 +127,7 @@ func (r ScanIACResult) CreateResultsPredicate(projectId, scanId string) IACResul
 }
 
 // results
-func (c Cx1Client) AddSASTResultsPredicates(predicates []SASTResultsPredicates) error {
+func (c *Cx1Client) AddSASTResultsPredicates(predicates []SASTResultsPredicates) error {
 	c.logger.Debugf("Adding %d SAST results predicates", len(predicates))
 
 	jsonBody, err := json.Marshal(predicates)
@@ -139,11 +139,11 @@ func (c Cx1Client) AddSASTResultsPredicates(predicates []SASTResultsPredicates) 
 	_, err = c.sendRequest(http.MethodPost, "/sast-results-predicates", bytes.NewReader(jsonBody), nil)
 	return err
 }
-func (c Cx1Client) AddKICSResultsPredicates(predicates []IACResultsPredicates) error {
+func (c *Cx1Client) AddKICSResultsPredicates(predicates []IACResultsPredicates) error {
 	c.depwarn("AddKICSResultsPredicates", "AddIACResultsPredicates")
 	return c.AddIACResultsPredicates(predicates)
 }
-func (c Cx1Client) AddIACResultsPredicates(predicates []IACResultsPredicates) error {
+func (c *Cx1Client) AddIACResultsPredicates(predicates []IACResultsPredicates) error {
 	c.logger.Debugf("Adding %d IAC results predicates", len(predicates))
 
 	jsonBody, err := json.Marshal(predicates)
@@ -156,7 +156,7 @@ func (c Cx1Client) AddIACResultsPredicates(predicates []IACResultsPredicates) er
 	return err
 }
 
-func (c Cx1Client) GetSASTResultsPredicatesByID(SimilarityID string, ProjectID, ScanID string) ([]SASTResultsPredicates, error) {
+func (c *Cx1Client) GetSASTResultsPredicatesByID(SimilarityID string, ProjectID, ScanID string) ([]SASTResultsPredicates, error) {
 	c.logger.Debugf("Fetching SAST results predicates for project %v scan %v similarityId %v", ProjectID, ScanID, SimilarityID)
 
 	var Predicates struct {
@@ -186,7 +186,7 @@ func (c Cx1Client) GetSASTResultsPredicatesByID(SimilarityID string, ProjectID, 
 	return Predicates.PredicateHistoryPerProject[0].Predicates, err
 }
 
-func (c Cx1Client) GetLastSASTResultsPredicateByID(SimilarityID string, ProjectID, ScanID string) (SASTResultsPredicates, error) {
+func (c *Cx1Client) GetLastSASTResultsPredicateByID(SimilarityID string, ProjectID, ScanID string) (SASTResultsPredicates, error) {
 	c.logger.Debugf("Fetching SAST results predicates for project %v scan %v similarityId %v", ProjectID, ScanID, SimilarityID)
 
 	var Predicates struct {
@@ -210,12 +210,12 @@ func (c Cx1Client) GetLastSASTResultsPredicateByID(SimilarityID string, ProjectI
 	return Predicates.LatestPredicatePerProject[0], err
 }
 
-func (c Cx1Client) GetKICSResultsPredicatesByID(SimilarityID string, ProjectID string) ([]IACResultsPredicates, error) {
+func (c *Cx1Client) GetKICSResultsPredicatesByID(SimilarityID string, ProjectID string) ([]IACResultsPredicates, error) {
 	c.depwarn("GetKICSResultsPredicatesByID", "GetIACResultsPredicatesByID")
 	return c.GetIACResultsPredicatesByID(SimilarityID, ProjectID)
 }
 
-func (c Cx1Client) GetIACResultsPredicatesByID(SimilarityID string, ProjectID string) ([]IACResultsPredicates, error) {
+func (c *Cx1Client) GetIACResultsPredicatesByID(SimilarityID string, ProjectID string) ([]IACResultsPredicates, error) {
 	c.logger.Debugf("Fetching IAC results predicates for project %v similarityId %v", ProjectID, SimilarityID)
 
 	var Predicates struct {
@@ -300,7 +300,7 @@ func addResultStatus(summary *ScanResultStatusSummary, result *ScanSASTResult) {
 	}
 }
 
-func (c Cx1Client) GetScanSASTResultSummary(results *ScanResultSet) ScanResultSummary {
+func (c *Cx1Client) GetScanSASTResultSummary(results *ScanResultSet) ScanResultSummary {
 	summary := ScanResultSummary{}
 
 	for _, result := range results.SAST {
@@ -363,7 +363,7 @@ func (s ScanResultSummary) String() string {
 }
 
 // Note: response.TotalCount may be greater than the resultset, due to limited cx1clientgo engine support
-func (c Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, error) {
+func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, error) {
 	var resultResponse struct {
 		Results    []map[string]interface{}
 		TotalCount uint64
@@ -446,7 +446,7 @@ func (b ResultsPredicatesBase) String() string {
 	return fmt.Sprintf("[%v] %v set severity %v, state %v, comment %v", b.CreatedAt, b.CreatedBy, b.Severity, b.State, b.Comment)
 }
 
-func (c Cx1Client) GetCustomResultStates() ([]ResultState, error) {
+func (c *Cx1Client) GetCustomResultStates() ([]ResultState, error) {
 	states := []ResultState{}
 	response, err := c.sendRequest(http.MethodGet, "/custom-states", nil, nil)
 	if err != nil {
@@ -457,7 +457,7 @@ func (c Cx1Client) GetCustomResultStates() ([]ResultState, error) {
 	return states, err
 }
 
-func (c Cx1Client) CreateCustomResultState(state string) (ResultState, error) {
+func (c *Cx1Client) CreateCustomResultState(state string) (ResultState, error) {
 	var resultstate ResultState
 
 	var requestBody struct {
@@ -480,7 +480,7 @@ func (c Cx1Client) CreateCustomResultState(state string) (ResultState, error) {
 	return resultstate, err
 }
 
-func (c Cx1Client) DeleteCustomResultState(stateId uint64) error {
+func (c *Cx1Client) DeleteCustomResultState(stateId uint64) error {
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/custom-states/%d", stateId), nil, nil)
 	return err
 }
@@ -490,7 +490,7 @@ func (c ResultState) String() string {
 }
 
 // returns the full history of results changes for a specific project
-func (c Cx1Client) GetResultsChangeHistoryForProjectByID(projectID string) ([]ResultsChangeHistory, error) {
+func (c *Cx1Client) GetResultsChangeHistoryForProjectByID(projectID string) ([]ResultsChangeHistory, error) {
 	_, changes, err := c.GetAllResultsChangeHistoryFiltered(ResultsChangeFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Results},
 		History:    true,
@@ -502,7 +502,7 @@ func (c Cx1Client) GetResultsChangeHistoryForProjectByID(projectID string) ([]Re
 }
 
 // returns the full history of results changes for a specific scan
-func (c Cx1Client) GetResultsChangeHistoryForScanByID(scanID string) ([]ResultsChangeHistory, error) {
+func (c *Cx1Client) GetResultsChangeHistoryForScanByID(scanID string) ([]ResultsChangeHistory, error) {
 	_, changes, err := c.GetAllResultsChangeHistoryFiltered(ResultsChangeFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Results},
 		History:    true,
@@ -514,7 +514,7 @@ func (c Cx1Client) GetResultsChangeHistoryForScanByID(scanID string) ([]ResultsC
 }
 
 // returns the full history of results changes for a specific similarityID
-func (c Cx1Client) GetResultsChangeHistoryForSimilarityID(similarityID string) ([]ResultsChangeHistory, error) {
+func (c *Cx1Client) GetResultsChangeHistoryForSimilarityID(similarityID string) ([]ResultsChangeHistory, error) {
 	_, changes, err := c.GetAllResultsChangeHistoryFiltered(ResultsChangeFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Results},
 		History:    true,
@@ -526,7 +526,7 @@ func (c Cx1Client) GetResultsChangeHistoryForSimilarityID(similarityID string) (
 }
 
 // results bulk retrieval - Changelog
-func (c Cx1Client) GetResultsChangeHistoryFiltered(filter ResultsChangeFilter) (uint64, []ResultsChangeHistory, error) {
+func (c *Cx1Client) GetResultsChangeHistoryFiltered(filter ResultsChangeFilter) (uint64, []ResultsChangeHistory, error) {
 	params, _ := query.Values(filter)
 
 	var response struct {
@@ -564,7 +564,7 @@ func (c Cx1Client) GetResultsChangeHistoryFiltered(filter ResultsChangeFilter) (
 }
 
 // gets all of the results changes available matching a filter
-func (c Cx1Client) GetAllResultsChangeHistoryFiltered(filter ResultsChangeFilter) (uint64, []ResultsChangeHistory, error) {
+func (c *Cx1Client) GetAllResultsChangeHistoryFiltered(filter ResultsChangeFilter) (uint64, []ResultsChangeHistory, error) {
 	var results []ResultsChangeHistory
 
 	count, rs, err := c.GetResultsChangeHistoryFiltered(filter)
@@ -581,7 +581,7 @@ func (c Cx1Client) GetAllResultsChangeHistoryFiltered(filter ResultsChangeFilter
 
 // will return at least X resultschanges matching the filter
 // May return more due to paging eg: requesting 101 with a 100-item page can return 200 results
-func (c Cx1Client) GetXResultsChangeHistoryFiltered(filter ResultsChangeFilter, desiredcount uint64) (uint64, []ResultsChangeHistory, error) {
+func (c *Cx1Client) GetXResultsChangeHistoryFiltered(filter ResultsChangeFilter, desiredcount uint64) (uint64, []ResultsChangeHistory, error) {
 	var results []ResultsChangeHistory
 
 	_, rs, err := c.GetResultsChangeHistoryFiltered(filter)

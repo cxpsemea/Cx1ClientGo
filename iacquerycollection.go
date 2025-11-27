@@ -8,7 +8,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func (c Cx1Client) GetIACQueryCollection() (IACQueryCollection, error) {
+func (c *Cx1Client) GetIACQueryCollection() (IACQueryCollection, error) {
 	qc, err := c.GetIACPresetQueries()
 	if err != nil {
 		return qc, err

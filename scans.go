@@ -34,7 +34,7 @@ var ScanStatus = struct {
 }
 
 // Get the details of a scan by scan ID
-func (c Cx1Client) GetScanByID(scanID string) (Scan, error) {
+func (c *Cx1Client) GetScanByID(scanID string) (Scan, error) {
 	var scan Scan
 
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/scans/%v", scanID), nil, nil)
@@ -48,7 +48,7 @@ func (c Cx1Client) GetScanByID(scanID string) (Scan, error) {
 }
 
 // Delete a scan by ID
-func (c Cx1Client) DeleteScanByID(scanID string) error {
+func (c *Cx1Client) DeleteScanByID(scanID string) error {
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/scans/%v", scanID), nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to delete scan with ID %v: %s", scanID, err)
@@ -58,7 +58,7 @@ func (c Cx1Client) DeleteScanByID(scanID string) error {
 }
 
 // Cancel a scan by ID
-func (c Cx1Client) CancelScanByID(scanID string) error {
+func (c *Cx1Client) CancelScanByID(scanID string) error {
 	var body struct {
 		Status string `json:"status"`
 	}
@@ -76,7 +76,7 @@ func (c Cx1Client) CancelScanByID(scanID string) error {
 }
 
 // Return a list of all scans
-func (c Cx1Client) GetAllScans() ([]Scan, error) {
+func (c *Cx1Client) GetAllScans() ([]Scan, error) {
 	_, scans, err := c.GetAllScansFiltered(ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
 	})
@@ -84,7 +84,7 @@ func (c Cx1Client) GetAllScans() ([]Scan, error) {
 }
 
 // Return a list of all scans for a specific project by ID, filtered by branch
-func (c Cx1Client) GetScansByProjectIDAndBranch(projectID string, branch string) ([]Scan, error) {
+func (c *Cx1Client) GetScansByProjectIDAndBranch(projectID string, branch string) ([]Scan, error) {
 	filter := ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
 		ProjectID:  projectID,
@@ -97,7 +97,7 @@ func (c Cx1Client) GetScansByProjectIDAndBranch(projectID string, branch string)
 // Return the last scan filtered by status
 // Statuses are: Completed, Failed, Canceled, Partial, Queued, Running
 // Status also available in the ScanStatus enum
-func (c Cx1Client) GetLastScansByStatus(status []string) ([]Scan, error) {
+func (c *Cx1Client) GetLastScansByStatus(status []string) ([]Scan, error) {
 	filter := ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
 		Statuses:   status,
@@ -108,7 +108,7 @@ func (c Cx1Client) GetLastScansByStatus(status []string) ([]Scan, error) {
 }
 
 // Get a list of all scans filtered by status
-func (c Cx1Client) GetScansByStatus(status []string) ([]Scan, error) {
+func (c *Cx1Client) GetScansByStatus(status []string) ([]Scan, error) {
 	filter := ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
 		Statuses:   status,
@@ -118,7 +118,7 @@ func (c Cx1Client) GetScansByStatus(status []string) ([]Scan, error) {
 }
 
 // Get the most recent scan for a specific project
-func (c Cx1Client) GetLastScanByID(projectID string) (Scan, error) {
+func (c *Cx1Client) GetLastScanByID(projectID string) (Scan, error) {
 	_, scans, err := c.GetScansFiltered(ScanFilter{
 		BaseFilter: BaseFilter{Limit: 1},
 		ProjectID:  projectID,
@@ -131,7 +131,7 @@ func (c Cx1Client) GetLastScanByID(projectID string) (Scan, error) {
 }
 
 // Return a list of the most recent scans for a specific project
-func (c Cx1Client) GetLastScansByID(projectID string, limit uint64) ([]Scan, error) {
+func (c *Cx1Client) GetLastScansByID(projectID string, limit uint64) ([]Scan, error) {
 	_, scans, err := c.GetXScansFiltered(ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
 		ProjectID:  projectID,
@@ -141,7 +141,7 @@ func (c Cx1Client) GetLastScansByID(projectID string, limit uint64) ([]Scan, err
 }
 
 // function will be deprecated, use Get*ScansFiltered
-func (c Cx1Client) GetLastScansByIDFiltered(projectID string, filter ScanFilter) ([]Scan, error) {
+func (c *Cx1Client) GetLastScansByIDFiltered(projectID string, filter ScanFilter) ([]Scan, error) {
 	if filter.Limit == 0 {
 		filter.Limit = c.pagination.Scans
 	}
@@ -153,7 +153,7 @@ func (c Cx1Client) GetLastScansByIDFiltered(projectID string, filter ScanFilter)
 }
 
 // Returns a list of scans for a specific project, filtered by status, returning up to limit items
-func (c Cx1Client) GetLastScansByStatusAndID(projectID string, limit uint64, status []string) ([]Scan, error) {
+func (c *Cx1Client) GetLastScansByStatusAndID(projectID string, limit uint64, status []string) ([]Scan, error) {
 	_, scans, err := c.GetXScansFiltered(ScanFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.Scans},
 		ProjectID:  projectID,
@@ -164,14 +164,14 @@ func (c Cx1Client) GetLastScansByStatusAndID(projectID string, limit uint64, sta
 }
 
 // Returns a list of all scans matching the supplied filter, ordered most-recent first
-func (c Cx1Client) GetLastScansFiltered(filter ScanFilter) ([]Scan, error) {
+func (c *Cx1Client) GetLastScansFiltered(filter ScanFilter) ([]Scan, error) {
 	filter.Sort = append(filter.Sort, ScanSortCreatedDescending)
 	_, scans, err := c.GetAllScansFiltered(filter)
 	return scans, err
 }
 
 // This function returns the last scans matching the filter and also having a scan by a specific engine
-func (c Cx1Client) GetLastScansByEngineFiltered(engine string, limit uint64, filter ScanFilter) ([]Scan, error) {
+func (c *Cx1Client) GetLastScansByEngineFiltered(engine string, limit uint64, filter ScanFilter) ([]Scan, error) {
 	var scans []Scan
 
 	count, ss, err := c.GetScansFiltered(filter)
@@ -203,7 +203,7 @@ func filterScansByEngine(scans []Scan, engine string) []Scan {
 
 // returns the number of scans matching the filter and an array of those scans
 // returns one page of data (from filter.Offset to filter.Offset+filter.Limit)
-func (c Cx1Client) GetScansFiltered(filter ScanFilter) (uint64, []Scan, error) {
+func (c *Cx1Client) GetScansFiltered(filter ScanFilter) (uint64, []Scan, error) {
 	params, _ := query.Values(filter)
 
 	var scanResponse struct {
@@ -223,7 +223,7 @@ func (c Cx1Client) GetScansFiltered(filter ScanFilter) (uint64, []Scan, error) {
 }
 
 // Return all scans matching a filter
-func (c Cx1Client) GetAllScansFiltered(filter ScanFilter) (uint64, []Scan, error) {
+func (c *Cx1Client) GetAllScansFiltered(filter ScanFilter) (uint64, []Scan, error) {
 	var scans []Scan
 
 	count, ss, err := c.GetScansFiltered(filter)
@@ -239,7 +239,7 @@ func (c Cx1Client) GetAllScansFiltered(filter ScanFilter) (uint64, []Scan, error
 }
 
 // Return x scans matching a filter
-func (c Cx1Client) GetXScansFiltered(filter ScanFilter, count uint64) (uint64, []Scan, error) {
+func (c *Cx1Client) GetXScansFiltered(filter ScanFilter, count uint64) (uint64, []Scan, error) {
 	var scans []Scan
 
 	_, ss, err := c.GetScansFiltered(filter)
@@ -286,14 +286,14 @@ func (s ScanSummary) String() string {
 }
 
 // returns the number of scans in the system
-func (c Cx1Client) GetScanCount() (uint64, error) {
+func (c *Cx1Client) GetScanCount() (uint64, error) {
 	c.logger.Debugf("Get scan count")
 	count, _, err := c.GetScansFiltered(ScanFilter{BaseFilter: BaseFilter{Limit: 1}})
 	return count, err
 }
 
 // returns the number of scans in the system matching a filter
-func (c Cx1Client) GetScanCountFiltered(filter ScanFilter) (uint64, error) {
+func (c *Cx1Client) GetScanCountFiltered(filter ScanFilter) (uint64, error) {
 	filter.Limit = 1
 	params, _ := query.Values(filter)
 	c.logger.Debugf("Get scan count matching filter: %v", params.Encode())
@@ -302,7 +302,7 @@ func (c Cx1Client) GetScanCountFiltered(filter ScanFilter) (uint64, error) {
 }
 
 // returns the metadata for a scan
-func (c Cx1Client) GetScanMetadataByID(scanID string) (ScanMetadata, error) {
+func (c *Cx1Client) GetScanMetadataByID(scanID string) (ScanMetadata, error) {
 	var scanmeta ScanMetadata
 
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/sast-metadata/%v", scanID), nil, http.Header{})
@@ -316,7 +316,7 @@ func (c Cx1Client) GetScanMetadataByID(scanID string) (ScanMetadata, error) {
 }
 
 // returns the metrics for a scan
-func (c Cx1Client) GetScanMetricsByID(scanID string) (ScanMetrics, error) {
+func (c *Cx1Client) GetScanMetricsByID(scanID string) (ScanMetrics, error) {
 	c.logger.Debugf("Getting scan metrics for scan %v", scanID)
 
 	var metrics ScanMetrics
@@ -333,7 +333,7 @@ func (c Cx1Client) GetScanMetricsByID(scanID string) (ScanMetrics, error) {
 
 // return the configuration settings for a scan in a specific project
 // this will list configurations like presets, incremental scan settings etc
-func (c Cx1Client) GetScanConfigurationByID(projectID, scanID string) ([]ConfigurationSetting, error) {
+func (c *Cx1Client) GetScanConfigurationByID(projectID, scanID string) ([]ConfigurationSetting, error) {
 	c.logger.Debugf("Getting scan configuration for project %v, scan %v", projectID, scanID)
 	var scanConfigurations []ConfigurationSetting
 	params := url.Values{
@@ -354,7 +354,7 @@ func (c Cx1Client) GetScanConfigurationByID(projectID, scanID string) ([]Configu
 // returns the SAST Aggregate Summaries for a specific scan
 // by default this function will group the results by Language
 // Use GetAllScanSASTAggregateSummaryFiltered with a custom filter for different groupings and filters
-func (c Cx1Client) GetScanSASTAggregateSummaryByID(scanId string) ([]SASTAggregateSummary, error) {
+func (c *Cx1Client) GetScanSASTAggregateSummaryByID(scanId string) ([]SASTAggregateSummary, error) {
 	_, summary, err := c.GetScanSASTAggregateSummaryFiltered(SASTAggregateSummaryFilter{
 		BaseFilter: BaseFilter{Limit: c.pagination.SASTAggregate},
 		ScanID:     scanId,
@@ -365,7 +365,7 @@ func (c Cx1Client) GetScanSASTAggregateSummaryByID(scanId string) ([]SASTAggrega
 
 // returns one page of summaries, from filter.Offset to filter.Offset+filter.Limit
 // At least that's how it should work, but it seems to ignore paging and just return everything regardless?
-func (c Cx1Client) GetScanSASTAggregateSummaryFiltered(filter SASTAggregateSummaryFilter) (uint64, []SASTAggregateSummary, error) {
+func (c *Cx1Client) GetScanSASTAggregateSummaryFiltered(filter SASTAggregateSummaryFilter) (uint64, []SASTAggregateSummary, error) {
 	params, _ := query.Values(filter)
 	var SASTAggregateResponse struct {
 		BaseFilteredResponse
@@ -384,7 +384,7 @@ func (c Cx1Client) GetScanSASTAggregateSummaryFiltered(filter SASTAggregateSumma
 
 /* This endpoint does not actually seem to use paging
 // returns all summaries, using paging
-func (c Cx1Client) GetAllScanSASTAggregateSummaryFiltered(filter SASTAggregateSummaryFilter) (uint64, []SASTAggregateSummary, error) {
+func (c *Cx1Client) GetAllScanSASTAggregateSummaryFiltered(filter SASTAggregateSummaryFilter) (uint64, []SASTAggregateSummary, error) {
 	count, ss, err := c.GetScanSASTAggregateSummaryFiltered(filter)
 	summary := ss
 	totalcount := count
@@ -399,7 +399,7 @@ func (c Cx1Client) GetAllScanSASTAggregateSummaryFiltered(filter SASTAggregateSu
 }
 
 // returns at least desiredcount summaries, using paging
-func (c Cx1Client) GetXScanSASTAggregateSummaryFiltered(filter SASTAggregateSummaryFilter, desiredcount uint64) (uint64, []SASTAggregateSummary, error) {
+func (c *Cx1Client) GetXScanSASTAggregateSummaryFiltered(filter SASTAggregateSummaryFilter, desiredcount uint64) (uint64, []SASTAggregateSummary, error) {
 	count, ss, err := c.GetScanSASTAggregateSummaryFiltered(filter)
 	summary := ss
 	totalcount := count
@@ -415,7 +415,7 @@ func (c Cx1Client) GetXScanSASTAggregateSummaryFiltered(filter SASTAggregateSumm
 */
 
 // Returns a summary (count) of all scans in the tenant
-func (c Cx1Client) GetScansSummary() (ScanStatusSummary, error) {
+func (c *Cx1Client) GetScansSummary() (ScanStatusSummary, error) {
 	var summaryResponse struct {
 		Status ScanStatusSummary
 	}
@@ -430,7 +430,7 @@ func (c Cx1Client) GetScansSummary() (ScanStatusSummary, error) {
 }
 
 // Returns the summary for a scan's results, by scan id
-func (c Cx1Client) GetScanSummaryByID(scanID string) (ScanSummary, error) {
+func (c *Cx1Client) GetScanSummaryByID(scanID string) (ScanSummary, error) {
 	summaries, err := c.GetScanSummariesByID([]string{scanID})
 	if err != nil {
 		return ScanSummary{}, err
@@ -442,7 +442,7 @@ func (c Cx1Client) GetScanSummaryByID(scanID string) (ScanSummary, error) {
 }
 
 // Returns the summary for multiple scans' results, by scan id
-func (c Cx1Client) GetScanSummariesByID(scanIDs []string) ([]ScanSummary, error) {
+func (c *Cx1Client) GetScanSummariesByID(scanIDs []string) ([]ScanSummary, error) {
 	scanIdsString := strings.Join(scanIDs, ",")
 	return c.GetScanSummariesFiltered(ScanSummaryFilter{
 		ScanIDs:    scanIdsString,
@@ -452,7 +452,7 @@ func (c Cx1Client) GetScanSummariesByID(scanIDs []string) ([]ScanSummary, error)
 }
 
 // Return a list of scan summaries for scans matching the filter
-func (c Cx1Client) GetScanSummariesFiltered(filter ScanSummaryFilter) ([]ScanSummary, error) {
+func (c *Cx1Client) GetScanSummariesFiltered(filter ScanSummaryFilter) ([]ScanSummary, error) {
 	var ScansSummaries struct {
 		BaseFilteredResponse
 		ScanSum []ScanSummary `json:"scansSummaries"`
@@ -484,7 +484,7 @@ func (c Cx1Client) GetScanSummariesFiltered(filter ScanSummaryFilter) ([]ScanSum
 }
 
 // retieves the logs from a scan by ID, currently engine must be "sast"
-func (c Cx1Client) GetScanLogsByID(scanID, engine string) ([]byte, error) {
+func (c *Cx1Client) GetScanLogsByID(scanID, engine string) ([]byte, error) {
 	c.logger.Debugf("Fetching scan logs for scan %v", scanID)
 
 	response, err := c.sendRequestRawCx1(http.MethodGet, fmt.Sprintf("/logs/%v/%v", scanID, engine), nil, nil)
@@ -511,7 +511,7 @@ func (c Cx1Client) GetScanLogsByID(scanID, engine string) ([]byte, error) {
 
 // retrieves the source code used to run a scan.
 // the source code is in a zip archive
-func (c Cx1Client) GetScanSourcesByID(scanID string) ([]byte, error) {
+func (c *Cx1Client) GetScanSourcesByID(scanID string) ([]byte, error) {
 	c.logger.Debugf("Fetching scan sources for scan %v", scanID)
 
 	//c.logger.Tracef("Retrieved url: %v", enginelogURL)
@@ -526,7 +526,7 @@ func (c Cx1Client) GetScanSourcesByID(scanID string) ([]byte, error) {
 
 // returns the workflow for a scan by ID
 // this shows the steps in the scan flow from when the scan was uploaded until it was complete
-func (c Cx1Client) GetScanWorkflowByID(scanID string) ([]WorkflowLog, error) {
+func (c *Cx1Client) GetScanWorkflowByID(scanID string) ([]WorkflowLog, error) {
 	var workflow []WorkflowLog
 
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/scans/%v/workflow", scanID), nil, http.Header{})
@@ -540,7 +540,7 @@ func (c Cx1Client) GetScanWorkflowByID(scanID string) ([]WorkflowLog, error) {
 }
 
 // scanProject is an internal helper function to send a POST request to the `/scans` endpoint to initiate a scan.
-func (c Cx1Client) scanProject(scanConfig map[string]interface{}) (Scan, error) {
+func (c *Cx1Client) scanProject(scanConfig map[string]interface{}) (Scan, error) {
 	scan := Scan{}
 
 	jsonBody, err := json.Marshal(scanConfig)
@@ -558,7 +558,7 @@ func (c Cx1Client) scanProject(scanConfig map[string]interface{}) (Scan, error) 
 }
 
 // Run a scan from a zip file. You can use a ScanConfigurationSet to generate the settings.
-func (c Cx1Client) ScanProjectZipByID(projectID, sourceUrl, branch string, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
+func (c *Cx1Client) ScanProjectZipByID(projectID, sourceUrl, branch string, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
 	jsonBody := map[string]interface{}{
 		"project": map[string]interface{}{"id": projectID},
 		"type":    "upload",
@@ -578,7 +578,7 @@ func (c Cx1Client) ScanProjectZipByID(projectID, sourceUrl, branch string, setti
 }
 
 // Run a scan from a git repo. You can use a ScanConfigurationSet to generate the settings.
-func (c Cx1Client) ScanProjectGitByID(projectID, repoUrl, branch string, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
+func (c *Cx1Client) ScanProjectGitByID(projectID, repoUrl, branch string, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
 	jsonBody := map[string]interface{}{
 		"project": map[string]interface{}{"id": projectID},
 		"type":    "git",
@@ -598,7 +598,7 @@ func (c Cx1Client) ScanProjectGitByID(projectID, repoUrl, branch string, setting
 }
 
 // Run a scan from a git repo with commit/credentials included. You can use a ScanConfigurationSet to generate the settings.
-func (c Cx1Client) ScanProjectGitByIDWithHandler(projectID string, handler ScanHandler, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
+func (c *Cx1Client) ScanProjectGitByIDWithHandler(projectID string, handler ScanHandler, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
 	jsonBody := map[string]interface{}{
 		"project": map[string]interface{}{"id": projectID},
 		"type":    "git",
@@ -616,7 +616,7 @@ func (c Cx1Client) ScanProjectGitByIDWithHandler(projectID string, handler ScanH
 
 // After uploading an SBOM to cx1 via UploadBytes, supply the URL here.
 // filetype can be json or xml, using SBOM exported via RequestNewExportByID (format: CycloneDxjson, CycloneDxxml, Spdxjson)
-func (c Cx1Client) ScanProjectSBOMByID(projectID, sourceUrl, branch, fileType string, tags map[string]string) (Scan, error) {
+func (c *Cx1Client) ScanProjectSBOMByID(projectID, sourceUrl, branch, fileType string, tags map[string]string) (Scan, error) {
 	jsonBody := map[string]interface{}{
 		"project": map[string]interface{}{"id": projectID},
 		"type":    "upload",
@@ -646,7 +646,7 @@ func (c Cx1Client) ScanProjectSBOMByID(projectID, sourceUrl, branch, fileType st
 }
 
 // convenience function wrapping ScanProjectZipByID and ScanProjectGitByID
-func (c Cx1Client) ScanProjectByID(projectID, sourceUrl, branch, scanType string, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
+func (c *Cx1Client) ScanProjectByID(projectID, sourceUrl, branch, scanType string, settings []ScanConfiguration, tags map[string]string) (Scan, error) {
 	if scanType == "upload" {
 		return c.ScanProjectZipByID(projectID, sourceUrl, branch, settings, tags)
 	} else if scanType == "git" {
@@ -671,19 +671,19 @@ func (s *Scan) IsIncremental() (bool, error) {
 
 // Poll a running scan periodically until the scan finishes or fails, or the default timeout is reached.
 // The default timeout can be accessed via Get/SetClientVars
-func (c Cx1Client) ScanPolling(s *Scan) (Scan, error) {
+func (c *Cx1Client) ScanPolling(s *Scan) (Scan, error) {
 	return c.ScanPollingWithTimeout(s, false, c.consts.ScanPollingDelaySeconds, c.consts.ScanPollingMaxSeconds)
 }
 
 // Poll a running scan periodically until the scan finishes or fails, or the default timeout is reached.
 // Prints the scan status to the log. The default timeout can be accessed via Get/SetClientVars
-func (c Cx1Client) ScanPollingDetailed(s *Scan) (Scan, error) {
+func (c *Cx1Client) ScanPollingDetailed(s *Scan) (Scan, error) {
 	return c.ScanPollingWithTimeout(s, true, c.consts.ScanPollingDelaySeconds, c.consts.ScanPollingMaxSeconds)
 }
 
 // Poll a running scan periodically until the scan finishes or fails, or the specified timeout is reached.
 // The detailed boolean enables log output with the scan status.
-func (c Cx1Client) ScanPollingWithTimeout(s *Scan, detailed bool, delaySeconds, maxSeconds int) (Scan, error) {
+func (c *Cx1Client) ScanPollingWithTimeout(s *Scan, detailed bool, delaySeconds, maxSeconds int) (Scan, error) {
 	c.logger.Infof("Polling status of scan %v", s.ScanID)
 	shortId := ShortenGUID(s.ScanID)
 
@@ -725,7 +725,7 @@ func (c Cx1Client) ScanPollingWithTimeout(s *Scan, detailed bool, delaySeconds, 
 
 // Retrieve a URL to which data can be uploaded.
 // This is required when uploading a zip file for a scan and when uploading SAST exports for import.
-func (c Cx1Client) GetUploadURL() (string, error) {
+func (c *Cx1Client) GetUploadURL() (string, error) {
 	c.logger.Debugf("Get Cx1 Upload URL")
 	response, err := c.sendRequest(http.MethodPost, "/uploads", nil, nil)
 
@@ -748,7 +748,7 @@ func (c Cx1Client) GetUploadURL() (string, error) {
 
 // Upload a file to an UploadURL retrieved from GetUploadURL.
 // Returns the response body as a string, typically a URL
-func (c Cx1Client) PutFile(URL string, filename string) (string, error) {
+func (c *Cx1Client) PutFile(URL string, filename string) (string, error) {
 	res, err := c.PutFileRaw(URL, filename)
 	if err != nil {
 		c.logger.Tracef("Error: %s", err)
@@ -769,7 +769,7 @@ func (c Cx1Client) PutFile(URL string, filename string) (string, error) {
 // Upload a file to an UploadURL retrieved from GetUploadURL.
 // Returns the actual http.Response if needed, for normal Zip scan & SAST Export/Import workflows
 // it is simpler to use the regular PutFile
-func (c Cx1Client) PutFileRaw(URL string, filename string) (*http.Response, error) {
+func (c *Cx1Client) PutFileRaw(URL string, filename string) (*http.Response, error) {
 	c.logger.Tracef("Putting file %v to %v", filename, URL)
 
 	fileContents, err := os.ReadFile(filename)
@@ -792,13 +792,13 @@ func (c Cx1Client) PutFileRaw(URL string, filename string) (*http.Response, erro
 
 // this function exists only for compatibility with a generic interface supporting both SAST and Cx1
 // wraps UploadBytes which should be used instead
-func (c Cx1Client) UploadBytesForProjectByID(projectID string, fileContents *[]byte) (string, error) {
+func (c *Cx1Client) UploadBytesForProjectByID(projectID string, fileContents *[]byte) (string, error) {
 	return c.UploadBytes(fileContents)
 }
 
 // Simplifies uploading a zip file for use when starting a scan
 // creates upload URL, uploads, returns upload URL
-func (c Cx1Client) UploadBytes(fileContents *[]byte) (string, error) {
+func (c *Cx1Client) UploadBytes(fileContents *[]byte) (string, error) {
 	uploadUrl, err := c.GetUploadURL()
 	if err != nil {
 		return "", err

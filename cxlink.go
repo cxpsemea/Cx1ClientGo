@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
-func (c Cx1Client) GetCxLinks(count uint64) ([]CxLink, error) {
+func (c *Cx1Client) GetCxLinks(count uint64) ([]CxLink, error) {
 	_, links, err := c.GetXCxLinksFiltered(
 		CxLinkFilter{
 			BaseFilter: BaseFilter{
@@ -23,7 +23,7 @@ func (c Cx1Client) GetCxLinks(count uint64) ([]CxLink, error) {
 	return links, err
 }
 
-func (c Cx1Client) GetAllCxLinks() ([]CxLink, error) {
+func (c *Cx1Client) GetAllCxLinks() ([]CxLink, error) {
 	_, links, err := c.GetAllCxLinksFiltered(
 		CxLinkFilter{
 			BaseFilter: BaseFilter{
@@ -36,7 +36,7 @@ func (c Cx1Client) GetAllCxLinks() ([]CxLink, error) {
 	return links, err
 }
 
-func (c Cx1Client) CreateCxLink(name, description, privateUrl string) (newLink CxLinkResponse, err error) {
+func (c *Cx1Client) CreateCxLink(name, description, privateUrl string) (newLink CxLinkResponse, err error) {
 	params, _ := json.Marshal(map[string]string{
 		"name":        name,
 		"privateUrl":  privateUrl,
@@ -52,15 +52,15 @@ func (c Cx1Client) CreateCxLink(name, description, privateUrl string) (newLink C
 	return
 }
 
-func (c Cx1Client) DeleteCxLink(link CxLink) error {
+func (c *Cx1Client) DeleteCxLink(link CxLink) error {
 	return c.DeleteCxLinkByID(link.LinkID)
 }
-func (c Cx1Client) DeleteCxLinkByID(linkId string) error {
+func (c *Cx1Client) DeleteCxLinkByID(linkId string) error {
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/v1/link/links/%v", linkId), nil, nil)
 	return err
 }
 
-func (c Cx1Client) UpdateCxLink(link CxLink) error {
+func (c *Cx1Client) UpdateCxLink(link CxLink) error {
 	params, _ := json.Marshal(map[string]string{
 		"name":        link.Name,
 		"description": link.Description,
@@ -77,7 +77,7 @@ func (newlink CxLinkResponse) DockerCommand() string {
 // Underlying function used by many GetCxLink* calls
 // Returns the total number of matching results plus an array of cxlinks with
 // one page of results (from filter.Offset to filter.Offset+filter.Limit)
-func (c Cx1Client) GetCxLinksFiltered(filter CxLinkFilter) (uint64, []CxLink, error) {
+func (c *Cx1Client) GetCxLinksFiltered(filter CxLinkFilter) (uint64, []CxLink, error) {
 	params, _ := query.Values(filter)
 
 	var CxLinkResponse struct {
@@ -96,7 +96,7 @@ func (c Cx1Client) GetCxLinksFiltered(filter CxLinkFilter) (uint64, []CxLink, er
 }
 
 // Retrieves all cxlinks matching the filter
-func (c Cx1Client) GetAllCxLinksFiltered(filter CxLinkFilter) (uint64, []CxLink, error) {
+func (c *Cx1Client) GetAllCxLinksFiltered(filter CxLinkFilter) (uint64, []CxLink, error) {
 	var cxlinks []CxLink
 
 	count, err := c.GetCxLinkCountFiltered(filter)
@@ -108,7 +108,7 @@ func (c Cx1Client) GetAllCxLinksFiltered(filter CxLinkFilter) (uint64, []CxLink,
 }
 
 // Retrieves the top 'count' cxlinks matching the filter
-func (c Cx1Client) GetXCxLinksFiltered(filter CxLinkFilter, count uint64) (uint64, []CxLink, error) {
+func (c *Cx1Client) GetXCxLinksFiltered(filter CxLinkFilter, count uint64) (uint64, []CxLink, error) {
 	var cxlinks []CxLink
 
 	_, projs, err := c.GetCxLinksFiltered(filter)
@@ -127,7 +127,7 @@ func (c Cx1Client) GetXCxLinksFiltered(filter CxLinkFilter, count uint64) (uint6
 	return count, cxlinks, err
 }
 
-func (c Cx1Client) GetCxLinkCountFiltered(filter CxLinkFilter) (uint64, error) {
+func (c *Cx1Client) GetCxLinkCountFiltered(filter CxLinkFilter) (uint64, error) {
 	params, _ := query.Values(filter)
 	filter.Limit = 1
 	c.logger.Debugf("Get Cx1 CxLink count matching filter: %v", params.Encode())

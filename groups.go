@@ -16,7 +16,7 @@ func (g *Group) String() string {
 }
 
 // create a top-level group
-func (c Cx1Client) CreateGroup(groupname string) (Group, error) {
+func (c *Cx1Client) CreateGroup(groupname string) (Group, error) {
 	c.logger.Debugf("Create Group: %v ", groupname)
 	data := map[string]interface{}{
 		"name": groupname,
@@ -43,7 +43,7 @@ func (c Cx1Client) CreateGroup(groupname string) (Group, error) {
 	}
 }
 
-func (c Cx1Client) CreateChildGroup(parentGroup *Group, childGroupName string) (Group, error) {
+func (c *Cx1Client) CreateChildGroup(parentGroup *Group, childGroupName string) (Group, error) {
 	c.logger.Debugf("Create child Group: %v ", childGroupName)
 	var child_group Group
 	data := map[string]interface{}{
@@ -71,7 +71,7 @@ func (c Cx1Client) CreateChildGroup(parentGroup *Group, childGroupName string) (
 	return child_group, err
 }
 
-func (c Cx1Client) GetGroupsPIP() ([]Group, error) {
+func (c *Cx1Client) GetGroupsPIP() ([]Group, error) {
 	c.logger.Debugf("Get cx1 groups pip")
 	var groups []Group
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth", "/pip/groups", nil, nil)
@@ -83,7 +83,7 @@ func (c Cx1Client) GetGroupsPIP() ([]Group, error) {
 	return groups, err
 }
 
-func (c Cx1Client) GetGroupPIPByName(groupname string) (Group, error) {
+func (c *Cx1Client) GetGroupPIPByName(groupname string) (Group, error) {
 	c.logger.Debugf("Get Cx1 Group by name: %v", groupname)
 
 	groups, err := c.GetGroupsPIP()
@@ -101,7 +101,7 @@ func (c Cx1Client) GetGroupPIPByName(groupname string) (Group, error) {
 }
 
 // this returns all groups including all subgroups
-func (c Cx1Client) GetGroups() ([]Group, error) {
+func (c *Cx1Client) GetGroups() ([]Group, error) {
 	c.logger.Debugf("Get Cx1 Groups")
 	_, groups, err := c.GetAllGroupsFiltered(GroupFilter{
 		BriefRepresentation: boolPtr(false),
@@ -111,13 +111,13 @@ func (c Cx1Client) GetGroups() ([]Group, error) {
 	return groups, err
 }
 
-func (c Cx1Client) GetAllGroups() ([]Group, error) {
+func (c *Cx1Client) GetAllGroups() ([]Group, error) {
 	return c.GetGroups()
 }
 
 // will return the first group matching 'groupname'
 // the group is not "filled": the subgroups array will be empty (use FillGroup/GetGroupChildren)
-func (c Cx1Client) GetGroupByName(groupname string) (Group, error) {
+func (c *Cx1Client) GetGroupByName(groupname string) (Group, error) {
 	c.logger.Debugf("Get Cx1 Group by name: %v", groupname)
 	_, groups, err := c.GetAllGroupsFiltered(GroupFilter{
 		BriefRepresentation: boolPtr(false),
@@ -151,7 +151,7 @@ func (c Cx1Client) GetGroupByName(groupname string) (Group, error) {
 // this function returns all top-level groups matching the search string, or
 // if a sub-group matches the search, it will return the parent group and only the matching subgroups
 // the returned groups are not "filled": they will not include subgroups that do not match the search term
-func (c Cx1Client) GetGroupsByName(groupname string) ([]Group, error) {
+func (c *Cx1Client) GetGroupsByName(groupname string) ([]Group, error) {
 	c.logger.Debugf("Get Cx1 Groups by name: %v", groupname)
 	_, groups, err := c.GetAllGroupsFiltered(GroupFilter{
 		BriefRepresentation: boolPtr(false),
@@ -163,7 +163,7 @@ func (c Cx1Client) GetGroupsByName(groupname string) ([]Group, error) {
 	return groups, err
 }
 
-func (c Cx1Client) GetGroupCount(search string, topLevel bool) (uint64, error) {
+func (c *Cx1Client) GetGroupCount(search string, topLevel bool) (uint64, error) {
 	c.logger.Debugf("Get Cx1 Group count with search=%v, topLevel=%v", search, topLevel)
 
 	params := url.Values{}
@@ -190,7 +190,7 @@ func (c Cx1Client) GetGroupCount(search string, topLevel bool) (uint64, error) {
 
 // Underlying function used by many GetGroups* calls
 // Returns the number of applications matching the filter and the array of matching applications
-func (c Cx1Client) GetGroupsFiltered(filter GroupFilter, fill bool) ([]Group, error) {
+func (c *Cx1Client) GetGroupsFiltered(filter GroupFilter, fill bool) ([]Group, error) {
 	var groups []Group
 	params, _ := query.Values(filter)
 
@@ -215,7 +215,7 @@ func (c Cx1Client) GetGroupsFiltered(filter GroupFilter, fill bool) ([]Group, er
 
 // returns all groups matching the filter
 // fill parameter will recursively fill subgroups
-func (c Cx1Client) GetAllGroupsFiltered(filter GroupFilter, fill bool) (uint64, []Group, error) {
+func (c *Cx1Client) GetAllGroupsFiltered(filter GroupFilter, fill bool) (uint64, []Group, error) {
 	var groups []Group
 
 	count, err := c.GetGroupCount(filter.Search, true)
@@ -234,14 +234,14 @@ func (c Cx1Client) GetAllGroupsFiltered(filter GroupFilter, fill bool) (uint64, 
 	return count, groups, err
 }
 
-func (c Cx1Client) DeleteGroup(group *Group) error {
+func (c *Cx1Client) DeleteGroup(group *Group) error {
 	c.logger.Debugf("Deleting Group %v...", group.String())
 	_, err := c.sendRequestIAM(http.MethodDelete, "/auth/admin", fmt.Sprintf("/groups/%v", group.GroupID), nil, http.Header{})
 	return err
 }
 
 // this will return the specific group matching this ID
-func (c Cx1Client) GetGroupByID(groupID string) (Group, error) {
+func (c *Cx1Client) GetGroupByID(groupID string) (Group, error) {
 	c.logger.Debugf("Getting Group with ID %v...", groupID)
 	var group Group
 
@@ -271,7 +271,7 @@ func (c Cx1Client) GetGroupByID(groupID string) (Group, error) {
 // this function is for CxOne v3.20+
 // gets and fills the group's immediate children (subgroups)
 // does not include sub-children
-func (c Cx1Client) GetGroupChildren(group *Group) ([]Group, error) {
+func (c *Cx1Client) GetGroupChildren(group *Group) ([]Group, error) {
 	var groups []Group
 	if group.SubGroupCount == 0 && group.Filled { // add the .filled check as a double-check that the 0-subgroupcount is valid
 		return groups, nil
@@ -292,7 +292,7 @@ func (c Cx1Client) GetGroupChildren(group *Group) ([]Group, error) {
 }
 
 // fills the group's immediate children (subgroups) along with sub-children and all descendents
-func (c Cx1Client) FillGroup(group *Group) error {
+func (c *Cx1Client) FillGroup(group *Group) error {
 	if group.SubGroupCount != uint64(len(group.SubGroups)) {
 		if _, err := c.GetGroupChildren(group); err != nil {
 			return err
@@ -315,7 +315,7 @@ func (c Cx1Client) FillGroup(group *Group) error {
 
 // this function is for CxOne v3.20+
 // Used by GetGroupChildren
-func (c Cx1Client) GetGroupChildrenByID(groupID string, first, max uint64) ([]Group, error) {
+func (c *Cx1Client) GetGroupChildrenByID(groupID string, first, max uint64) ([]Group, error) {
 	var groups []Group
 	data, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/groups/%v/children?briefRepresentation=false&first=%d&max=%d", groupID, first, max), nil, http.Header{})
 	if err != nil {
@@ -331,7 +331,7 @@ func (c Cx1Client) GetGroupChildrenByID(groupID string, first, max uint64) ([]Gr
 // this includes the roles assigned directly to the group (group.RealmRoles & group.ClientRoles)
 // as well as the roles from up the group hierarchy
 // this function expects a group retrieved by a GetGroup* call, user-groups returned from a GetUser* call do not include role information.
-func (c Cx1Client) GetGroupInheritedRoles(group *Group) (roles []Role, err error) {
+func (c *Cx1Client) GetGroupInheritedRoles(group *Group) (roles []Role, err error) {
 	// get all roles for this group
 	// go up the group hierarchy
 	c.logger.Debugf("Get group inherited roles for group %v", group.String())
@@ -345,7 +345,7 @@ func (c Cx1Client) GetGroupInheritedRoles(group *Group) (roles []Role, err error
 	return roles, err
 }
 
-func (c Cx1Client) getGroupInheritedRoleStrings(group *Group) (realmRoleList []string, clientRoleList map[string][]string, err error) {
+func (c *Cx1Client) getGroupInheritedRoleStrings(group *Group) (realmRoleList []string, clientRoleList map[string][]string, err error) {
 	realmRoles := make(map[string]struct{})
 	clientRoles := make(map[string]map[string]struct{})
 
@@ -410,7 +410,7 @@ func (c Cx1Client) getGroupInheritedRoleStrings(group *Group) (realmRoleList []s
 // this function returns a group matching a path, however as of keycloak 23.0.7 this endpoint
 // is missing the subGroupCount field, which other parts of cx1clientgo rely on, so this function
 // will automatically trigger a GetGroupByID call
-func (c Cx1Client) GetGroupByPath(path string) (Group, error) {
+func (c *Cx1Client) GetGroupByPath(path string) (Group, error) {
 	c.logger.Debugf("Getting Group with path %v...", path)
 	var group Group
 
@@ -427,13 +427,13 @@ func (c Cx1Client) GetGroupByPath(path string) (Group, error) {
 	return c.GetGroupByID(group.GroupID)
 }
 
-func (c Cx1Client) GroupLink(g *Group) string {
+func (c *Cx1Client) GroupLink(g *Group) string {
 	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/groups/%v", c.iamUrl, c.tenant, c.tenant, g.GroupID)
 }
 
 // Sets group g as child of group parent
 // If parent == nil, sets the group as top-level
-func (c Cx1Client) SetGroupParent(g *Group, parent *Group) error {
+func (c *Cx1Client) SetGroupParent(g *Group, parent *Group) error {
 	body := map[string]string{
 		"id":   g.GroupID,
 		"name": g.Name,
@@ -456,7 +456,7 @@ func (c Cx1Client) SetGroupParent(g *Group, parent *Group) error {
 	return nil
 }
 
-func (c Cx1Client) UpdateGroup(g *Group) error {
+func (c *Cx1Client) UpdateGroup(g *Group) error {
 	if !g.Filled {
 		if check, _ := c.version.CheckCxOne("3.20.0"); check >= 0 {
 			return fmt.Errorf("group %v data is not filled (use GetGroupChildren) - may be missing expected roles & subgroups, update aborted", g.String())
@@ -525,7 +525,7 @@ func (g *Group) RemoveRole(clientName, roleName string) error {
 	return fmt.Errorf("group %v does not have the %v - %v role", g.String(), clientName, roleName)
 }
 
-func (c Cx1Client) groupRoleChange(g *Group) error {
+func (c *Cx1Client) groupRoleChange(g *Group) error {
 	orig_group, err := c.GetGroupByID(g.GroupID)
 	if err != nil {
 		return fmt.Errorf("failed to get original group info for group %v: %s", g.String(), err)
@@ -592,7 +592,7 @@ func (c Cx1Client) groupRoleChange(g *Group) error {
 /*
 clientRoles map looks like: "ast-app" : { "ast-scanner", "ast-viewer" }
 */
-func (c Cx1Client) DeleteRolesFromGroup(g *Group, clientRoles map[string][]string) error {
+func (c *Cx1Client) DeleteRolesFromGroup(g *Group, clientRoles map[string][]string) error {
 	type roleid struct {
 		ID   string `json:"id"`
 		Name string `json:"name"`
@@ -635,7 +635,7 @@ func (c Cx1Client) DeleteRolesFromGroup(g *Group, clientRoles map[string][]strin
 /*
 clientRoles map looks like: "ast-app" : { "ast-scanner", "ast-viewer" }
 */
-func (c Cx1Client) AddRolesToGroup(g *Group, clientRoles map[string][]string) error {
+func (c *Cx1Client) AddRolesToGroup(g *Group, clientRoles map[string][]string) error {
 	type roleid struct {
 		ID   string `json:"id"`
 		Name string `json:"name"`
@@ -675,18 +675,18 @@ func (c Cx1Client) AddRolesToGroup(g *Group, clientRoles map[string][]string) er
 	return nil
 }
 
-func (c Cx1Client) GetGroupMembers(group *Group) ([]User, error) {
+func (c *Cx1Client) GetGroupMembers(group *Group) ([]User, error) {
 	return c.GetGroupMembersByID(group.GroupID)
 }
 
-func (c Cx1Client) GetGroupMembersByID(groupId string) ([]User, error) {
+func (c *Cx1Client) GetGroupMembersByID(groupId string) ([]User, error) {
 	_, users, err := c.GetAllGroupMembersFiltered(groupId, GroupMembersFilter{
 		BaseIAMFilter: BaseIAMFilter{Max: c.pagination.GroupMembers},
 	})
 	return users, err
 }
 
-func (c Cx1Client) GetGroupMembersFiltered(groupId string, filter GroupMembersFilter) ([]User, error) {
+func (c *Cx1Client) GetGroupMembersFiltered(groupId string, filter GroupMembersFilter) ([]User, error) {
 	var members []User
 	params, _ := query.Values(filter)
 
@@ -702,7 +702,7 @@ func (c Cx1Client) GetGroupMembersFiltered(groupId string, filter GroupMembersFi
 	return members, err
 }
 
-func (c Cx1Client) GetAllGroupMembersFiltered(groupId string, filter GroupMembersFilter) (uint64, []User, error) {
+func (c *Cx1Client) GetAllGroupMembersFiltered(groupId string, filter GroupMembersFilter) (uint64, []User, error) {
 	var all_members []User
 
 	members, err := c.GetGroupMembersFiltered(groupId, filter)
@@ -723,7 +723,7 @@ func (c Cx1Client) GetAllGroupMembersFiltered(groupId string, filter GroupMember
 }
 
 // convenience
-func (c Cx1Client) GetOrCreateGroupByName(name string) (Group, error) {
+func (c *Cx1Client) GetOrCreateGroupByName(name string) (Group, error) {
 	group, err := c.GetGroupByName(name)
 	if err != nil {
 		group, err = c.CreateGroup(name)
