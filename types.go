@@ -608,6 +608,7 @@ type OIDCClient struct {
 	ClientSecretExpiry   uint64                 `json:"-"` // this is the actual time/date it will expire
 	SecretExpirationDays uint64                 `json:"-"` // this is the number of days after which a secret will expire
 	Creator              string                 `json:"-"`
+	NotificationEmails   []string               `json:"-"` // array of emails to be notified prior to secret expiry
 	OIDCClientRaw        map[string]interface{} `json:"-"`
 }
 
