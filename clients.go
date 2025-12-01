@@ -186,10 +186,19 @@ func (c *OIDCClient) ClientFromMap(data map[string]interface{}) error {
 		if c.OIDCClientRaw["attributes"].(map[string]interface{})["creator"] != nil {
 			c.Creator = c.OIDCClientRaw["attributes"].(map[string]interface{})["creator"].(string)
 		}
+		if c.OIDCClientRaw["attributes"].(map[string]interface{})["notificationEmail"] != nil {
+			emailStr := c.OIDCClientRaw["attributes"].(map[string]interface{})["notificationEmail"].(string)
+			var emails []string
+			err := json.Unmarshal([]byte(emailStr), &emails)
+			if err == nil {
+				c.NotificationEmails = emails
+			}
+		}
 	}
 	return nil
 }
 
+// used internally (before oidcclient.update) to update the internal json attributes map
 func (c *OIDCClient) clientToMap() {
 	if c.OIDCClientRaw["attributes"] != nil {
 		attributes := c.OIDCClientRaw["attributes"].(map[string]interface{})
@@ -208,15 +217,14 @@ func (c *OIDCClient) clientToMap() {
 				attributes["secretExpiration"] = c.SecretExpirationDays
 			}
 		}
-		/*
-			// it may be a bug to allow changing the creator
-			if attributes["creator"] != nil {
-				creator := attributes["creator"].(string)
-				if creator != c.Creator {
-					attributes["creator"] = c.Creator
-				}
+
+		if attributes["notificationEmail"] != nil {
+			bytes, err := json.Marshal(c.NotificationEmails)
+			if err == nil {
+				attributes["notificationEmail"] = string(bytes)
 			}
-		*/
+		}
+
 		c.OIDCClientRaw["attributes"] = attributes
 	}
 }
