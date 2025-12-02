@@ -11,7 +11,7 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
-func (g *Group) String() string {
+func (g Group) String() string {
 	return fmt.Sprintf("[%v] %v", ShortenGUID(g.GroupID), g.Name)
 }
 

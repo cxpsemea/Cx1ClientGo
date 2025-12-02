@@ -775,7 +775,7 @@ func (p Project) GetConfigurationByName(configKey string) *ConfigurationSetting 
 	return getConfigurationByKey(&p.Configuration, configKey)
 }
 
-func (p *Project) String() string {
+func (p Project) String() string {
 	return fmt.Sprintf("[%v] %v", ShortenGUID(p.ProjectID), p.Name)
 }
 

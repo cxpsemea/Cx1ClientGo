@@ -228,7 +228,7 @@ func (c *Cx1Client) GetApplicationCountFiltered(filter ApplicationFilter) (uint6
 	return count, err
 }
 
-func (a *Application) String() string {
+func (a Application) String() string {
 	return fmt.Sprintf("[%v] %v", ShortenGUID(a.ApplicationID), a.Name)
 }
 
@@ -461,6 +461,6 @@ func (ar *ApplicationRule) RemoveItem(item string) {
 	ar.Value = rulestr
 }
 
-func (ar *ApplicationRule) String() string {
+func (ar ApplicationRule) String() string {
 	return fmt.Sprintf("[%v] %v: %v", ShortenGUID(ar.ID), ar.Type, ar.Value)
 }
