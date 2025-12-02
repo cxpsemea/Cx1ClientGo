@@ -823,7 +823,7 @@ func (c *Cx1Client) UploadBytes(fileContents *[]byte) (string, error) {
 	return uploadUrl, nil
 }
 
-func (s *Scan) String() string {
+func (s Scan) String() string {
 	return fmt.Sprintf("[%v] %v", ShortenGUID(s.ScanID), s.ProjectName)
 }
 

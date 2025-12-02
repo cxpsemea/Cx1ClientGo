@@ -11,11 +11,11 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func (r *Role) String() string {
+func (r Role) String() string {
 	return fmt.Sprintf("[%v] %v", ShortenGUID(r.RoleID), r.Name)
 }
 
-func (r *Role) HasCategory(name string) bool {
+func (r Role) HasCategory(name string) bool {
 	for _, role := range r.Attributes.Category {
 		if role == name {
 			return true
@@ -24,7 +24,7 @@ func (r *Role) HasCategory(name string) bool {
 	return false
 }
 
-func (r *Role) HasRole(name string) bool {
+func (r Role) HasRole(name string) bool {
 	for _, r := range r.SubRoles {
 		if r.Name == name {
 			return true

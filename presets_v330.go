@@ -11,7 +11,7 @@ import (
 
 // Presets
 
-func (p *Preset_v330) String() string {
+func (p Preset_v330) String() string {
 	return fmt.Sprintf("[%d] %v", p.PresetID, p.Name)
 }
 

@@ -160,7 +160,7 @@ func NewClient(client *http.Client, logger Logger) (*Cx1Client, error) {
 	}
 }
 
-func (c *Cx1Client) String() string {
+func (c Cx1Client) String() string {
 	return fmt.Sprintf("%v on %v ", c.tenant, c.baseUrl)
 }
 
