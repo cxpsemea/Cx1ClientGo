@@ -235,7 +235,7 @@ func (c *Cx1Client) handleRetries(request *http.Request, response *http.Response
 
 	delay := c.retryDelay
 	attempt := 1
-	for attempt <= c.maxRetries && ((response != nil && response.StatusCode >= 500 && response.StatusCode < 600) || isRetryableError(err)) {
+	for err != nil && attempt <= c.maxRetries && ((response != nil && response.StatusCode >= 500 && response.StatusCode < 600) || isRetryableError(err)) {
 		if response != nil {
 			c.logger.Warnf("Response status %v: waiting %d seconds for retry attempt %d", response.Status, delay, attempt)
 		} else {
@@ -248,7 +248,7 @@ func (c *Cx1Client) handleRetries(request *http.Request, response *http.Response
 		if request.GetBody != nil {
 			body, err := request.GetBody()
 			if err != nil {
-				return response, fmt.Errorf("failed to get request body for retry: %w", err)
+				return response, fmt.Errorf("failed to get request body for retry: %v", err)
 			}
 			request.Body = body
 		}
