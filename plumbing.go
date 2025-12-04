@@ -277,6 +277,10 @@ func isRetryableError(err error) bool {
 		return true
 	}
 
+	if strings.Contains(err.Error(), "tls: user canceled") {
+		return true
+	}
+
 	return false
 }
 
