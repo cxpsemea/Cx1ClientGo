@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/go-querystring/query"
 	"golang.org/x/exp/slices"
 )
 
@@ -153,7 +154,7 @@ func (c *Cx1Client) DeleteAccessAssignmentByID(entityId, resourceId string) erro
 	return err
 }
 
-// IAM phase2?
+// IAM phase2 - these endpoints are not finalized so these functions should not yet be used in production
 func (c *Cx1Client) GetMyGroups(search string, subgroups bool, limit, offset uint64) ([]Group, error) {
 	params := url.Values{}
 	params.Add("search", search)
@@ -170,6 +171,7 @@ func (c *Cx1Client) GetMyGroups(search string, subgroups bool, limit, offset uin
 	return groups, err
 }
 
+// IAM phase2 - these endpoints are not finalized so these functions should not yet be used in production
 func (c *Cx1Client) GetAvailableGroups(search string, projectId string, limit, offset uint64) ([]Group, error) {
 	params := url.Values{}
 	params.Add("search", search)
@@ -190,33 +192,24 @@ func (c *Cx1Client) GetAvailableGroups(search string, projectId string, limit, o
 	return responseBody.Groups, err
 }
 
-// These functions will eventually replace the existing Keycloak-backed ones.
-
 // Get groups (from access-management)
-func (c *Cx1Client) GetAMGroups(search string, groupIds []string, limit, offset uint64) ([]Group, error) {
-	params := url.Values{}
-	params.Add("search", search)
-	params.Add("ids", strings.Join(groupIds, ","))
-	params.Add("limit", strconv.FormatUint(limit, 10))
-	params.Add("offset", strconv.FormatUint(offset, 10))
-
-	var groups []Group
-	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/available-groups?%v", params.Encode()), nil, nil)
+// IAM phase2 - these endpoints are not finalized so these functions should not yet be used in production
+func (c *Cx1Client) GetAMGroupsFiltered(filter GroupAMFilter) ([]Group, error) {
+	params, _ := query.Values(filter)
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/groups?%v", params.Encode()), nil, nil)
 	if err != nil {
-		return groups, err
+		return nil, err
 	}
 
+	var groups []Group
 	err = json.Unmarshal(response, &groups)
 	return groups, err
 }
 
 // Get users (from access-management)
-func (c *Cx1Client) GetAMUsers(search string, limit, offset uint64) ([]User, error) {
-	params := url.Values{}
-	params.Add("search", search)
-	params.Add("limit", strconv.FormatUint(limit, 10))
-	params.Add("offset", strconv.FormatUint(offset, 10))
-
+// IAM phase2 - these endpoints are not finalized so these functions should not yet be used in production
+func (c *Cx1Client) GetAMUsersFiltered(filter UserAMFilter) ([]User, error) {
+	params, _ := query.Values(filter)
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/users?%v", params.Encode()), nil, nil)
 	if err != nil {
 		return nil, err
@@ -228,13 +221,9 @@ func (c *Cx1Client) GetAMUsers(search string, limit, offset uint64) ([]User, err
 }
 
 // Get clients (from access-management)
-// IAM phase2?
-func (c *Cx1Client) GetAMClients(search string, limit, offset uint64) ([]OIDCClient, error) {
-	params := url.Values{}
-	params.Add("search", search)
-	params.Add("limit", strconv.FormatUint(limit, 10))
-	params.Add("offset", strconv.FormatUint(offset, 10))
-
+// IAM phase2 - these endpoints are not finalized so these functions should not yet be used in production
+func (c *Cx1Client) GetAMClientsFiltered(filter OIDCClientAMFilter) ([]OIDCClient, error) {
+	params, _ := query.Values(filter)
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/clients?%v", params.Encode()), nil, nil)
 	if err != nil {
 		return nil, err
@@ -246,16 +235,9 @@ func (c *Cx1Client) GetAMClients(search string, limit, offset uint64) ([]OIDCCli
 }
 
 // Get applications (from access-management)
-// IAM phase2?
-func (c *Cx1Client) GetAMApplications(action string, name string, tagsKeys []string, tagsValues []string, limit, offset uint64) ([]Application, error) {
-	params := url.Values{}
-	params.Add("action", action)
-	params.Add("name", name)
-	params.Add("tagsKeys", strings.Join(tagsKeys, ","))
-	params.Add("tagsValues", strings.Join(tagsValues, ","))
-	params.Add("limit", strconv.FormatUint(limit, 10))
-	params.Add("offset", strconv.FormatUint(offset, 10))
-
+// IAM phase2 - these endpoints are not finalized so these functions should not yet be used in production
+func (c *Cx1Client) GetAMApplicationsFiltered(filter ApplicationAMFilter) ([]Application, error) {
+	params, _ := query.Values(filter)
 	responseBody := struct {
 		Total         uint64        `json:"totalCount"`
 		FilteredTotal uint64        `json:"filteredTotalCount"`
@@ -272,16 +254,9 @@ func (c *Cx1Client) GetAMApplications(action string, name string, tagsKeys []str
 }
 
 // Get projects (from access-management)
-// IAM phase2?
-func (c *Cx1Client) GetAMProjects(action string, name string, tagsKeys []string, tagsValues []string, limit, offset uint64) ([]Project, error) {
-	params := url.Values{}
-	params.Add("action", action)
-	params.Add("name", name)
-	params.Add("tagsKeys", strings.Join(tagsKeys, ","))
-	params.Add("tagsValues", strings.Join(tagsValues, ","))
-	params.Add("limit", strconv.FormatUint(limit, 10))
-	params.Add("offset", strconv.FormatUint(offset, 10))
-
+// IAM phase2 - these endpoints are not finalized so these functions should not yet be used in production
+func (c *Cx1Client) GetAMProjectsFiltered(filter ProjectAMFilter) ([]Project, error) {
+	params, _ := query.Values(filter)
 	responseBody := struct {
 		Total         uint64    `json:"totalCount"`
 		FilteredTotal uint64    `json:"filteredTotalCount"`
@@ -295,6 +270,56 @@ func (c *Cx1Client) GetAMProjects(action string, name string, tagsKeys []string,
 
 	err = json.Unmarshal(response, &responseBody)
 	return responseBody.Projects, err
+}
+
+// Get Permissions (from access-management)
+// IAM phase2 - these endpoints are not finalized so these functions should not yet be used in production
+func (c *Cx1Client) GetAMPermissions() ([]Permission, error) {
+	responseBody := struct {
+		StaticPermissions []Permission `json:"staticPermissions"`
+		CustomPermissions []Permission `json:"customPermissions"`
+	}{}
+	response, err := c.sendRequest(http.MethodGet, "/access-management/permissions", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(response, &responseBody)
+	if err != nil {
+		return nil, err
+	}
+	for id := range responseBody.CustomPermissions {
+		responseBody.CustomPermissions[id].Custom = true
+	}
+
+	return append(responseBody.StaticPermissions, responseBody.CustomPermissions...), nil
+}
+
+func (p Permission) String() string {
+	custom := " (system)"
+	if p.Custom {
+		custom = " (custom)"
+	}
+	return fmt.Sprintf("[%v] %v%v", ShortenGUID(p.ID), p.Name, custom)
+}
+
+// Get Permissions (from access-management)
+// IAM phase2 - these endpoints are not finalized so these functions should not yet be used in production
+func (c *Cx1Client) GetAMRoles() ([]AMRole, error) {
+	roles := []AMRole{}
+	response, err := c.sendRequest(http.MethodGet, "/access-management/roles", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(response, &roles)
+	return roles, err
+}
+
+func (r AMRole) String() string {
+	custom := " (custom)"
+	if r.SystemRole {
+		custom = " (system)"
+	}
+	return fmt.Sprintf("[%v] %v%v", ShortenGUID(r.ID), r.Name, custom)
 }
 
 // Convenience functions
