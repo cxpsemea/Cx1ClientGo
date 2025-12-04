@@ -491,8 +491,8 @@ func (c *Cx1Client) GetProjectCountByName(name string) (uint64, error) {
 
 // Get the count of all projects matching the filter
 func (c *Cx1Client) GetProjectCountFiltered(filter ProjectFilter) (uint64, error) {
-	params, _ := query.Values(filter)
 	filter.Limit = 1
+	params, _ := query.Values(filter)
 	c.logger.Debugf("Get Cx1 Project count matching filter: %v", params.Encode())
 	count, _, err := c.GetProjectsFiltered(filter)
 	return count, err
