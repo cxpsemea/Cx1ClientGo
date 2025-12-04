@@ -236,7 +236,12 @@ func (c *Cx1Client) handleRetries(request *http.Request, response *http.Response
 	delay := c.retryDelay
 	attempt := 1
 	for attempt <= c.maxRetries && ((response != nil && response.StatusCode >= 500 && response.StatusCode < 600) || isRetryableError(err)) {
-		c.logger.Warnf("Response status %v: waiting %d seconds for retry attempt %d", response.Status, delay, attempt)
+		if response != nil {
+			c.logger.Warnf("Response status %v: waiting %d seconds for retry attempt %d", response.Status, delay, attempt)
+		} else {
+			c.logger.Warnf("Request failed with %v: waiting %d seconds for retry attempt %d", err, delay, attempt)
+		}
+
 		attempt++
 
 		// If there was a body, create a new reader for the retry from the buffered bytes.
