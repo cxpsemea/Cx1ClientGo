@@ -77,8 +77,8 @@ func (c *Cx1Client) GetXScanSchedulesFiltered(filter ProjectScanScheduleFilter, 
 }
 
 func (c *Cx1Client) GetScanScheduleCountFiltered(filter ProjectScanScheduleFilter) (uint64, error) {
-	params, _ := query.Values(filter)
 	filter.Limit = 1
+	params, _ := query.Values(filter)
 	c.logger.Debugf("Get Cx1 Project count matching filter: %v", params.Encode())
 	count, _, err := c.GetScanSchedulesFiltered(filter)
 	return count, err

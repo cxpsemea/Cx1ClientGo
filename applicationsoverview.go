@@ -70,8 +70,8 @@ func (c *Cx1Client) GetXApplicationOverviewsFiltered(filter ApplicationOverviewF
 }
 
 func (c *Cx1Client) GetApplicationOverviewCountFiltered(filter ApplicationOverviewFilter) (uint64, error) {
-	params, _ := query.Values(filter)
 	filter.Limit = 1
+	params, _ := query.Values(filter)
 	c.logger.Debugf("Get Cx1 Application count matching filter: %v", params.Encode())
 	count, _, err := c.GetApplicationOverviewsFiltered(filter)
 	return count, err

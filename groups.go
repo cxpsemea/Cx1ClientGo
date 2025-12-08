@@ -413,6 +413,9 @@ func (c *Cx1Client) getGroupInheritedRoleStrings(group *Group) (realmRoleList []
 func (c *Cx1Client) GetGroupByPath(path string) (Group, error) {
 	c.logger.Debugf("Getting Group with path %v...", path)
 	var group Group
+	if path[:1] == "/" {
+		path = path[1:]
+	}
 
 	data, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/group-by-path/%v", path), nil, http.Header{})
 	if err != nil {

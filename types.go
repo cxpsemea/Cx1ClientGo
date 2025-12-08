@@ -310,6 +310,14 @@ type ApplicationFilter struct {
 	TagsValues []string `url:"tags-values,omitempty"`
 }
 
+type ApplicationAMFilter struct {
+	BaseFilter
+	Action     string   `url:"action"`
+	Name       string   `url:"name"`
+	TagsKeys   []string `url:"tagsKeys"`
+	TagsValues []string `url:"tagsValues"`
+}
+
 type ApplicationRule struct {
 	ID    string `json:"id"`
 	Type  string `json:"type"`
@@ -551,6 +559,13 @@ type GroupFilter struct {
 	Top                 bool   `url:"-"`                // used only in GetGroupCount
 }
 
+type GroupAMFilter struct {
+	BaseFilter
+	Search              string   `url:"search"`
+	GroupIds            []string `url:"ids"`
+	BriefRepresentation *bool    `url:"briefRepresentation"`
+}
+
 type GroupMembersFilter struct {
 	BaseIAMFilter
 	BriefRepresentation bool `url:"briefRepresentation,omitempty"`
@@ -625,6 +640,21 @@ type OIDCClientFilter struct {
 	Q            string `url:"q,omitempty"`
 	Search       *bool  `url:"search,omitempty"`
 	ViewableOnly *bool  `url:"viewableOnly,omitempty"`
+}
+type OIDCClientAMFilter struct {
+	BaseFilter
+	Search string `json:"search"`
+}
+
+// Access Management phase2
+type Permission struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	ChildIDs    []string `json:"childIds"`
+	ParentIDs   []string `json:"parentIds"`
+	Category    string   `json:"category"`
+	Custom      bool     `json:"-"`
 }
 
 type Policy struct {
@@ -745,6 +775,14 @@ type ProjectFilter struct {
 	TagsValues []string `url:"tags-values,omitempty"`
 	EmptyTags  *bool    `url:"empty-tags,omitempty"`
 	RepoURL    string   `url:"repo-url,omitempty"`
+}
+
+type ProjectAMFilter struct {
+	BaseFilter
+	Action     string   `url:"action"`
+	Name       string   `url:"name"`
+	TagsKeys   []string `url:"tagsKeys"`
+	TagsValues []string `url:"tagsValues"`
 }
 
 type ProjectBranchFilter struct {
@@ -914,6 +952,24 @@ type Role struct {
 	Composite  bool   `json:"composite"`
 	ClientRole bool   `json:"clientRole"`
 	SubRoles   []Role `json:"-"`
+}
+
+// In the future this will be the new Role
+// Access Management Phase 2
+type AMRole struct {
+	ID                  string    `json:"id"`
+	TenantID            string    `json:"tenantId"`
+	Name                string    `json:"name"`
+	Description         string    `json:"description"`
+	SystemRole          bool      `json:"systemRole"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+	PermissionIDs       []string  `json:"permissions"`
+	CustomPermissionIDs []string  `json:"customPermissions"`
+	Attributes          []struct {
+		Name  string `json:"name"`
+		Value string `json:"value"`
+	} `json:"attributes"`
 }
 
 type RunningScan struct {
@@ -1559,6 +1615,11 @@ type UserFilter struct {
 	Search              string `url:"search,omitempty"`
 	Username            string `url:"username,omitempty"`
 	Realm               string `url:"realm"`
+}
+
+type UserAMFilter struct {
+	BaseFilter
+	Search string `url:"search"`
 }
 
 type UserWithAttributes struct {

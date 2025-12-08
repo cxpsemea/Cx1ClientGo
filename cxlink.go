@@ -128,8 +128,8 @@ func (c *Cx1Client) GetXCxLinksFiltered(filter CxLinkFilter, count uint64) (uint
 }
 
 func (c *Cx1Client) GetCxLinkCountFiltered(filter CxLinkFilter) (uint64, error) {
-	params, _ := query.Values(filter)
 	filter.Limit = 1
+	params, _ := query.Values(filter)
 	c.logger.Debugf("Get Cx1 CxLink count matching filter: %v", params.Encode())
 	count, _, err := c.GetCxLinksFiltered(filter)
 	return count, err

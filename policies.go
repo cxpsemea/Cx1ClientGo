@@ -71,8 +71,8 @@ func (c *Cx1Client) GetXPoliciesFiltered(filter PolicyFilter, count uint64) (uin
 }
 
 func (c *Cx1Client) GetPolicyCountFiltered(filter PolicyFilter) (uint64, error) {
-	params, _ := query.Values(filter)
 	filter.Limit = 1
+	params, _ := query.Values(filter)
 	c.logger.Debugf("Get Cx1 Policy count matching filter: %v", params.Encode())
 	count, _, err := c.GetPoliciesFiltered(filter)
 	return count, err
@@ -136,8 +136,8 @@ func (c *Cx1Client) GetXPolicyViolationsFiltered(filter PolicyViolationFilter, c
 }
 
 func (c *Cx1Client) GetPolicyViolationCountFiltered(filter PolicyViolationFilter) (uint64, error) {
-	params, _ := query.Values(filter)
 	filter.Limit = 1
+	params, _ := query.Values(filter)
 	c.logger.Debugf("Get Cx1 PolicyViolation count matching filter: %v", params.Encode())
 	count, _, err := c.GetPolicyViolationsFiltered(filter)
 	return count, err
