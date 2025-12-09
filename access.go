@@ -31,11 +31,63 @@ func (c *Cx1Client) GetAccessAssignmentByID(entityId, resourceId string) (Access
 	return aa, err
 }
 
+// Create a new access assignment object and issue it to the platform.
+// If only the project is provided: project-level access.
+// If only the application is provided: application-level access.
+// If the tenant bool is set (regardless of project/application): tenant-level access.
+// Similar behavior for the user, group, and client pointers
+func (c *Cx1Client) CreateAccessAssignment(user *User, group *Group, client *OIDCClient, project *Project, application *Application, roles []AccessAssignedRole) (AccessAssignment, error) {
+	aa := AccessAssignment{
+		EntityRoles: roles,
+		TenantID:    c.GetTenantID(),
+	}
+
+	if project != nil {
+		aa.ResourceType = "project"
+		aa.ResourceID = project.ProjectID
+		aa.ResourceName = project.Name
+	} else if application != nil {
+		aa.ResourceType = "application"
+		aa.ResourceID = application.ApplicationID
+		aa.ResourceName = application.Name
+	} else {
+		aa.ResourceType = "tenant"
+		aa.ResourceID = c.GetTenantID()
+		aa.ResourceName = c.GetTenantName()
+	}
+
+	if user != nil {
+		aa.EntityType = "user"
+		aa.EntityID = user.UserID
+		aa.EntityName = user.UserName
+	} else if group != nil {
+		aa.EntityType = "group"
+		aa.EntityID = group.GroupID
+		aa.EntityName = group.Name
+	} else if client != nil {
+		aa.EntityType = "client"
+		flag, _ := c.CheckFlag("ACCESS_MANAGEMENT_PHASE_2")
+		if !flag {
+			aa.EntityID = client.ID
+			aa.EntityName = client.ClientID
+		} else {
+			sa, err := c.GetServiceAccountByID(client.ID)
+			if err != nil {
+				return aa, err
+			}
+			aa.EntityID = sa.UserID
+			aa.EntityName = client.ClientID
+		}
+	}
+
+	return aa, c.AddAccessAssignment(aa)
+}
+
 // Add a specific access assignment
 func (c *Cx1Client) AddAccessAssignment(access AccessAssignment) error {
 	c.logger.Debugf("Creating access assignment for entityId %v and resourceId %v", access.EntityID, access.ResourceID)
 
-	type AccessAssignmentPOST struct {
+	type AccessAssignmentv1POST struct {
 		TenantID     string   `json:"tenantID"`
 		EntityID     string   `json:"entityID"`
 		EntityType   string   `json:"entityType"`
@@ -44,38 +96,61 @@ func (c *Cx1Client) AddAccessAssignment(access AccessAssignment) error {
 		ResourceID   string   `json:"resourceID"`
 		ResourceType string   `json:"resourceType"`
 		ResourceName string   `json:"resourceName"`
-		CreatedAt    string   `json:"createdAt"`
+	}
+	type AccessAssignmentv2POST struct {
+		Entities     []string `json:"entities"`
+		EntityType   string   `json:"entityType"` // user, group, client
+		EntityRoles  []string `json:"entityRoles"`
+		Resources    []string `json:"resources"`
+		ResourceType string   `json:"resourceType"`
 	}
 
-	flag, _ := c.CheckFlag("ACCESS_MANAGEMENT_PHASE_2")
+	iam2, _ := c.CheckFlag("ACCESS_MANAGEMENT_PHASE_2")
 
-	roles := make([]string, 0)
-	for _, r := range access.EntityRoles {
-		if flag {
+	var body []byte
+	var err error
+	if iam2 { // AM Phase 2
+		roles := make([]string, 0)
+		for _, r := range access.EntityRoles {
 			roles = append(roles, r.Id)
-		} else {
+		}
+		accessPost := AccessAssignmentv2POST{
+			Entities:     []string{access.EntityID},
+			EntityType:   access.EntityType,
+			EntityRoles:  roles,
+			Resources:    []string{access.TenantID},
+			ResourceType: access.ResourceType,
+		}
+
+		body, err = json.Marshal(accessPost)
+	} else {
+		roles := make([]string, 0)
+		for _, r := range access.EntityRoles {
 			roles = append(roles, r.Name)
 		}
+		accessPost := AccessAssignmentv1POST{
+			TenantID:     access.TenantID,
+			EntityID:     access.EntityID,
+			EntityType:   access.EntityType,
+			EntityName:   access.EntityName,
+			EntityRoles:  roles,
+			ResourceID:   access.ResourceID,
+			ResourceType: access.ResourceType,
+			ResourceName: access.ResourceName,
+		}
+
+		body, err = json.Marshal(accessPost)
 	}
 
-	accessPost := AccessAssignmentPOST{
-		TenantID:     access.TenantID,
-		EntityID:     access.EntityID,
-		EntityType:   access.EntityType,
-		EntityName:   access.EntityName,
-		EntityRoles:  roles,
-		ResourceID:   access.ResourceID,
-		ResourceType: access.ResourceType,
-		ResourceName: access.ResourceName,
-		CreatedAt:    access.CreatedAt,
-	}
-
-	body, err := json.Marshal(accessPost)
 	if err != nil {
 		return err
 	}
 
-	_, err = c.sendRequest(http.MethodPost, "/access-management", bytes.NewReader(body), nil)
+	if !iam2 {
+		_, err = c.sendRequest(http.MethodPost, "/access-management", bytes.NewReader(body), nil)
+	} else {
+		_, err = c.sendRequest(http.MethodPost, "/access-management/assignments", bytes.NewReader(body), nil)
+	}
 	return err
 }
 
@@ -704,6 +779,14 @@ func (a AccessAssignment) ToResource() AccessibleResource {
 	}
 
 	return ar
+}
+
+func (a AccessAssignment) String() string {
+	roles := []string{}
+	for _, r := range a.EntityRoles {
+		roles = append(roles, fmt.Sprintf("[%v] %v", ShortenGUID(r.Id), r.Name))
+	}
+	return fmt.Sprintf("%v [%v] %v can access %v [%v] %v with roles: %v", a.EntityType, ShortenGUID(a.EntityID), a.EntityName, a.ResourceType, ShortenGUID(a.ResourceID), a.ResourceName, roles)
 }
 
 func (a AccessibleResource) String() string {
