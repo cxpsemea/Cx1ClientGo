@@ -31,9 +31,12 @@ func (c *Cx1Client) createRequest(method, url string, body io.Reader, header *ht
 		}
 	}
 
-	//request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", c.authToken))
-	if request.Header.Get("User-Agent") == "" {
-		request.Header.Set("User-Agent", c.cx1UserAgent)
+	for name, headers := range c.headers {
+		if request.Header.Get(name) == "" {
+			for _, h := range headers {
+				request.Header.Add(name, h)
+			}
+		}
 	}
 
 	if request.Header.Get("Content-Type") == "" {
@@ -58,7 +61,6 @@ func (c *Cx1Client) sendTokenRequest(body io.Reader) (access_token string, err e
 	tokenUrl := fmt.Sprintf("%v/auth/realms/%v/protocol/openid-connect/token", c.iamUrl, c.tenant)
 	header := http.Header{
 		"Content-Type": {"application/x-www-form-urlencoded"},
-		"User-Agent":   {c.cx1UserAgent},
 	}
 	request, err := http.NewRequest(http.MethodPost, tokenUrl, body)
 	if err != nil {
@@ -355,10 +357,15 @@ func parseJWT(jwtToken string) (claims Cx1Claims, err error) {
 }
 
 func (c *Cx1Client) GetUserAgent() string {
-	return c.cx1UserAgent
+	return c.headers.Get("User-Agent")
 }
 func (c *Cx1Client) SetUserAgent(ua string) {
-	c.cx1UserAgent = ua
+	c.headers.Set("User-Agent", ua)
+}
+
+// this function sets the U-A to be the old one that was previously default in Cx1ClientGo
+func (c *Cx1Client) SetUserAgentFirefox() {
+	c.SetUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:105.0) Gecko/20100101 Firefox/105.0")
 }
 
 func (c *Cx1Client) GetRetries() (retries, delay int) {
@@ -370,7 +377,14 @@ func (c *Cx1Client) SetRetries(retries, delay int) {
 	c.retryDelay = delay
 }
 
-// this function set the U-A to be the old one that was previously default in Cx1ClientGo
-func (c *Cx1Client) SetUserAgentFirefox() {
-	c.cx1UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:105.0) Gecko/20100101 Firefox/105.0"
+func (c *Cx1Client) GetHeaders() http.Header {
+	return c.headers
+}
+
+func (c *Cx1Client) SetHeader(key, value string) {
+	c.headers.Set(key, value)
+}
+
+func (c *Cx1Client) RemoveHeader(key string) {
+	c.headers.Del(key)
 }

@@ -65,6 +65,7 @@ func NewOAuthClient(client *http.Client, base_url, iam_url, tenant, client_id, c
 			ClientID:     client_id,
 			ClientSecret: client_secret,
 		},
+		headers: http.Header{},
 	}
 
 	err := cli.InitializeClient(false)
@@ -117,6 +118,7 @@ func ResumeAPIKeyClient(client *http.Client, api_key, last_token string, logger 
 			APIKey:      api_key,
 			AccessToken: last_token,
 		},
+		headers: http.Header{},
 	}
 	cli.SetClaims(claims)
 
