@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -23,6 +25,14 @@ func main() {
 	logger.Infof("Starting")
 
 	httpClient := &http.Client{}
+	if true {
+		proxyURL, _ := url.Parse("http://127.0.0.1:8080")
+		transport := &http.Transport{}
+		transport.Proxy = http.ProxyURL(proxyURL)
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		httpClient.Transport = transport
+		logger.Infof("Using proxy")
+	}
 
 	cx1client, err := Cx1ClientGo.NewClient(httpClient, logger)
 	if err != nil {
@@ -30,7 +40,6 @@ func main() {
 	}
 
 	checkCurrentUserAccess(cx1client, logger)
-
 	testclient, err := createOIDCClient(cx1client, logger)
 	if err != nil {
 		logger.Fatalf("Failed to get or create OIDC Client: %s", err)
@@ -55,11 +64,12 @@ func main() {
 		}
 	}
 
-	err = cx1client.DeleteClientByID(testclient.ID)
-	if err != nil {
-		logger.Fatalf("Failed to delete oidc client 'cx1clientgo_test': %s", err)
-	}
-
+	/*
+		err = cx1client.DeleteClientByID(testclient.ID)
+		if err != nil {
+			logger.Fatalf("Failed to delete oidc client 'cx1clientgo_test': %s", err)
+		}
+	*/
 }
 
 func checkCurrentUserAccess(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger) {
@@ -118,41 +128,36 @@ func createOIDCClient(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger) (
 }
 
 func addAccessAssignments(cx1client *Cx1ClientGo.Cx1Client, client Cx1ClientGo.OIDCClient, logger *logrus.Logger) error {
-	tenantId := cx1client.GetTenantID()
-
 	role, err := cx1client.GetRoleByName("ast-scanner")
 	if err != nil {
 		return err
 	}
 
-	access := Cx1ClientGo.AccessAssignment{
+	aa, err := cx1client.CreateAccessAssignment(nil, nil, &client, nil, nil, []Cx1ClientGo.AccessAssignedRole{{Name: role.Name, Id: role.RoleID}})
+	/*access := Cx1ClientGo.AccessAssignment{
 		TenantID:     tenantId,
 		ResourceID:   tenantId,
 		ResourceType: "tenant",
 		ResourceName: cx1client.GetTenantName(),
-		EntityRoles:  []Cx1ClientGo.AccessAssignedRole{{Name: role.Name, Id: role.RoleID}},
+		EntityRoles:  ,
 		EntityID:     client.ID,
 		EntityType:   "client", // would be a user otherwise
 		EntityName:   client.ClientID,
 	}
 
-	err = cx1client.AddAccessAssignment(access)
+	err = cx1client.AddAccessAssignment(access)*/
 	if err != nil {
 		return fmt.Errorf("failed to assign access: %s", err)
 	}
 
-	accessAssignment, err := cx1client.GetEntitiesAccessToResourceByID(tenantId, "tenant")
+	accessAssignment, err := cx1client.GetResourcesAccessibleToEntityByID(aa.EntityID, "client", []string{"tenant"})
 	if err != nil {
 		return fmt.Errorf("failed to get entities with access to tenant: %s", err)
 	}
-
-	logger.Infof("The following access assignments exist for the cx1clientgo_test OIDC Client on tenant:")
-	for _, a := range accessAssignment {
-		entityRoleStr := []string{}
-		for _, r := range a.EntityRoles {
-			entityRoleStr = append(entityRoleStr, r.Name)
-		}
-		logger.Infof(" - Entity %v has roles %v", a.EntityID, strings.Join(entityRoleStr, ", "))
+	if len(accessAssignment) != 1 {
+		return fmt.Errorf("got %d access assignments", len(accessAssignment))
 	}
+	logger.Infof("Assignment: %v", accessAssignment[0].String())
+
 	return nil
 }

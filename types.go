@@ -34,10 +34,11 @@ type Cx1Client struct {
 	IsUser   bool
 	userinfo Cx1TokenUserInfo
 
-	version         *VersionInfo
-	astAppID        string
-	tenantID        string
-	cx1UserAgent    string
+	version  *VersionInfo
+	astAppID string
+	tenantID string
+	//cx1UserAgent    string
+	headers         http.Header
 	tenantOwner     *TenantOwner
 	maxRetries      int
 	retryDelay      int
