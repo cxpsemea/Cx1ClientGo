@@ -345,10 +345,10 @@ func (c *Cx1Client) GetIAMURL() string {
 }
 
 func (u Cx1TokenUserInfo) String() string {
-	if u.ClientName != "" {
-		return fmt.Sprintf("OIDC Client %v", u.ClientName)
+	if u.UserName != "" {
+		return fmt.Sprintf("User [%v] %v", ShortenGUID(u.UserID), u.UserName)
 	}
-	return fmt.Sprintf("User [%v] %v", ShortenGUID(u.UserID), u.UserName)
+	return fmt.Sprintf("OIDC Client %v", u.ClientName)
 }
 
 // this is for convenience when initializing structs with *bool members, thanks golang

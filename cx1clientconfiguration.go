@@ -1,6 +1,9 @@
 package Cx1ClientGo
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
 func (c *Cx1ClientConfiguration) ParseToken(token string) error {
 	claims, err := parseJWT(token)
@@ -28,6 +31,10 @@ func (c *Cx1ClientConfiguration) Validate() error {
 	}
 	if c.Logger == nil {
 		return fmt.Errorf("no logger provided")
+	}
+	if c.HTTPHeaders == nil {
+		c.HTTPHeaders = http.Header{}
+		c.HTTPHeaders.Set("User-Agent", "Cx1ClientGo")
 	}
 
 	if c.Auth.AccessToken != "" {

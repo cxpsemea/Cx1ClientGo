@@ -20,8 +20,9 @@ func NewClient(client *http.Client, logger Logger) (*Cx1Client, error) {
 	flag.Parse()
 
 	config := Cx1ClientConfiguration{
-		HttpClient: client,
-		Logger:     logger,
+		HttpClient:  client,
+		Logger:      logger,
+		HTTPHeaders: http.Header{},
 		Auth: Cx1ClientAuth{
 			APIKey:       *APIKey,
 			ClientID:     *ClientID,
