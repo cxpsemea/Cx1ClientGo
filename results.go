@@ -11,10 +11,10 @@ import (
 )
 
 func (c *Cx1Client) GetScanResultsByID(scanID string, limit uint64) (ScanResultSet, error) {
-	c.logger.Debugf("Get %d Cx1 Scan Results for scan %v", limit, scanID)
+	c.config.Logger.Debugf("Get %d Cx1 Scan Results for scan %v", limit, scanID)
 
 	_, results, err := c.GetXScanResultsFiltered(ScanResultsFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Results},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Results},
 		ScanID:     scanID,
 	}, limit)
 
@@ -22,10 +22,10 @@ func (c *Cx1Client) GetScanResultsByID(scanID string, limit uint64) (ScanResultS
 }
 
 func (c *Cx1Client) GetAllScanResultsByID(scanID string) (ScanResultSet, error) {
-	c.logger.Debugf("Get all Cx1 Scan Results for scan %v", scanID)
+	c.config.Logger.Debugf("Get all Cx1 Scan Results for scan %v", scanID)
 
 	_, results, err := c.GetAllScanResultsFiltered(ScanResultsFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Results},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Results},
 		ScanID:     scanID,
 	})
 
@@ -33,7 +33,7 @@ func (c *Cx1Client) GetAllScanResultsByID(scanID string) (ScanResultSet, error) 
 }
 
 func (c *Cx1Client) GetScanResultsCountByID(scanID string) (uint64, error) {
-	c.logger.Debugf("Get Cx1 Scan Results count for scan %v", scanID)
+	c.config.Logger.Debugf("Get Cx1 Scan Results count for scan %v", scanID)
 	count, _, err := c.GetScanResultsFiltered(ScanResultsFilter{
 		BaseFilter: BaseFilter{Limit: 0},
 		ScanID:     scanID,
@@ -54,7 +54,7 @@ func (c *Cx1Client) GetScanResultsFiltered(filter ScanResultsFilter) (uint64, Sc
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/results/?%v", params.Encode()), nil, nil)
 	if err != nil {
 		err = fmt.Errorf("failed to fetch scans matching filter %v: %s", params.Encode(), err)
-		c.logger.Tracef("Error: %s", err)
+		c.config.Logger.Tracef("Error: %s", err)
 		return 0, results, err
 	}
 
@@ -128,11 +128,11 @@ func (r ScanIACResult) CreateResultsPredicate(projectId, scanId string) IACResul
 
 // results
 func (c *Cx1Client) AddSASTResultsPredicates(predicates []SASTResultsPredicates) error {
-	c.logger.Debugf("Adding %d SAST results predicates", len(predicates))
+	c.config.Logger.Debugf("Adding %d SAST results predicates", len(predicates))
 
 	jsonBody, err := json.Marshal(predicates)
 	if err != nil {
-		c.logger.Tracef("Failed to add SAST results predicates: %s", err)
+		c.config.Logger.Tracef("Failed to add SAST results predicates: %s", err)
 		return err
 	}
 
@@ -144,11 +144,11 @@ func (c *Cx1Client) AddKICSResultsPredicates(predicates []IACResultsPredicates) 
 	return c.AddIACResultsPredicates(predicates)
 }
 func (c *Cx1Client) AddIACResultsPredicates(predicates []IACResultsPredicates) error {
-	c.logger.Debugf("Adding %d IAC results predicates", len(predicates))
+	c.config.Logger.Debugf("Adding %d IAC results predicates", len(predicates))
 
 	jsonBody, err := json.Marshal(predicates)
 	if err != nil {
-		c.logger.Tracef("Failed to add IAC results predicates: %s", err)
+		c.config.Logger.Tracef("Failed to add IAC results predicates: %s", err)
 		return err
 	}
 
@@ -157,7 +157,7 @@ func (c *Cx1Client) AddIACResultsPredicates(predicates []IACResultsPredicates) e
 }
 
 func (c *Cx1Client) GetSASTResultsPredicatesByID(SimilarityID string, ProjectID, ScanID string) ([]SASTResultsPredicates, error) {
-	c.logger.Debugf("Fetching SAST results predicates for project %v scan %v similarityId %v", ProjectID, ScanID, SimilarityID)
+	c.config.Logger.Debugf("Fetching SAST results predicates for project %v scan %v similarityId %v", ProjectID, ScanID, SimilarityID)
 
 	var Predicates struct {
 		PredicateHistoryPerProject []struct {
@@ -187,7 +187,7 @@ func (c *Cx1Client) GetSASTResultsPredicatesByID(SimilarityID string, ProjectID,
 }
 
 func (c *Cx1Client) GetLastSASTResultsPredicateByID(SimilarityID string, ProjectID, ScanID string) (SASTResultsPredicates, error) {
-	c.logger.Debugf("Fetching SAST results predicates for project %v scan %v similarityId %v", ProjectID, ScanID, SimilarityID)
+	c.config.Logger.Debugf("Fetching SAST results predicates for project %v scan %v similarityId %v", ProjectID, ScanID, SimilarityID)
 
 	var Predicates struct {
 		LatestPredicatePerProject []SASTResultsPredicates `json:"latestPredicatePerProject"`
@@ -216,7 +216,7 @@ func (c *Cx1Client) GetKICSResultsPredicatesByID(SimilarityID string, ProjectID 
 }
 
 func (c *Cx1Client) GetIACResultsPredicatesByID(SimilarityID string, ProjectID string) ([]IACResultsPredicates, error) {
-	c.logger.Debugf("Fetching IAC results predicates for project %v similarityId %v", ProjectID, SimilarityID)
+	c.config.Logger.Debugf("Fetching IAC results predicates for project %v similarityId %v", ProjectID, SimilarityID)
 
 	var Predicates struct {
 		PredicateHistoryPerProject []struct {
@@ -375,28 +375,28 @@ func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, er
 	dec.UseNumber()
 	err := dec.Decode(&resultResponse)
 	if err != nil {
-		c.logger.Tracef("Failed while parsing response: %s", err)
-		//c.logger.Tracef("Response contents: %s", string(response))
+		c.config.Logger.Tracef("Failed while parsing response: %s", err)
+		//c.config.Logger.Tracef("Response contents: %s", string(response))
 		return resultResponse.TotalCount, ResultSet, err
 	}
-	//c.logger.Debugf("Retrieved %d results", resultResponse.TotalCount)
+	//c.config.Logger.Debugf("Retrieved %d results", resultResponse.TotalCount)
 
 	/*
 		if uint64(len(resultResponse.Results)) != resultResponse.TotalCount {
-			c.logger.Warnf("Expected results total count %d but parsed only %d", resultResponse.TotalCount, len(resultResponse.Results))
-			c.logger.Tracef("Response was: %v", string(response))
+			c.config.Logger.Warnf("Expected results total count %d but parsed only %d", resultResponse.TotalCount, len(resultResponse.Results))
+			c.config.Logger.Tracef("Response was: %v", string(response))
 		}
 	*/
 
 	for _, r := range resultResponse.Results {
-		//c.logger.Infof("Result %v: %v", r["similarityId"].(string), r["type"].(string))
+		//c.config.Logger.Infof("Result %v: %v", r["similarityId"].(string), r["type"].(string))
 		jsonResult, _ := json.Marshal(r)
 		switch r["type"].(string) {
 		case "sast":
 			var SASTResult ScanSASTResult
 			err := json.Unmarshal(jsonResult, &SASTResult)
 			if err != nil {
-				c.logger.Warnf("Failed to unmarshal result %v to SAST type: %s", r["similarityId"].(string), err)
+				c.config.Logger.Warnf("Failed to unmarshal result %v to SAST type: %s", r["similarityId"].(string), err)
 			} else {
 				ResultSet.SAST = append(ResultSet.SAST, SASTResult)
 			}
@@ -404,7 +404,7 @@ func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, er
 			var SCAResult ScanSCAResult
 			err := json.Unmarshal(jsonResult, &SCAResult)
 			if err != nil {
-				c.logger.Warnf("Failed to unmarshal result %v to SCA type: %s", r["similarityId"].(string), err)
+				c.config.Logger.Warnf("Failed to unmarshal result %v to SCA type: %s", r["similarityId"].(string), err)
 			} else {
 				ResultSet.SCA = append(ResultSet.SCA, SCAResult)
 			}
@@ -412,7 +412,7 @@ func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, er
 			var IACResult ScanIACResult
 			err := json.Unmarshal(jsonResult, &IACResult)
 			if err != nil {
-				c.logger.Warnf("Failed to unmarshal result %v to IAC type: %s", r["similarityId"].(string), err)
+				c.config.Logger.Warnf("Failed to unmarshal result %v to IAC type: %s", r["similarityId"].(string), err)
 			} else {
 				ResultSet.IAC = append(ResultSet.IAC, IACResult)
 			}
@@ -420,7 +420,7 @@ func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, er
 			var SCACResult ScanSCAContainerResult
 			err := json.Unmarshal(jsonResult, &SCACResult)
 			if err != nil {
-				c.logger.Warnf("Failed to unmarshal result %v to SCAContainer type: %s", r["similarityId"].(string), err)
+				c.config.Logger.Warnf("Failed to unmarshal result %v to SCAContainer type: %s", r["similarityId"].(string), err)
 			} else {
 				ResultSet.SCAContainer = append(ResultSet.SCAContainer, SCACResult)
 			}
@@ -428,16 +428,16 @@ func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, er
 			var ContainerResult ScanContainersResult
 			err := json.Unmarshal(jsonResult, &ContainerResult)
 			if err != nil {
-				c.logger.Warnf("Failed to unmarshal result %v to Containers type: %s", r["similarityId"].(string), err)
+				c.config.Logger.Warnf("Failed to unmarshal result %v to Containers type: %s", r["similarityId"].(string), err)
 			} else {
 				ResultSet.Containers = append(ResultSet.Containers, ContainerResult)
 			}
 		default:
-			c.logger.Warnf("Unable to unmarshal result %v of unknown type %v", r["similarityId"].(string), r["type"].(string))
+			c.config.Logger.Warnf("Unable to unmarshal result %v of unknown type %v", r["similarityId"].(string), r["type"].(string))
 		}
 	}
 
-	c.logger.Debugf("Retrieved %d of %d results", ResultSet.Count(), resultResponse.TotalCount)
+	c.config.Logger.Debugf("Retrieved %d of %d results", ResultSet.Count(), resultResponse.TotalCount)
 
 	return resultResponse.TotalCount, ResultSet, nil
 }
@@ -492,7 +492,7 @@ func (c ResultState) String() string {
 // returns the full history of results changes for a specific project
 func (c *Cx1Client) GetResultsChangeHistoryForProjectByID(projectID string) ([]ResultsChangeHistory, error) {
 	_, changes, err := c.GetAllResultsChangeHistoryFiltered(ResultsChangeFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Results},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Results},
 		History:    true,
 		EntityID:   projectID,
 		EntityType: "projectID",
@@ -504,7 +504,7 @@ func (c *Cx1Client) GetResultsChangeHistoryForProjectByID(projectID string) ([]R
 // returns the full history of results changes for a specific scan
 func (c *Cx1Client) GetResultsChangeHistoryForScanByID(scanID string) ([]ResultsChangeHistory, error) {
 	_, changes, err := c.GetAllResultsChangeHistoryFiltered(ResultsChangeFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Results},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Results},
 		History:    true,
 		EntityID:   scanID,
 		EntityType: "scanID",
@@ -516,7 +516,7 @@ func (c *Cx1Client) GetResultsChangeHistoryForScanByID(scanID string) ([]Results
 // returns the full history of results changes for a specific similarityID
 func (c *Cx1Client) GetResultsChangeHistoryForSimilarityID(similarityID string) ([]ResultsChangeHistory, error) {
 	_, changes, err := c.GetAllResultsChangeHistoryFiltered(ResultsChangeFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Results},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Results},
 		History:    true,
 		EntityID:   similarityID,
 		EntityType: "similarityID",
@@ -537,7 +537,7 @@ func (c *Cx1Client) GetResultsChangeHistoryFiltered(filter ResultsChangeFilter) 
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/sast-results-predicates/changelog?%v", params.Encode()), nil, nil)
 	if err != nil {
 		err = fmt.Errorf("failed to fetch scans matching filter %v: %s", params.Encode(), err)
-		c.logger.Tracef("Error: %s", err)
+		c.config.Logger.Tracef("Error: %s", err)
 		return 0, response.Results, err
 	}
 
@@ -556,7 +556,7 @@ func (c *Cx1Client) GetResultsChangeHistoryFiltered(filter ResultsChangeFilter) 
 		if err != nil {
 			// If parsing fails, we might not have the total, but we can return what we have.
 			// The API might change its format.
-			c.logger.Warnf("Could not parse TotalSimilarityIds string: '%s'", response.TotalSimilarityIds)
+			c.config.Logger.Warnf("Could not parse TotalSimilarityIds string: '%s'", response.TotalSimilarityIds)
 		}
 	}
 

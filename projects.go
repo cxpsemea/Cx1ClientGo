@@ -14,7 +14,7 @@ import (
 
 // Create a new project
 func (c *Cx1Client) CreateProject(projectname string, cx1_group_ids []string, tags map[string]string) (Project, error) {
-	c.logger.Debugf("Create Project: %v", projectname)
+	c.config.Logger.Debugf("Create Project: %v", projectname)
 	data := map[string]interface{}{
 		"name":        projectname,
 		"groups":      []string{},
@@ -37,7 +37,7 @@ func (c *Cx1Client) CreateProject(projectname string, cx1_group_ids []string, ta
 	var project Project
 	response, err := c.sendRequest(http.MethodPost, "/projects", bytes.NewReader(jsonBody), nil)
 	if err != nil {
-		c.logger.Tracef("Error while creating project %v: %s", projectname, err)
+		c.config.Logger.Tracef("Error while creating project %v: %s", projectname, err)
 		return project, err
 	}
 
@@ -53,7 +53,7 @@ func (c *Cx1Client) CreateProject(projectname string, cx1_group_ids []string, ta
 // Create a new project inside an application
 // Does not wait/poll until the project is created and attached to the application
 func (c *Cx1Client) CreateProjectInApplicationWOPolling(projectname string, cx1_group_ids []string, tags map[string]string, applicationId string) (Project, error) {
-	c.logger.Debugf("Create Project %v in applicationId %v", projectname, applicationId)
+	c.config.Logger.Debugf("Create Project %v in applicationId %v", projectname, applicationId)
 	data := map[string]interface{}{
 		"name":        projectname,
 		"groups":      []string{},
@@ -96,7 +96,7 @@ func (c *Cx1Client) CreateProjectInApplicationWOPolling(projectname string, cx1_
 	}
 
 	if err != nil {
-		c.logger.Tracef("Error while creating project %v: %s", projectname, err)
+		c.config.Logger.Tracef("Error while creating project %v: %s", projectname, err)
 		return project, err
 	}
 
@@ -125,7 +125,7 @@ func (c *Cx1Client) CreateProjectInApplication(projectname string, cx1_group_ids
 
 // Poll a specific project until it shows as attached to the application, by ID
 func (c *Cx1Client) ProjectInApplicationPollingByID(projectId, applicationId string) (Project, error) {
-	return c.ProjectInApplicationPollingByIDWithTimeout(projectId, applicationId, c.consts.ProjectApplicationLinkPollingDelaySeconds, c.consts.ProjectApplicationLinkPollingMaxSeconds)
+	return c.ProjectInApplicationPollingByIDWithTimeout(projectId, applicationId, c.config.Polling.ProjectApplicationLinkPollingDelaySeconds, c.config.Polling.ProjectApplicationLinkPollingMaxSeconds)
 }
 
 // Poll a specific project until it shows as attached to the application, by ID
@@ -137,7 +137,7 @@ func (c *Cx1Client) ProjectInApplicationPollingByIDWithTimeout(projectId, applic
 		if pollingCounter > maxSeconds {
 			return project, fmt.Errorf("project %v is not assigned to application ID %v after %d seconds, aborting", projectId, applicationId, maxSeconds)
 		}
-		c.logger.Debugf("Project is not yet assigned to the application, polling")
+		c.config.Logger.Debugf("Project is not yet assigned to the application, polling")
 		time.Sleep(time.Duration(delaySeconds) * time.Second)
 		project, err = c.GetProjectByID(projectId)
 		pollingCounter += delaySeconds
@@ -148,9 +148,9 @@ func (c *Cx1Client) ProjectInApplicationPollingByIDWithTimeout(projectId, applic
 // Get up to count # of projects
 // behind the scenes this will use the configured pagination (Get/SetPaginationSettings)
 func (c *Cx1Client) GetProjects(count uint64) ([]Project, error) {
-	c.logger.Debugf("Get %d Cx1 Projects", count)
+	c.config.Logger.Debugf("Get %d Cx1 Projects", count)
 	_, projects, err := c.GetXProjectsFiltered(ProjectFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Projects},
 	}, count)
 
 	return projects, err
@@ -160,16 +160,16 @@ func (c *Cx1Client) GetProjects(count uint64) ([]Project, error) {
 // behind the scenes this will use the configured pagination (Get/SetPaginationSettings)
 // behaves the same as GetProjects(# of projects in the environment)
 func (c *Cx1Client) GetAllProjects() ([]Project, error) {
-	c.logger.Debugf("Get All Cx1 Projects")
+	c.config.Logger.Debugf("Get All Cx1 Projects")
 	_, projects, err := c.GetAllProjectsFiltered(ProjectFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Projects},
 	})
 	return projects, err
 }
 
 // Get a specific project by ID
 func (c *Cx1Client) GetProjectByID(projectID string) (Project, error) {
-	c.logger.Debugf("Getting Project with ID %v...", projectID)
+	c.config.Logger.Debugf("Getting Project with ID %v...", projectID)
 	var project Project
 
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/projects/%v", projectID), nil, nil)
@@ -194,7 +194,7 @@ func (c *Cx1Client) GetProjectByID(projectID string) (Project, error) {
 // case-sensitive exact match for a project name
 func (c *Cx1Client) GetProjectByName(name string) (Project, error) {
 	_, projects, err := c.GetAllProjectsFiltered(ProjectFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Projects},
 		Names:      []string{name},
 	})
 
@@ -216,10 +216,10 @@ func (c *Cx1Client) GetProjectByName(name string) (Project, error) {
 // As of 2024-10-17 this function no longer takes a specific limit as a parameter
 // To set limits, offsets, and other parameters directly, use GetProjectsFiltered
 func (c *Cx1Client) GetProjectsByName(name string) ([]Project, error) {
-	c.logger.Debugf("Get Cx1 Projects By Name: %v", name)
+	c.config.Logger.Debugf("Get Cx1 Projects By Name: %v", name)
 
 	_, projects, err := c.GetAllProjectsFiltered(ProjectFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Projects},
 		Name:       name,
 	})
 
@@ -228,10 +228,10 @@ func (c *Cx1Client) GetProjectsByName(name string) ([]Project, error) {
 
 // Get all projects in the group 'groupID' with names matching the search 'name'
 func (c *Cx1Client) GetProjectsByNameAndGroupID(projectName string, groupID string) ([]Project, error) {
-	c.logger.Debugf("Getting projects with name %v of group ID %v...", projectName, groupID)
+	c.config.Logger.Debugf("Getting projects with name %v of group ID %v...", projectName, groupID)
 
 	_, projects, err := c.GetAllProjectsFiltered(ProjectFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Projects},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Projects},
 		Name:       projectName,
 		Groups:     []string{groupID},
 	})
@@ -340,12 +340,12 @@ func (c *Cx1Client) GetProjectConfiguration(project *Project) error {
 // return the configuration settings for scans set on the tenant level
 // this will list default configurations like presets, incremental scan settings etc if set
 func (c *Cx1Client) GetTenantConfiguration() ([]ConfigurationSetting, error) {
-	c.logger.Debugf("Getting tenant configuration")
+	c.config.Logger.Debugf("Getting tenant configuration")
 	var tenantConfigurations []ConfigurationSetting
 	data, err := c.sendRequest(http.MethodGet, "/configuration/tenant", nil, nil)
 
 	if err != nil {
-		c.logger.Tracef("Failed to get tenant configuration: %v", err)
+		c.config.Logger.Tracef("Failed to get tenant configuration: %v", err)
 		return tenantConfigurations, err
 	}
 
@@ -356,7 +356,7 @@ func (c *Cx1Client) GetTenantConfiguration() ([]ConfigurationSetting, error) {
 // return the configuration settings for scans set on the project level
 // this will list default configurations like presets, incremental scan settings etc if set
 func (c *Cx1Client) GetProjectConfigurationByID(projectID string) ([]ConfigurationSetting, error) {
-	c.logger.Debugf("Getting project configuration for project %v", projectID)
+	c.config.Logger.Debugf("Getting project configuration for project %v", projectID)
 	var projectConfigurations []ConfigurationSetting
 	params := url.Values{
 		"project-id": {projectID},
@@ -364,7 +364,7 @@ func (c *Cx1Client) GetProjectConfigurationByID(projectID string) ([]Configurati
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/configuration/project?%v", params.Encode()), nil, nil)
 
 	if err != nil {
-		c.logger.Tracef("Failed to get project configuration for project ID %v: %s", projectID, err)
+		c.config.Logger.Tracef("Failed to get project configuration for project ID %v: %s", projectID, err)
 		return projectConfigurations, err
 	}
 
@@ -395,7 +395,7 @@ func (c *Cx1Client) UpdateProjectConfigurationByID(projectID string, settings []
 
 	_, err = c.sendRequest(http.MethodPatch, fmt.Sprintf("/configuration/project?%v", params.Encode()), bytes.NewReader(jsonBody), nil)
 	if err != nil {
-		c.logger.Tracef("Failed to update project %v configuration: %s", projectID, err)
+		c.config.Logger.Tracef("Failed to update project %v configuration: %s", projectID, err)
 		return err
 	}
 
@@ -415,7 +415,7 @@ func (c *Cx1Client) SetProjectBranchByID(projectID, branch string, allowOverride
 // retrieves all branches for a project
 func (c *Cx1Client) GetProjectBranchesByID(projectID string) ([]string, error) {
 	return c.GetAllProjectBranchesFiltered(ProjectBranchFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Branches},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Branches},
 		ProjectID:  projectID,
 	})
 }
@@ -428,7 +428,7 @@ func (c *Cx1Client) GetProjectBranchesFiltered(filter ProjectBranchFilter) ([]st
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/projects/branches?%v", params.Encode()), nil, nil)
 	if err != nil {
 		err = fmt.Errorf("failed to fetch branches matching filter %v: %s", params, err)
-		c.logger.Tracef("Error: %s", err)
+		c.config.Logger.Tracef("Error: %s", err)
 		return branches, err
 	}
 
@@ -474,14 +474,14 @@ func (c *Cx1Client) GetXProjectBranchesFiltered(filter ProjectBranchFilter, coun
 
 // Get the count of all projects in the system
 func (c *Cx1Client) GetProjectCount() (uint64, error) {
-	c.logger.Debugf("Get Cx1 Projects Count")
+	c.config.Logger.Debugf("Get Cx1 Projects Count")
 	count, _, err := c.GetProjectsFiltered(ProjectFilter{BaseFilter: BaseFilter{Limit: 1}})
 	return count, err
 }
 
 // returns the number of projects with names matching a search string 'name'
 func (c *Cx1Client) GetProjectCountByName(name string) (uint64, error) {
-	c.logger.Debugf("Get Cx1 Project count by name: %v", name)
+	c.config.Logger.Debugf("Get Cx1 Project count by name: %v", name)
 	count, _, err := c.GetProjectsFiltered(ProjectFilter{
 		BaseFilter: BaseFilter{Limit: 1},
 		Name:       name,
@@ -493,14 +493,14 @@ func (c *Cx1Client) GetProjectCountByName(name string) (uint64, error) {
 func (c *Cx1Client) GetProjectCountFiltered(filter ProjectFilter) (uint64, error) {
 	filter.Limit = 1
 	params, _ := query.Values(filter)
-	c.logger.Debugf("Get Cx1 Project count matching filter: %v", params.Encode())
+	c.config.Logger.Debugf("Get Cx1 Project count matching filter: %v", params.Encode())
 	count, _, err := c.GetProjectsFiltered(filter)
 	return count, err
 }
 
 // Returns a URL to the project's overview page
 func (c *Cx1Client) ProjectLink(p *Project) string {
-	return fmt.Sprintf("%v/projects/%v/overview", c.baseUrl, p.ProjectID)
+	return fmt.Sprintf("%v/projects/%v/overview", c.config.BaseUrl, p.ProjectID)
 }
 
 // Sets a project's default repository configuration
@@ -606,7 +606,7 @@ func (c *Cx1Client) PatchProjectByID(projectId string, update ProjectPatch) erro
 // The project behind the supplied pointer is not changed
 // For partial updates use PatchProject
 func (c *Cx1Client) UpdateProject(project *Project) error {
-	c.logger.Debugf("Updating project %v", project.String())
+	c.config.Logger.Debugf("Updating project %v", project.String())
 
 	// This may be temporary depending on how the API changes
 	// sending an applicationIds array will cause the project's membership in applications to change
@@ -646,7 +646,7 @@ func (c *Cx1Client) UpdateProject(project *Project) error {
 // Delete the project
 // There is no UNDO
 func (c *Cx1Client) DeleteProject(p *Project) error {
-	c.logger.Debugf("Deleting Project %v", p.String())
+	c.config.Logger.Debugf("Deleting Project %v", p.String())
 
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/projects/%v", p.ProjectID), nil, nil)
 	if err != nil {

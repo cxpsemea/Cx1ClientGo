@@ -19,7 +19,7 @@ var IAMResourceTypes = []string{"tenant", "application", "project"}
 // As of Nov '25 this will not consider implied permissions
 // eg: user in group + group has access = user has access but no access assignment
 func (c *Cx1Client) GetAccessAssignmentByID(entityId, resourceId string) (AccessAssignment, error) {
-	c.logger.Debugf("Getting access assignment for entityId %v and resourceId %v", entityId, resourceId)
+	c.config.Logger.Debugf("Getting access assignment for entityId %v and resourceId %v", entityId, resourceId)
 	var aa AccessAssignment
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/?entity-id=%v&resource-id=%v", entityId, resourceId), nil, nil)
 
@@ -85,7 +85,7 @@ func (c *Cx1Client) CreateAccessAssignment(user *User, group *Group, client *OID
 
 // Add a specific access assignment
 func (c *Cx1Client) AddAccessAssignment(access AccessAssignment) error {
-	c.logger.Debugf("Creating access assignment for entityId %v and resourceId %v", access.EntityID, access.ResourceID)
+	c.config.Logger.Debugf("Creating access assignment for entityId %v and resourceId %v", access.EntityID, access.ResourceID)
 
 	type AccessAssignmentv1POST struct {
 		TenantID     string   `json:"tenantID"`
@@ -158,7 +158,7 @@ func (c *Cx1Client) AddAccessAssignment(access AccessAssignment) error {
 // As of Nov '25 this will not consider implied permissions
 // eg: user in group + group has access = user has access but no access assignment
 func (c *Cx1Client) GetEntitiesAccessToResourceByID(resourceId, resourceType string) ([]AccessAssignment, error) {
-	c.logger.Debugf("Getting the entities with access assignment for resourceId %v", resourceId)
+	c.config.Logger.Debugf("Getting the entities with access assignment for resourceId %v", resourceId)
 	var aas []AccessAssignment
 
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/entities-for?resource-id=%v&resource-type=%v", resourceId, resourceType), nil, nil)
@@ -175,7 +175,7 @@ func (c *Cx1Client) GetEntitiesAccessToResourceByID(resourceId, resourceType str
 // eg: user in group + group has access = user has access but no access assignment
 func (c *Cx1Client) GetResourcesAccessibleToEntityByID(entityId, entityType string, resourceTypes []string) ([]AccessAssignment, error) {
 	var aas []AccessAssignment
-	c.logger.Debugf("Getting the resources accessible to entity %v", entityId)
+	c.config.Logger.Debugf("Getting the resources accessible to entity %v", entityId)
 
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/resources-for?entity-id=%v&entity-type=%v&resource-types=%v", entityId, entityType, strings.Join(resourceTypes, ",")), nil, nil)
 	if err != nil {
@@ -192,7 +192,7 @@ func (c *Cx1Client) GetResourcesAccessibleToEntityByID(entityId, entityType stri
 
 // Check if the current user has access to execute a specific action on this resource
 func (c *Cx1Client) CheckAccessToResourceByID(resourceId, resourceType, action string) (bool, error) {
-	c.logger.Debugf("Checking current user access for resource %v and action %v", resourceId, action)
+	c.config.Logger.Debugf("Checking current user access for resource %v and action %v", resourceId, action)
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/has-access?resource-id=%v&resource-type=%v&action=%v", resourceId, resourceType, action), nil, nil)
 	if err != nil {
 		return false, err
@@ -208,7 +208,7 @@ func (c *Cx1Client) CheckAccessToResourceByID(resourceId, resourceType, action s
 
 // Check which resources are accessible to this user
 func (c *Cx1Client) CheckAccessibleResources(resourceTypes []string, action string) (bool, []AccessibleResource, error) {
-	c.logger.Debugf("Checking current user accessible resources for action %v", action)
+	c.config.Logger.Debugf("Checking current user accessible resources for action %v", action)
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/access-management/get-resources?resource-types=%v&action=%v", strings.Join(resourceTypes, ","), action), nil, nil)
 	var responseStruct struct {
 		All       bool                 `json:"all"`
@@ -224,7 +224,7 @@ func (c *Cx1Client) CheckAccessibleResources(resourceTypes []string, action stri
 }
 
 func (c *Cx1Client) DeleteAccessAssignmentByID(entityId, resourceId string) error {
-	c.logger.Debugf("Deleting access assignment between entity %v and resource %v", entityId, resourceId)
+	c.config.Logger.Debugf("Deleting access assignment between entity %v and resource %v", entityId, resourceId)
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/access-management?resource-id=%v&entity-id=%v", resourceId, entityId), nil, nil)
 	return err
 }
@@ -424,12 +424,12 @@ func (c *Cx1Client) GetAllResourcesAccessibleToUserByID(userID string, types []s
 		return []AccessibleResource{}, err
 	}
 
-	//c.logger.Infof("GetAllResourcesAccessibleToUserByID User %v belongs to groups: %v", user.String(), strings.Join(usergroups, ", "))
+	//c.config.Logger.Infof("GetAllResourcesAccessibleToUserByID User %v belongs to groups: %v", user.String(), strings.Join(usergroups, ", "))
 	userroles := []string{}
 	for _, r := range allUserRoles {
 		userroles = append(userroles, r.Name)
 	}
-	//c.logger.Infof("GetAllResourcesAccessibleToUserByID User %v has roles: %v", user.String(), strings.Join(userroles, ", "))
+	//c.config.Logger.Infof("GetAllResourcesAccessibleToUserByID User %v has roles: %v", user.String(), strings.Join(userroles, ", "))
 
 	resourceTypes := []string{"tenant", "project", "application"}
 	user_resources, err := c.GetResourcesAccessibleToEntityByID(userID, "user", resourceTypes)
@@ -462,7 +462,7 @@ func (c *Cx1Client) GetAllResourcesAccessibleToUserByID(userID string, types []s
 		all_roles = append(all_roles, r)
 	}
 	slices.Sort(all_roles)
-	//c.logger.Infof("GetAllResourcesAccessibleToUserByID All roles combined: %v", strings.Join(all_roles, ", "))
+	//c.config.Logger.Infof("GetAllResourcesAccessibleToUserByID All roles combined: %v", strings.Join(all_roles, ", "))
 
 	if includeImplied {
 		resources, err = c.fillMissingResources(resources)
@@ -497,7 +497,7 @@ func (c *Cx1Client) GetAllResourcesAccessibleToGroupByID(groupID string, types [
 		return resources, err
 	}
 
-	//c.logger.Infof("Group %v has parent: %v", group.String(), group.ParentID)
+	//c.config.Logger.Infof("Group %v has parent: %v", group.String(), group.ParentID)
 
 	groupRoles, err := c.GetGroupInheritedRoles(&group)
 	if err != nil {

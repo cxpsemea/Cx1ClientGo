@@ -303,7 +303,7 @@ func (query AuditQueryTree) ToIACQuery(levelTitle, platformTitle, groupTitle, pr
 			qlevel = AUDIT_QUERY.APPLICATION
 			//key = query.Key[2:]
 		default:
-			//c.logger.Warnf("Unknown query level: %v / %v", levelTitle, level.Key)
+			//c.config.Logger.Warnf("Unknown query level: %v / %v", levelTitle, level.Key)
 			qlevel = AUDIT_QUERY.PRODUCT
 			qlevelId = AUDIT_QUERY.PRODUCT
 			key = query.Key

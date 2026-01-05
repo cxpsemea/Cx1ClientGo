@@ -14,11 +14,11 @@ import (
 
 // Get all OIDC Clients in the system
 func (c *Cx1Client) GetClients() ([]OIDCClient, error) {
-	c.logger.Debugf("Getting OIDC Clients")
+	c.config.Logger.Debugf("Getting OIDC Clients")
 	_, clients, err := c.GetAllClientsFiltered(OIDCClientFilter{
 		BaseIAMFilter: BaseIAMFilter{
 			First: 0,
-			Max:   c.pagination.Clients,
+			Max:   c.config.Pagination.Clients,
 		},
 	})
 	return clients, err
@@ -26,7 +26,7 @@ func (c *Cx1Client) GetClients() ([]OIDCClient, error) {
 
 // Get details about a specific OIDC Client by GUID
 func (c *Cx1Client) GetClientByID(guid string) (OIDCClient, error) {
-	c.logger.Debugf("Getting OIDC client with ID %v", guid)
+	c.config.Logger.Debugf("Getting OIDC client with ID %v", guid)
 	var client OIDCClient
 
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/clients/%v", guid), nil, nil)
@@ -45,11 +45,11 @@ func (c *Cx1Client) GetClientByID(guid string) (OIDCClient, error) {
 
 // Get all OIDC Clients matching a string
 func (c *Cx1Client) GetClientsByName(clientName string) ([]OIDCClient, error) {
-	c.logger.Debugf("Getting OIDC clients matching name %v", clientName)
+	c.config.Logger.Debugf("Getting OIDC clients matching name %v", clientName)
 	_, clients, err := c.GetAllClientsFiltered(OIDCClientFilter{
 		BaseIAMFilter: BaseIAMFilter{
 			First: 0,
-			Max:   c.pagination.Clients,
+			Max:   c.config.Pagination.Clients,
 		},
 		ClientID: clientName,
 		Search:   boolPtr(true),
@@ -60,13 +60,13 @@ func (c *Cx1Client) GetClientsByName(clientName string) ([]OIDCClient, error) {
 
 // Gets a specific OIDC client with the client id matching this name exactly
 func (c *Cx1Client) GetClientByName(clientName string) (OIDCClient, error) {
-	c.logger.Debugf("Getting OIDC client with name %v", clientName)
+	c.config.Logger.Debugf("Getting OIDC client with name %v", clientName)
 
 	var client OIDCClient
 	_, clients, err := c.GetAllClientsFiltered(OIDCClientFilter{
 		BaseIAMFilter: BaseIAMFilter{
 			First: 0,
-			Max:   c.pagination.Clients,
+			Max:   c.config.Pagination.Clients,
 		},
 		ClientID: clientName,
 		Search:   boolPtr(false),
@@ -84,7 +84,7 @@ func (c *Cx1Client) GetClientByName(clientName string) (OIDCClient, error) {
 // Gets the secret for an OIDC Client
 // Only available to the creator of the OIDC Client
 func (c *Cx1Client) GetClientSecret(client *OIDCClient) (string, error) {
-	c.logger.Debugf("Getting OIDC client secret for %v", client.String())
+	c.config.Logger.Debugf("Getting OIDC client secret for %v", client.String())
 
 	var responseBody struct {
 		Type  string
@@ -105,10 +105,10 @@ func (c *Cx1Client) GetClientSecret(client *OIDCClient) (string, error) {
 
 // Create a new OIDC client
 func (c *Cx1Client) CreateClient(name string, notificationEmails []string, secretExpiration int) (OIDCClient, error) {
-	c.logger.Debugf("Creating OIDC client with name %v", name)
+	c.config.Logger.Debugf("Creating OIDC client with name %v", name)
 
 	notificationEmailsStr := "[\"" + strings.Join(notificationEmails, "\",\"") + "\"]"
-	//c.logger.Infof("Setting emails: %v", notificationEmailsStr)
+	//c.config.Logger.Infof("Setting emails: %v", notificationEmailsStr)
 
 	body := map[string]interface{}{
 		"enabled": true,
@@ -234,7 +234,7 @@ The UpdateClient function should be used sparingly - it will use the contents of
 As a result, changes to the member variables in the OIDCClient object itself (creator & clientsecretexpiry) will not be saved using this method unless they are also updated in OIDCClientRaw.
 */
 func (c *Cx1Client) UpdateClient(client OIDCClient) error {
-	c.logger.Debugf("Updating OIDC client with name %v", client.ClientID)
+	c.config.Logger.Debugf("Updating OIDC client with name %v", client.ClientID)
 	client.clientToMap()
 
 	jsonBody, _ := json.Marshal(client.OIDCClientRaw)
@@ -249,7 +249,7 @@ func (c *Cx1Client) UpdateClient(client OIDCClient) error {
 
 // review Keycloak documentation for correct usage
 func (c *Cx1Client) AddClientScopeByID(guid, clientScopeId string) error {
-	c.logger.Debugf("Adding client scope %v to OIDC Client %v", clientScopeId, guid)
+	c.config.Logger.Debugf("Adding client scope %v to OIDC Client %v", clientScopeId, guid)
 
 	_, err := c.sendRequestIAM(http.MethodPut, "/auth/admin", fmt.Sprintf("/clients/%v/default-client-scopes/%v", guid, clientScopeId), nil, nil)
 	return err
@@ -257,7 +257,7 @@ func (c *Cx1Client) AddClientScopeByID(guid, clientScopeId string) error {
 
 // Delete an OIDC Client
 func (c *Cx1Client) DeleteClientByID(guid string) error {
-	c.logger.Debugf("Deleting OIDC client with ID %v", guid)
+	c.config.Logger.Debugf("Deleting OIDC client with ID %v", guid)
 	if strings.EqualFold(guid, c.GetASTAppID()) {
 		return fmt.Errorf("attempt to delete the ast-app client (ID: %v) prevented - this will break your tenant", guid)
 	}
@@ -268,7 +268,7 @@ func (c *Cx1Client) DeleteClientByID(guid string) error {
 // Retrieve the user account behind the OIDC Client
 // The user account stores the roles, group access, and other mappings
 func (c *Cx1Client) GetServiceAccountByID(guid string) (User, error) {
-	c.logger.Debugf("Getting service account user behind OIDC client with ID %v", guid)
+	c.config.Logger.Debugf("Getting service account user behind OIDC client with ID %v", guid)
 	var user User
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/clients/%v/service-account-user", guid), nil, nil)
 	if err != nil {
@@ -280,7 +280,7 @@ func (c *Cx1Client) GetServiceAccountByID(guid string) (User, error) {
 }
 
 func (c *Cx1Client) GetClientScopes() ([]OIDCClientScope, error) {
-	c.logger.Debugf("Getting OIDC Client Scopes")
+	c.config.Logger.Debugf("Getting OIDC Client Scopes")
 	var clientscopes []OIDCClientScope
 
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", "/client-scopes", nil, nil)
@@ -289,7 +289,7 @@ func (c *Cx1Client) GetClientScopes() ([]OIDCClientScope, error) {
 	}
 
 	err = json.Unmarshal(response, &clientscopes)
-	c.logger.Tracef("Got %d client scopes", len(clientscopes))
+	c.config.Logger.Tracef("Got %d client scopes", len(clientscopes))
 	return clientscopes, err
 }
 
@@ -328,7 +328,7 @@ func (c *Cx1Client) GetASTAppID() string {
 	if c.astAppID == "" {
 		client, err := c.GetClientByName("ast-app")
 		if err != nil {
-			c.logger.Warnf("Error finding AST App ID: %s", err)
+			c.config.Logger.Warnf("Error finding AST App ID: %s", err)
 			return ""
 		}
 
@@ -341,7 +341,7 @@ func (c *Cx1Client) GetASTAppID() string {
 func (c *Cx1Client) RegenerateClientSecret(client OIDCClient) (string, error) {
 	clientId := client.ID
 	body := map[string]interface{}{
-		"realm":  c.tenant,
+		"realm":  c.config.Tenant,
 		"client": clientId,
 	}
 

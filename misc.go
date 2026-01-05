@@ -1,101 +1,60 @@
 package Cx1ClientGo
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 )
 
-// miscellaneous functions (ClientVars & Pagination)
+var scanEngineLicenseMap = map[string]string{
+	"sast":       "SAST",
+	"sca":        "SCA",
+	"kics":       "KICS",
+	"iac":        "KICS",
+	"containers": "Containers",
+	//"?":            "Fusion",
+	"apisec": "API Security",
+	//"?":            "DAST",
+	//"?":            "Malicious Packages",
+	//"?":            "Cloud Insights",
+	//"?":            "Application Risk Management",
+	//"microengines": "Enterprise Secrets", // microengines- "Value": { "2ms" : "true" }
+	"secrets": "Enterprise Secrets",
+	"2ms":     "Enterprise Secrets",
+	//"?":            "AI Protection",
+	//"?":            "SCS",
+}
 
 func (c *Cx1Client) GetClientVars() ClientVars {
-	return c.consts
+	return *c.config.Polling
 }
 
 func (c *Cx1Client) SetClientVars(clientvars ClientVars) {
-	c.consts = clientvars
-}
-
-func (c *Cx1Client) InitializeClientVars() {
-	c.SetClientVars(c.GetDefaultClientVars())
+	c.config.Polling = &clientvars
 }
 
 func (c *Cx1Client) GetDefaultClientVars() ClientVars {
-	return ClientVars{
-		MigrationPollingMaxSeconds:                300, // 5 min
-		MigrationPollingDelaySeconds:              30,
-		AuditEnginePollingMaxSeconds:              300,
-		AuditEnginePollingDelaySeconds:            30,
-		AuditScanPollingMaxSeconds:                600,
-		AuditScanPollingDelaySeconds:              30,
-		AuditCompilePollingMaxSeconds:             600,
-		AuditCompilePollingDelaySeconds:           30,
-		AuditLanguagePollingMaxSeconds:            300,
-		AuditLanguagePollingDelaySeconds:          30,
-		ReportPollingMaxSeconds:                   300,
-		ReportPollingDelaySeconds:                 30,
-		ExportPollingMaxSeconds:                   300,
-		ExportPollingDelaySeconds:                 30,
-		ScanPollingMaxSeconds:                     0,
-		ScanPollingDelaySeconds:                   30,
-		ProjectApplicationLinkPollingMaxSeconds:   300,
-		ProjectApplicationLinkPollingDelaySeconds: 15,
-	}
+	return c.config.GetDefaultClientVars()
 }
 
-// Retrieve the configured default "limit" values for paging when retrieving various object types
+// Retrieve the configured "limit" values for paging when retrieving various object types
 // Two default settings are available via GetPaginationDefaults(SingleTenant|MultiTenant)
 func (c *Cx1Client) GetPaginationSettings() PaginationSettings {
-	c.logger.Debugf("Retrieving pagination settings")
-	return c.pagination
+	return *c.config.Pagination
 }
 
 func (c *Cx1Client) SetPaginationSettings(pagination PaginationSettings) {
-	c.pagination = pagination
-}
-
-func (c *Cx1Client) InitializePaginationSettings() {
-	c.SetPaginationSettings(c.GetPaginationDefaultsMultiTenant())
-}
-
-func (c *Cx1Client) GetPaginationDefaultsSingleTenant() PaginationSettings {
-	return PaginationSettings{
-		Applications:     500,
-		Branches:         100,
-		Clients:          100,
-		CxLinks:          100,
-		Groups:           200,
-		GroupMembers:     100,
-		Policies:         50,
-		PolicyViolations: 50,
-		Projects:         500,
-		ProjectOverviews: 50,
-		Results:          200,
-		Scans:            200,
-		ScanSchedules:    200,
-		SASTAggregate:    10000,
-		Users:            200,
-	}
+	c.config.Pagination = &pagination
 }
 
 func (c *Cx1Client) GetPaginationDefaultsMultiTenant() PaginationSettings {
-	return PaginationSettings{
-		Applications:     50,
-		Branches:         100,
-		Clients:          20,
-		CxLinks:          100,
-		Groups:           100,
-		GroupMembers:     50,
-		Policies:         20,
-		PolicyViolations: 20,
-		Projects:         50,
-		ProjectOverviews: 100,
-		Results:          100,
-		Scans:            50,
-		ScanSchedules:    50,
-		SASTAggregate:    10000,
-		Users:            100,
-	}
+	return c.config.GetPaginationDefaultsMultiTenant()
+}
+
+func (c *Cx1Client) GetPaginationDefaultsSingleTenant() PaginationSettings {
+	return c.config.GetPaginationDefaultsSingleTenant()
 }
 
 func (f *BaseFilter) Bump() {
@@ -189,6 +148,207 @@ func (v VersionTriad) Compare(test VersionTriad) int {
 			}
 		}
 	}
+}
+
+func (c *Cx1Client) RefreshFlags() error {
+	var flags map[string]bool = make(map[string]bool, 0)
+
+	c.config.Logger.Debugf("Get Cx1 tenant flags")
+	var FlagResponse []struct {
+		Name   string `json:"name"`
+		Status bool   `json:"status"`
+		// Payload interface{} `json:"payload"` // ignoring the payload for now
+	}
+
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/flags?filter=%v", c.tenantID), nil, nil)
+
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(response, &FlagResponse)
+	if err != nil {
+		return err
+	}
+
+	for _, fr := range FlagResponse {
+		flags[fr.Name] = fr.Status
+	}
+
+	c.flags = flags
+
+	return nil
+}
+
+func (c *Cx1Client) GetFlags() map[string]bool {
+	return c.flags
+}
+
+func (c *Cx1Client) GetLicense() ASTLicense {
+	return c.claims.Cx1License
+}
+
+func (c *Cx1Client) GetClaims() Cx1Claims {
+	return c.claims
+}
+
+// Check if the license allows a specific engine: SAST, SCA, IAC/KICS, Containers
+func (c *Cx1Client) IsEngineAllowed(engine string) (string, bool) {
+	var engineName string
+	var licenseName string
+	for long, license := range scanEngineLicenseMap {
+		if strings.EqualFold(license, engine) || strings.EqualFold(long, engine) {
+			engineName = long
+			licenseName = license
+			break
+		}
+	}
+	if engineName == "" {
+		return "", false
+	}
+	c.config.Logger.Tracef("Checking license for %v/%v", engineName, licenseName)
+
+	for _, eng := range c.claims.Cx1License.LicenseData.AllowedEngines {
+		if strings.EqualFold(licenseName, eng) {
+			return licenseName, true
+		}
+	}
+	return "", false
+}
+
+// Check if a feature flag is set
+func (c *Cx1Client) CheckFlag(flag string) (bool, error) {
+	if len(c.flags) == 0 {
+		c.config.Logger.Debugf("No flags defined, refreshing")
+		err := c.RefreshFlags()
+		if err != nil {
+			return false, err
+		}
+	}
+	setting, ok := c.flags[flag]
+	if !ok {
+		return false, fmt.Errorf("no such flag: %v", flag)
+	}
+
+	return setting, nil
+}
+
+// Check which user is set as the tenant owner
+func (c *Cx1Client) GetTenantOwner() (TenantOwner, error) {
+	if c.tenantOwner != nil {
+		return *c.tenantOwner, nil
+	}
+
+	var owner TenantOwner
+
+	response, err := c.sendRequestIAM(http.MethodGet, "/auth", "/owner", nil, nil)
+	if err != nil {
+		return owner, err
+	}
+
+	err = json.Unmarshal(response, &owner)
+	if err == nil {
+		c.tenantOwner = &owner
+	}
+	return owner, err
+}
+
+// Retrieve the version strings for various system components
+func (c *Cx1Client) GetVersion() (VersionInfo, error) {
+	if c.version != nil {
+		return *c.version, nil
+	}
+
+	var v VersionInfo
+	response, err := c.sendRequest(http.MethodGet, "/versions", nil, nil)
+	if err != nil {
+		return v, err
+	}
+
+	err = json.Unmarshal(response, &v)
+	if err != nil {
+		return v, err
+	}
+
+	v.Parse()
+	return v, nil
+}
+
+func (c *Cx1Client) GetAccessToken() string {
+	return c.config.Auth.AccessToken
+}
+
+func (c *Cx1Client) GetCurrentUsername() string {
+	return c.claims.Username
+}
+
+func (c *Cx1Client) SetLogger(logger Logger) {
+	c.config.Logger = logger
+}
+
+// returns a copy of this client which can be used separately
+// they will not share access tokens or other data after the clone.
+func (c *Cx1Client) Clone() Cx1Client {
+	return *c
+}
+
+// If you are heavily using functions that throw deprecation warnings you can mute them here
+// Just don't be surprised when they are actually deprecated
+func (c *Cx1Client) SetDeprecationWarning(logged bool) {
+	c.config.SuppressDepWarn = !logged
+}
+
+func (c *Cx1Client) GetTenantID() string {
+	if c.tenantID != "" {
+		return c.tenantID
+	}
+
+	// This shouldn't ever run since the token should contain & initialize the tenantID.
+	response, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", "", nil, nil)
+	if err != nil {
+		c.config.Logger.Warnf("Failed to retrieve tenant ID: %s", err)
+		return c.tenantID
+	}
+
+	var realms struct {
+		ID    string `json:"id"`
+		Realm string `json:"realm"`
+	} // Sometimes this returns an array of one element? Is it possible to return multiple?
+
+	err = json.Unmarshal(response, &realms)
+	if err != nil {
+		c.config.Logger.Warnf("Failed to parse tenant ID: %s", err)
+		c.config.Logger.Tracef("Response was: %v", string(response))
+		return c.tenantID
+	}
+
+	if realms.Realm == c.config.Tenant {
+		c.tenantID = realms.ID
+	}
+	if c.tenantID == "" {
+		c.config.Logger.Warnf("Failed to retrieve tenant ID: no tenant found matching %v", c.config.Tenant)
+	}
+
+	return c.tenantID
+}
+
+func (c *Cx1Client) GetTenantName() string {
+	return c.config.Tenant
+}
+
+func (c *Cx1Client) GetBaseURL() string {
+	return c.config.BaseUrl
+}
+
+func (c *Cx1Client) GetIAMURL() string {
+	return c.config.IamUrl
+}
+
+func (u Cx1TokenUserInfo) String() string {
+	if u.ClientName != "" {
+		return fmt.Sprintf("OIDC Client %v", u.ClientName)
+	}
+	return fmt.Sprintf("User [%v] %v", ShortenGUID(u.UserID), u.UserName)
 }
 
 // this is for convenience when initializing structs with *bool members, thanks golang

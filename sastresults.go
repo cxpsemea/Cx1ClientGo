@@ -9,10 +9,10 @@ import (
 )
 
 func (c *Cx1Client) GetScanSASTResultsByID(scanID string, limit uint64) ([]ScanSASTResult, error) {
-	c.logger.Debugf("Get %d Cx1 Scan Results for scan %v", limit, scanID)
+	c.config.Logger.Debugf("Get %d Cx1 Scan Results for scan %v", limit, scanID)
 
 	_, results, err := c.GetXScanSASTResultsFiltered(ScanSASTResultsFilter{
-		BaseFilter:      BaseFilter{Limit: c.pagination.Results},
+		BaseFilter:      BaseFilter{Limit: c.config.Pagination.Results},
 		ScanID:          scanID,
 		IncludeNodes:    boolPtr(true),
 		ApplyPredicates: boolPtr(true),
@@ -23,10 +23,10 @@ func (c *Cx1Client) GetScanSASTResultsByID(scanID string, limit uint64) ([]ScanS
 }
 
 func (c *Cx1Client) GetAllScanSASTResultsByID(scanID string) ([]ScanSASTResult, error) {
-	c.logger.Debugf("Get all Cx1 Scan Results for scan %v", scanID)
+	c.config.Logger.Debugf("Get all Cx1 Scan Results for scan %v", scanID)
 
 	_, results, err := c.GetAllScanSASTResultsFiltered(ScanSASTResultsFilter{
-		BaseFilter:      BaseFilter{Limit: c.pagination.Results},
+		BaseFilter:      BaseFilter{Limit: c.config.Pagination.Results},
 		ScanID:          scanID,
 		IncludeNodes:    boolPtr(true),
 		ApplyPredicates: boolPtr(true),
@@ -37,7 +37,7 @@ func (c *Cx1Client) GetAllScanSASTResultsByID(scanID string) ([]ScanSASTResult, 
 }
 
 func (c *Cx1Client) GetScanSASTResultsCountByID(scanID string) (uint64, error) {
-	c.logger.Debugf("Get Cx1 Scan Results count for scan %v", scanID)
+	c.config.Logger.Debugf("Get Cx1 Scan Results count for scan %v", scanID)
 	count, _, err := c.GetScanSASTResultsFiltered(ScanSASTResultsFilter{
 		BaseFilter:      BaseFilter{Limit: 0},
 		ScanID:          scanID,
@@ -87,7 +87,7 @@ func (c *Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (ui
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/sast-results/?%v", params.Encode()), nil, nil)
 	if err != nil {
 		err = fmt.Errorf("failed to fetch scans matching filter %v: %s", params.Encode(), err)
-		c.logger.Tracef("Error: %s", err)
+		c.config.Logger.Tracef("Error: %s", err)
 		return 0, results, err
 	}
 

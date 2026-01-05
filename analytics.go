@@ -12,7 +12,7 @@ import (
 // Note that this is the "generic" internal function and so it is up to the consumer to unmarshal the response to the correct type
 // you can use the other analytics convenience functions to do this for you
 func (c *Cx1Client) getAnalytics(kpi string, limit uint64, offset *uint64, filter AnalyticsFilter) ([]byte, error) {
-	c.logger.Debugf("Fetching Analytics KPI %v", kpi)
+	c.config.Logger.Debugf("Fetching Analytics KPI %v", kpi)
 	var response []byte
 	type requestBodyStruct struct {
 		AnalyticsFilter

@@ -14,10 +14,10 @@ import (
 // Get the first count Applications
 // uses the pagination behind the scenes
 func (c *Cx1Client) GetApplications(count uint64) ([]Application, error) {
-	c.logger.Debugf("Get Cx1 Applications")
+	c.config.Logger.Debugf("Get Cx1 Applications")
 
 	_, applications, err := c.GetXApplicationsFiltered(ApplicationFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Applications},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Applications},
 	}, count)
 
 	return applications, err
@@ -25,10 +25,10 @@ func (c *Cx1Client) GetApplications(count uint64) ([]Application, error) {
 
 // Get all applications
 func (c *Cx1Client) GetAllApplications() ([]Application, error) {
-	c.logger.Debugf("Get Cx1 Applications")
+	c.config.Logger.Debugf("Get Cx1 Applications")
 
 	_, applications, err := c.GetAllApplicationsFiltered(ApplicationFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Applications},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Applications},
 	})
 
 	return applications, err
@@ -36,7 +36,7 @@ func (c *Cx1Client) GetAllApplications() ([]Application, error) {
 
 // Get a specific application by ID
 func (c *Cx1Client) GetApplicationByID(id string) (Application, error) {
-	c.logger.Debugf("Get Cx1 Applications by id: %v", id)
+	c.config.Logger.Debugf("Get Cx1 Applications by id: %v", id)
 	var application Application
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/applications/%v", id), nil, nil)
 	if err != nil {
@@ -56,10 +56,10 @@ func (c *Cx1Client) GetApplicationByID(id string) (Application, error) {
 // As of 2024-10-17, this function no longer takes a specific limit as a parameter
 // To set limits, offsets, and other parameters directly, use GetApplicationsFiltered
 func (c *Cx1Client) GetApplicationsByName(name string) ([]Application, error) {
-	c.logger.Debugf("Get Cx1 Applications by name: %v", name)
+	c.config.Logger.Debugf("Get Cx1 Applications by name: %v", name)
 
 	_, applications, err := c.GetAllApplicationsFiltered(ApplicationFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Applications},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Applications},
 		Name:       name,
 	})
 
@@ -148,7 +148,7 @@ func (c *Cx1Client) GetXApplicationsFiltered(filter ApplicationFilter, count uin
 
 // Create a new application
 func (c *Cx1Client) CreateApplication(appname string) (Application, error) {
-	c.logger.Debugf("Create Application: %v", appname)
+	c.config.Logger.Debugf("Create Application: %v", appname)
 	data := map[string]interface{}{ // TODO: direct_app ?
 		"name":        appname,
 		"description": "",
@@ -166,7 +166,7 @@ func (c *Cx1Client) CreateApplication(appname string) (Application, error) {
 
 	response, err := c.sendRequest(http.MethodPost, "/applications", bytes.NewReader(jsonBody), nil)
 	if err != nil {
-		c.logger.Tracef("Error while creating application: %s", err)
+		c.config.Logger.Tracef("Error while creating application: %s", err)
 		return app, err
 	}
 
@@ -184,11 +184,11 @@ func (c *Cx1Client) DeleteApplication(application *Application) error {
 // Delete an application by ID
 // There is no UNDO
 func (c *Cx1Client) DeleteApplicationByID(applicationId string) error {
-	c.logger.Debugf("Delete Application: %v", applicationId)
+	c.config.Logger.Debugf("Delete Application: %v", applicationId)
 
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/applications/%v", applicationId), nil, nil)
 	if err != nil {
-		c.logger.Tracef("Error while deleting application: %s", err)
+		c.config.Logger.Tracef("Error while deleting application: %s", err)
 		return err
 	}
 
@@ -197,7 +197,7 @@ func (c *Cx1Client) DeleteApplicationByID(applicationId string) error {
 
 // Get the number of applications
 func (c *Cx1Client) GetApplicationCount() (uint64, error) {
-	c.logger.Debugf("Get Cx1 Application count")
+	c.config.Logger.Debugf("Get Cx1 Application count")
 	count, _, err := c.GetApplicationsFiltered(ApplicationFilter{
 		BaseFilter: BaseFilter{Limit: 1},
 	})
@@ -207,7 +207,7 @@ func (c *Cx1Client) GetApplicationCount() (uint64, error) {
 
 // Get the number of applications with names containing this substring
 func (c *Cx1Client) GetApplicationCountByName(name string) (uint64, error) {
-	c.logger.Debugf("Get Cx1 Application count by name: %v", name)
+	c.config.Logger.Debugf("Get Cx1 Application count by name: %v", name)
 
 	count, _, err := c.GetApplicationsFiltered(ApplicationFilter{
 		BaseFilter: BaseFilter{Limit: 1},
@@ -221,7 +221,7 @@ func (c *Cx1Client) GetApplicationCountByName(name string) (uint64, error) {
 func (c *Cx1Client) GetApplicationCountFiltered(filter ApplicationFilter) (uint64, error) {
 	filter.Limit = 1
 	params, _ := query.Values(filter)
-	c.logger.Debugf("Get Cx1 Application count matching filter: %v", params.Encode())
+	c.config.Logger.Debugf("Get Cx1 Application count matching filter: %v", params.Encode())
 
 	count, _, err := c.GetApplicationsFiltered(filter)
 
@@ -259,7 +259,7 @@ func (c *Cx1Client) AssignApplicationToProjectsByIDs(applicationId string, proje
 
 	_, err = c.sendRequest(http.MethodPost, fmt.Sprintf("/applications/%v/projects", applicationId), bytes.NewReader(jsonBody), nil)
 	if err != nil {
-		c.logger.Tracef("Error while assigning application %v to projects: %s", applicationId, err)
+		c.config.Logger.Tracef("Error while assigning application %v to projects: %s", applicationId, err)
 		return err
 	}
 	return nil
@@ -282,7 +282,7 @@ func (c *Cx1Client) RemoveApplicationFromProjectsByIDs(applicationId string, pro
 
 	_, err = c.sendRequest(http.MethodDelete, fmt.Sprintf("/applications/%v/projects", applicationId), bytes.NewReader(jsonBody), nil)
 	if err != nil {
-		c.logger.Tracef("Error while removing application %v from projects: %s", applicationId, err)
+		c.config.Logger.Tracef("Error while removing application %v from projects: %s", applicationId, err)
 		return err
 	}
 	return nil
@@ -310,7 +310,7 @@ func (c *Cx1Client) PatchApplicationByID(applicationId string, update Applicatio
 // This updates all fields of the application based on the content of the Application object.
 // The passed-in application object is not modified, you must GetApplication* again for an updated object
 func (c *Cx1Client) UpdateApplication(app *Application) error {
-	c.logger.Debugf("Update application: %v", app.String())
+	c.config.Logger.Debugf("Update application: %v", app.String())
 
 	// This may be temporary depending on how the API changes
 	// sending an projectIds array will cause the application's membership in projects to change
@@ -344,7 +344,7 @@ func (c *Cx1Client) UpdateApplication(app *Application) error {
 
 	_, err = c.sendRequest(http.MethodPut, fmt.Sprintf("/applications/%v", app.ApplicationID), bytes.NewReader(jsonBody), nil)
 	if err != nil {
-		c.logger.Tracef("Error while updating application: %s", err)
+		c.config.Logger.Tracef("Error while updating application: %s", err)
 		return err
 	}
 

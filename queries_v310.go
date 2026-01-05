@@ -14,7 +14,7 @@ import (
 
 func (c *Cx1Client) GetQueryByName_v310(level, levelid, language, group, query string) (AuditQuery_v310, error) {
 	c.depwarn("GetQueryByName_v310", "GetQueries + QueryCollection.Get*")
-	c.logger.Debugf("Get %v query by name: %v -> %v -> %v", level, language, group, query)
+	c.config.Logger.Debugf("Get %v query by name: %v -> %v -> %v", level, language, group, query)
 
 	queries, err := c.GetQueriesByLevelID_v310(level, levelid)
 	if err != nil {
@@ -33,7 +33,7 @@ func (c *Cx1Client) GetQueryByName_v310(level, levelid, language, group, query s
 
 func (c *Cx1Client) GetQueriesByLevelID_v310(level, levelId string) ([]AuditQuery_v310, error) {
 	c.depwarn("GetQueryByLevelID_v310", "GetAuditQueryByLevelID")
-	c.logger.Debugf("Get all queries for %v", level)
+	c.config.Logger.Debugf("Get all queries for %v", level)
 
 	var url string
 
@@ -113,7 +113,7 @@ func (c *Cx1Client) DeleteQuery_v310(query AuditQuery_v310) error {
 
 func (c *Cx1Client) DeleteQueryByName_v310(level, levelID, language, group, query string) error {
 	c.depwarn("DeleteQueryByName_v310", "DeleteAuditQueryByName")
-	c.logger.Debugf("Delete %v query by name: %v -> %v -> %v", level, language, group, query)
+	c.config.Logger.Debugf("Delete %v query by name: %v -> %v -> %v", level, language, group, query)
 	path := fmt.Sprintf("queries%%2F%v%%2F%v%%2F%v%%2F%v", language, group, query, query)
 
 	if levelID == "Tenant" {
@@ -126,12 +126,12 @@ func (c *Cx1Client) DeleteQueryByName_v310(level, levelID, language, group, quer
 
 		q, err2 := c.GetQueryByName_v310(level, levelID, language, group, query)
 		if err2 != nil {
-			c.logger.Warnf("error while deleting query (%s) followed by error while checking if the query was deleted (%s) - assuming the query was deleted", err, err2)
+			c.config.Logger.Warnf("error while deleting query (%s) followed by error while checking if the query was deleted (%s) - assuming the query was deleted", err, err2)
 			return nil
 		}
 
 		if q.Level != level {
-			c.logger.Warnf("While deleting the query an error was returned (%s) but the query was deleted", err)
+			c.config.Logger.Warnf("While deleting the query an error was returned (%s) but the query was deleted", err)
 			return nil
 		} else {
 			return fmt.Errorf("error while deleting query (%s) and the query %v still exists", err, q)
@@ -156,7 +156,7 @@ func (c *Cx1Client) AuditNewQuery_v310(language, group, name string) (AuditQuery
 // PUT is the only option to create an override on the project-level (and maybe in the future on application-level)
 func (c *Cx1Client) UpdateQuery_v310(query AuditQuery_v310) error {
 	c.depwarn("UpdateQuery_v310", "UpdateQuery*")
-	c.logger.Debugf("Saving query %v on level %v", query.Path, query.Level)
+	c.config.Logger.Debugf("Saving query %v on level %v", query.Path, query.Level)
 
 	q := QueryUpdate_v310{
 		Name:     query.Name,
@@ -187,7 +187,7 @@ func (c *Cx1Client) UpdateQueries_v310(level, levelid string, queries []QueryUpd
 			return fmt.Errorf("failed to update application-level query: %s, but this may be buggy - use GetQueriesByLevelID_v310 with a project inside this application to check", err)
 		} else {
 			// Workaround to fix issue in CX1: sometimes the query is saved but still throws a 500 error
-			c.logger.Warnf("Query update failed with %s but it's buggy, checking if the query was updated anyway", err)
+			c.config.Logger.Warnf("Query update failed with %s but it's buggy, checking if the query was updated anyway", err)
 
 			allqueries, err := c.GetQueriesByLevelID_v310(level, levelid)
 			if err != nil {
@@ -207,7 +207,7 @@ func (c *Cx1Client) UpdateQueries_v310(level, levelid string, queries []QueryUpd
 					return fmt.Errorf("query %v on %v severity was not updated", q.Path, level)
 				}
 
-				c.logger.Infof("Query %v on %v was successfully updated despite the error", q.Path, level)
+				c.config.Logger.Infof("Query %v on %v was successfully updated despite the error", q.Path, level)
 			}
 			return nil
 		}
@@ -235,7 +235,7 @@ func (c *Cx1Client) UpdateQueries_v310(level, levelid string, queries []QueryUpd
 
 func (c *Cx1Client) UpdateQueryMetadata_v310(query AuditQuery_v310) error {
 	c.depwarn("UpdateQueryMetadata_v310", "UpdateQuery*Metadata")
-	c.logger.Debugf("Saving query %v on level %v", query.Path, query.Level)
+	c.config.Logger.Debugf("Saving query %v on level %v", query.Path, query.Level)
 
 	q := QueryUpdate_v310{
 		Name:     query.Name,
@@ -282,7 +282,7 @@ func (c *Cx1Client) UpdateQueriesMetadata_v310(level, levelid string, queries []
 			return fmt.Errorf("failed to update application-level query: %s, but this may be buggy - use GetQueriesByLevelID_v310 with a project inside this application to check", err)
 		} else {
 			// Workaround to fix issue in CX1: sometimes the query is saved but still throws a 500 error
-			c.logger.Warnf("Query update failed with %s but it's buggy, checking if the query was updated anyway", err)
+			c.config.Logger.Warnf("Query update failed with %s but it's buggy, checking if the query was updated anyway", err)
 
 			allqueries, err := c.GetQueriesByLevelID_v310(level, levelid)
 			if err != nil {
@@ -299,7 +299,7 @@ func (c *Cx1Client) UpdateQueriesMetadata_v310(level, levelid string, queries []
 					return fmt.Errorf("query %v on %v source was not updated", q.Path, level)
 				}
 
-				c.logger.Infof("Query %v on %v was successfully updated despite the error", q.Path, level)
+				c.config.Logger.Infof("Query %v on %v was successfully updated despite the error", q.Path, level)
 			}
 			return nil
 		}

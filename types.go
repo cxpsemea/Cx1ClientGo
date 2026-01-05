@@ -17,32 +17,32 @@ type Logger interface {
 }
 
 type Cx1Client struct {
-	httpClient *http.Client
-	//authToken  string
-	baseUrl    string
-	iamUrl     string
-	tenant     string
-	logger     Logger
-	flags      map[string]bool // initial implementation ignoring "payload" part of the flag
-	consts     ClientVars
-	pagination PaginationSettings
+	config      Cx1ClientConfiguration
+	claims      Cx1Claims
+	user        *User
+	client      *OIDCClient
+	IsUser      bool
+	userinfo    Cx1TokenUserInfo
+	version     *VersionInfo
+	astAppID    string
+	tenantID    string
+	tenantOwner *TenantOwner
+	flags       map[string]bool // initial implementation ignoring "payload" part of the flag
+}
 
-	auth     Cx1ClientAuth
-	claims   Cx1Claims
-	user     *User
-	client   *OIDCClient
-	IsUser   bool
-	userinfo Cx1TokenUserInfo
-
-	version  *VersionInfo
-	astAppID string
-	tenantID string
-	//cx1UserAgent    string
-	headers         http.Header
-	tenantOwner     *TenantOwner
-	maxRetries      int
-	retryDelay      int
-	suppressdepwarn bool
+type Cx1ClientConfiguration struct {
+	HttpClient      *http.Client
+	Auth            Cx1ClientAuth
+	BaseUrl         string
+	IamUrl          string
+	Tenant          string
+	Logger          Logger
+	Polling         *ClientVars
+	Pagination      *PaginationSettings
+	MaxRetries      *int
+	RetryDelay      *int
+	SuppressDepWarn bool
+	HTTPHeaders     http.Header
 }
 
 type Cx1TokenUserInfo struct {

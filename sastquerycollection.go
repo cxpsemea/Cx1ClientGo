@@ -371,7 +371,7 @@ func (qc *SASTQueryCollection) AddQueryTree(t *[]AuditQueryTree, appId, projectI
 						qlevelId = appId
 						qlevel = AUDIT_QUERY.APPLICATION
 					default:
-						//c.logger.Warnf("Unknown query level: %v / %v", level.Title, level.Key)
+						//c.config.Logger.Warnf("Unknown query level: %v / %v", level.Title, level.Key)
 						qlevelId = level.Title
 						qlevel = level.Title
 					}
@@ -554,11 +554,11 @@ func (qc SASTQueryCollection) GetQueryFamilies(executableOnly bool) []QueryFamil
 }
 
 func (c *Cx1Client) QueryGroupLink(q *SASTQueryGroup) string {
-	return fmt.Sprintf("%v/audit/?language=%v&group=%v", c.baseUrl, q.Language, q.Name)
+	return fmt.Sprintf("%v/audit/?language=%v&group=%v", c.config.BaseUrl, q.Language, q.Name)
 }
 
 func (c *Cx1Client) QueryLanguageLink(q *SASTQueryLanguage) string {
-	return fmt.Sprintf("%v/audit/?language=%v", c.baseUrl, q.Name)
+	return fmt.Sprintf("%v/audit/?language=%v", c.config.BaseUrl, q.Name)
 }
 
 func (q SASTQueryGroup) String() string {

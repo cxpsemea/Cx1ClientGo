@@ -12,11 +12,12 @@ import (
 // Presets
 
 func (p Preset) String() string {
-	if p.Engine == "sast" {
+	switch p.Engine {
+	case "sast":
 		return fmt.Sprintf("[%v] %v (sast)", p.PresetID, p.Name)
-	} else if p.Engine == "iac" {
+	case "iac":
 		return fmt.Sprintf("[%v] %v (iac)", ShortenGUID(p.PresetID), p.Name)
-	} else {
+	default:
 		return fmt.Sprintf("[%v] %v (%v)", p.PresetID, p.Name, p.Engine)
 	}
 
@@ -25,7 +26,7 @@ func (p Preset) String() string {
 func (c *Cx1Client) newPresetsEnabled() bool {
 	flag, _ := c.CheckFlag("NEW_PRESET_MANAGEMENT_ENABLED")
 	if !flag {
-		c.logger.Debugf("The New Preset Management feature is not enabled in this environment. Old /api/presets endpoints will be used, but these will be disabled in Cx1 Multi-Tenant EOY 2025 and removed from Cx1ClientGo at that time. Ensure your environment has the new feature if you wish to use newer Cx1ClientGo library versions in 2026.")
+		c.config.Logger.Debugf("The New Preset Management feature is not enabled in this environment. Old /api/presets endpoints will be used, but these will be disabled in Cx1 Multi-Tenant EOY 2025 and removed from Cx1ClientGo at that time. Ensure your environment has the new feature if you wish to use newer Cx1ClientGo library versions in 2026.")
 	}
 	return flag
 }
@@ -41,7 +42,7 @@ func (c *Cx1Client) GetIACPresets(count uint64) ([]Preset, error) {
 }
 
 func (c *Cx1Client) GetPresets(engine string, count uint64) ([]Preset, error) {
-	c.logger.Debugf("Get Cx1 %v Presets", engine)
+	c.config.Logger.Debugf("Get Cx1 %v Presets", engine)
 	if !c.newPresetsEnabled() {
 		if engine == "sast" {
 			queries, err := c.GetSASTPresetQueries()
@@ -74,14 +75,14 @@ func (c *Cx1Client) GetPresets(engine string, count uint64) ([]Preset, error) {
 
 	err = json.Unmarshal(response, &preset_response)
 	if err != nil {
-		c.logger.Tracef("Failed to unmarshal response: %s", err)
+		c.config.Logger.Tracef("Failed to unmarshal response: %s", err)
 	}
 
 	for id := range preset_response.Presets {
 		preset_response.Presets[id].Engine = engine
 	}
 
-	//c.logger.Tracef("Got %d presets", len(preset_response.Presets))
+	//c.config.Logger.Tracef("Got %d presets", len(preset_response.Presets))
 
 	return preset_response.Presets, err
 }
@@ -94,7 +95,7 @@ func (c *Cx1Client) GetIACPresetCount() (uint64, error) {
 }
 
 func (c *Cx1Client) GetPresetCount(engine string) (uint64, error) {
-	c.logger.Debugf("Get Cx1 %v Presets count", engine)
+	c.config.Logger.Debugf("Get Cx1 %v Presets count", engine)
 
 	if !c.newPresetsEnabled() {
 		if engine == "sast" {
@@ -114,8 +115,8 @@ func (c *Cx1Client) GetPresetCount(engine string) (uint64, error) {
 
 	err = json.Unmarshal(response, &preset_response)
 	if err != nil {
-		c.logger.Tracef("Failed to unmarshal response: %s", err)
-		c.logger.Tracef("Response was: %v", string(response))
+		c.config.Logger.Tracef("Failed to unmarshal response: %s", err)
+		c.config.Logger.Tracef("Response was: %v", string(response))
 
 	}
 
@@ -133,7 +134,7 @@ func (c *Cx1Client) GetIACPresetByName(name string) (Preset, error) {
 }
 
 func (c *Cx1Client) GetPresetByName(engine, name string) (Preset, error) {
-	c.logger.Debugf("Get preset by name %v for %v", name, engine)
+	c.config.Logger.Debugf("Get preset by name %v for %v", name, engine)
 
 	if !c.newPresetsEnabled() {
 		if engine == "sast" {
@@ -381,7 +382,7 @@ func (c *Cx1Client) GetAllSASTPresets() ([]Preset, error) {
 }
 
 func (c *Cx1Client) CreateSASTPreset(name, description string, collection SASTQueryCollection) (Preset, error) {
-	c.logger.Debugf("Creating preset %v for sast", name)
+	c.config.Logger.Debugf("Creating preset %v for sast", name)
 	if !c.newPresetsEnabled() {
 		new_preset, err := c.CreatePreset_v330(name, description, collection.GetQueryIDs())
 		if err != nil {
@@ -391,7 +392,7 @@ func (c *Cx1Client) CreateSASTPreset(name, description string, collection SASTQu
 	}
 
 	if len(description) > 60 {
-		c.logger.Warnf("Description is longer than 60 characters, will be truncated")
+		c.config.Logger.Warnf("Description is longer than 60 characters, will be truncated")
 		description = description[:60]
 	}
 
@@ -415,10 +416,10 @@ func (c *Cx1Client) GetAllIACPresets() ([]Preset, error) {
 }
 
 func (c *Cx1Client) CreateIACPreset(name, description string, collection IACQueryCollection) (Preset, error) {
-	c.logger.Debugf("Creating preset %v for iac", name)
+	c.config.Logger.Debugf("Creating preset %v for iac", name)
 
 	if len(description) > 60 {
-		c.logger.Warnf("Description is longer than 60 characters, will be truncated")
+		c.config.Logger.Warnf("Description is longer than 60 characters, will be truncated")
 		description = description[:60]
 	}
 
@@ -462,17 +463,17 @@ func (c *Cx1Client) UpdateSASTPreset(preset Preset) error {
 		p := preset.ToPreset_v330()
 		return c.UpdatePreset_v330(&p)
 	}
-	c.logger.Debugf("Saving sast preset %v", preset.Name)
+	c.config.Logger.Debugf("Saving sast preset %v", preset.Name)
 	return c.updatePreset("sast", preset.PresetID, preset.Name, preset.Description, preset.QueryFamilies)
 }
 func (c *Cx1Client) UpdateIACPreset(preset Preset) error {
-	c.logger.Debugf("Saving iac preset %v", preset.Name)
+	c.config.Logger.Debugf("Saving iac preset %v", preset.Name)
 	return c.updatePreset("iac", preset.PresetID, preset.Name, preset.Description, preset.QueryFamilies)
 }
 
 func (c *Cx1Client) updatePreset(engine, id, name, description string, families []QueryFamily) error {
 	if len(description) > 60 {
-		c.logger.Warnf("Description is longer than 60 characters, will be truncated")
+		c.config.Logger.Warnf("Description is longer than 60 characters, will be truncated")
 		description = description[:60]
 	}
 
@@ -496,7 +497,7 @@ func (c *Cx1Client) DeletePreset(preset Preset) error {
 		p := preset.ToPreset_v330()
 		return c.DeletePreset_v330(&p)
 	}
-	c.logger.Debugf("Removing preset %v", preset.Name)
+	c.config.Logger.Debugf("Removing preset %v", preset.Name)
 	if !preset.Custom {
 		return fmt.Errorf("cannot delete preset %v - this is a product-default preset", preset.String())
 	}
@@ -507,7 +508,7 @@ func (c *Cx1Client) DeletePreset(preset Preset) error {
 
 func (c *Cx1Client) PresetLink(p *Preset) string {
 	c.depwarn("PresetLink", "will be removed")
-	return fmt.Sprintf("%v/resourceManagement/presets?presetId=%v", c.baseUrl, p.PresetID)
+	return fmt.Sprintf("%v/resourceManagement/presets?presetId=%v", c.config.BaseUrl, p.PresetID)
 }
 
 func (p Preset) GetSASTQueryCollection(queries SASTQueryCollection) SASTQueryCollection {
