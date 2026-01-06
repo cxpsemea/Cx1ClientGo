@@ -10,9 +10,9 @@ import (
 
 // Return overviews for all projects
 func (c *Cx1Client) GetAllProjectOverviews() ([]ProjectOverview, error) {
-	c.logger.Debugf("Get All Cx1 Project Overviews")
+	c.config.Logger.Debugf("Get All Cx1 Project Overviews")
 	_, projects, err := c.GetAllProjectOverviewsFiltered(ProjectOverviewFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.ProjectOverviews},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.ProjectOverviews},
 	})
 	return projects, err
 }
@@ -73,7 +73,7 @@ func (c *Cx1Client) GetXProjectOverviewsFiltered(filter ProjectOverviewFilter, c
 func (c *Cx1Client) GetProjectOverviewCountFiltered(filter ProjectOverviewFilter) (uint64, error) {
 	filter.Limit = 1
 	params, _ := query.Values(filter)
-	c.logger.Debugf("Get Cx1 Project overview count matching filter: %v", params.Encode())
+	c.config.Logger.Debugf("Get Cx1 Project overview count matching filter: %v", params.Encode())
 	count, _, err := c.GetProjectOverviewsFiltered(filter)
 	return count, err
 }

@@ -17,7 +17,7 @@ func (g Group) String() string {
 
 // create a top-level group
 func (c *Cx1Client) CreateGroup(groupname string) (Group, error) {
-	c.logger.Debugf("Create Group: %v ", groupname)
+	c.config.Logger.Debugf("Create Group: %v ", groupname)
 	data := map[string]interface{}{
 		"name": groupname,
 	}
@@ -28,7 +28,7 @@ func (c *Cx1Client) CreateGroup(groupname string) (Group, error) {
 
 	response, err := c.sendRequestRawIAM(http.MethodPost, "/auth/admin", "/groups", bytes.NewReader(jsonBody), nil)
 	if err != nil {
-		c.logger.Tracef("Error creating group %v: %s", groupname, err)
+		c.config.Logger.Tracef("Error creating group %v: %s", groupname, err)
 		return Group{}, err
 	}
 
@@ -36,7 +36,7 @@ func (c *Cx1Client) CreateGroup(groupname string) (Group, error) {
 	if location != "" {
 		lastInd := strings.LastIndex(location, "/")
 		guid := location[lastInd+1:]
-		c.logger.Tracef("New group ID: %v", guid)
+		c.config.Logger.Tracef("New group ID: %v", guid)
 		return c.GetGroupByID(guid)
 	} else {
 		return Group{}, fmt.Errorf("unknown error - no Location header redirect in response")
@@ -44,7 +44,7 @@ func (c *Cx1Client) CreateGroup(groupname string) (Group, error) {
 }
 
 func (c *Cx1Client) CreateChildGroup(parentGroup *Group, childGroupName string) (Group, error) {
-	c.logger.Debugf("Create child Group: %v ", childGroupName)
+	c.config.Logger.Debugf("Create child Group: %v ", childGroupName)
 	var child_group Group
 	data := map[string]interface{}{
 		"name": childGroupName,
@@ -56,13 +56,13 @@ func (c *Cx1Client) CreateChildGroup(parentGroup *Group, childGroupName string) 
 
 	response, err := c.sendRequestIAM(http.MethodPost, "/auth/admin", "/groups/"+parentGroup.GroupID+"/children", bytes.NewReader(jsonBody), nil)
 	if err != nil {
-		c.logger.Errorf("Error creating group: %s", err)
+		c.config.Logger.Errorf("Error creating group: %s", err)
 		return child_group, err
 	}
 
 	err = json.Unmarshal(response, &child_group)
 	if err != nil {
-		c.logger.Errorf("Error unmarshalling new child group: %s", err)
+		c.config.Logger.Errorf("Error unmarshalling new child group: %s", err)
 		return child_group, err
 	}
 
@@ -72,7 +72,7 @@ func (c *Cx1Client) CreateChildGroup(parentGroup *Group, childGroupName string) 
 }
 
 func (c *Cx1Client) GetGroupsPIP() ([]Group, error) {
-	c.logger.Debugf("Get cx1 groups pip")
+	c.config.Logger.Debugf("Get cx1 groups pip")
 	var groups []Group
 	response, err := c.sendRequestIAM(http.MethodGet, "/auth", "/pip/groups", nil, nil)
 	if err != nil {
@@ -84,7 +84,7 @@ func (c *Cx1Client) GetGroupsPIP() ([]Group, error) {
 }
 
 func (c *Cx1Client) GetGroupPIPByName(groupname string) (Group, error) {
-	c.logger.Debugf("Get Cx1 Group by name: %v", groupname)
+	c.config.Logger.Debugf("Get Cx1 Group by name: %v", groupname)
 
 	groups, err := c.GetGroupsPIP()
 	if err != nil {
@@ -102,11 +102,11 @@ func (c *Cx1Client) GetGroupPIPByName(groupname string) (Group, error) {
 
 // this returns all groups including all subgroups
 func (c *Cx1Client) GetGroups() ([]Group, error) {
-	c.logger.Debugf("Get Cx1 Groups")
+	c.config.Logger.Debugf("Get Cx1 Groups")
 	_, groups, err := c.GetAllGroupsFiltered(GroupFilter{
 		BriefRepresentation: boolPtr(false),
 		PopulateHierarchy:   boolPtr(false),
-		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Groups},
+		BaseIAMFilter:       BaseIAMFilter{Max: c.config.Pagination.Groups},
 	}, true)
 	return groups, err
 }
@@ -118,20 +118,20 @@ func (c *Cx1Client) GetAllGroups() ([]Group, error) {
 // will return the first group matching 'groupname'
 // the group is not "filled": the subgroups array will be empty (use FillGroup/GetGroupChildren)
 func (c *Cx1Client) GetGroupByName(groupname string) (Group, error) {
-	c.logger.Debugf("Get Cx1 Group by name: %v", groupname)
+	c.config.Logger.Debugf("Get Cx1 Group by name: %v", groupname)
 	_, groups, err := c.GetAllGroupsFiltered(GroupFilter{
 		BriefRepresentation: boolPtr(false),
 		PopulateHierarchy:   boolPtr(false),
 		Search:              groupname,
 		Exact:               boolPtr(true),
-		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Groups},
+		BaseIAMFilter:       BaseIAMFilter{Max: c.config.Pagination.Groups},
 	}, false)
 
 	if err != nil {
 		return Group{}, err
 	}
 
-	c.logger.Tracef("Got %d groups", len(groups))
+	c.config.Logger.Tracef("Got %d groups", len(groups))
 
 	for i := range groups {
 		if check, _ := c.version.CheckCxOne("3.20.0"); check >= 0 {
@@ -152,19 +152,19 @@ func (c *Cx1Client) GetGroupByName(groupname string) (Group, error) {
 // if a sub-group matches the search, it will return the parent group and only the matching subgroups
 // the returned groups are not "filled": they will not include subgroups that do not match the search term
 func (c *Cx1Client) GetGroupsByName(groupname string) ([]Group, error) {
-	c.logger.Debugf("Get Cx1 Groups by name: %v", groupname)
+	c.config.Logger.Debugf("Get Cx1 Groups by name: %v", groupname)
 	_, groups, err := c.GetAllGroupsFiltered(GroupFilter{
 		BriefRepresentation: boolPtr(false),
 		PopulateHierarchy:   boolPtr(true),
 		Search:              groupname,
-		BaseIAMFilter:       BaseIAMFilter{Max: c.pagination.Groups},
+		BaseIAMFilter:       BaseIAMFilter{Max: c.config.Pagination.Groups},
 	}, false)
 
 	return groups, err
 }
 
 func (c *Cx1Client) GetGroupCount(search string, topLevel bool) (uint64, error) {
-	c.logger.Debugf("Get Cx1 Group count with search=%v, topLevel=%v", search, topLevel)
+	c.config.Logger.Debugf("Get Cx1 Group count with search=%v, topLevel=%v", search, topLevel)
 
 	params := url.Values{}
 
@@ -235,14 +235,14 @@ func (c *Cx1Client) GetAllGroupsFiltered(filter GroupFilter, fill bool) (uint64,
 }
 
 func (c *Cx1Client) DeleteGroup(group *Group) error {
-	c.logger.Debugf("Deleting Group %v...", group.String())
+	c.config.Logger.Debugf("Deleting Group %v...", group.String())
 	_, err := c.sendRequestIAM(http.MethodDelete, "/auth/admin", fmt.Sprintf("/groups/%v", group.GroupID), nil, http.Header{})
 	return err
 }
 
 // this will return the specific group matching this ID
 func (c *Cx1Client) GetGroupByID(groupID string) (Group, error) {
-	c.logger.Debugf("Getting Group with ID %v...", groupID)
+	c.config.Logger.Debugf("Getting Group with ID %v...", groupID)
 	var group Group
 
 	body := url.Values{
@@ -251,7 +251,7 @@ func (c *Cx1Client) GetGroupByID(groupID string) (Group, error) {
 
 	data, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/groups/%v?%v", groupID, body.Encode()), nil, http.Header{})
 	if err != nil {
-		c.logger.Tracef("Fetching group %v failed: %s", groupID, err)
+		c.config.Logger.Tracef("Fetching group %v failed: %s", groupID, err)
 		return group, err
 	}
 
@@ -279,8 +279,8 @@ func (c *Cx1Client) GetGroupChildren(group *Group) ([]Group, error) {
 
 	var err error
 	group.SubGroups = []Group{}
-	for offset := uint64(0); offset < group.SubGroupCount; offset += c.pagination.Groups {
-		groups, err = c.GetGroupChildrenByID(group.GroupID, offset, c.pagination.Groups)
+	for offset := uint64(0); offset < group.SubGroupCount; offset += c.config.Pagination.Groups {
+		groups, err = c.GetGroupChildrenByID(group.GroupID, offset, c.config.Pagination.Groups)
 		if err != nil {
 			return group.SubGroups, err
 		}
@@ -319,7 +319,7 @@ func (c *Cx1Client) GetGroupChildrenByID(groupID string, first, max uint64) ([]G
 	var groups []Group
 	data, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/groups/%v/children?briefRepresentation=false&first=%d&max=%d", groupID, first, max), nil, http.Header{})
 	if err != nil {
-		c.logger.Tracef("Fetching group %v children failed: %s", groupID, err)
+		c.config.Logger.Tracef("Fetching group %v children failed: %s", groupID, err)
 		return groups, err
 	}
 
@@ -334,7 +334,7 @@ func (c *Cx1Client) GetGroupChildrenByID(groupID string, first, max uint64) ([]G
 func (c *Cx1Client) GetGroupInheritedRoles(group *Group) (roles []Role, err error) {
 	// get all roles for this group
 	// go up the group hierarchy
-	c.logger.Debugf("Get group inherited roles for group %v", group.String())
+	c.config.Logger.Debugf("Get group inherited roles for group %v", group.String())
 	realmRoleList, clientRoleList, err := c.getGroupInheritedRoleStrings(group)
 	if err != nil {
 		return nil, err
@@ -352,7 +352,7 @@ func (c *Cx1Client) getGroupInheritedRoleStrings(group *Group) (realmRoleList []
 	if version, err := c.CheckIAMVersion(); err != nil {
 		return nil, nil, err
 	} else if version >= 2 {
-		c.logger.Debugf("Users globally inherit roles from group membership only in old-IAM and IAM Phase1, this tenant is IAM Phase2")
+		c.config.Logger.Debugf("Users globally inherit roles from group membership only in old-IAM and IAM Phase1, this tenant is IAM Phase2")
 		return nil, nil, nil
 	}
 
@@ -411,7 +411,7 @@ func (c *Cx1Client) getGroupInheritedRoleStrings(group *Group) (realmRoleList []
 // is missing the subGroupCount field, which other parts of cx1clientgo rely on, so this function
 // will automatically trigger a GetGroupByID call
 func (c *Cx1Client) GetGroupByPath(path string) (Group, error) {
-	c.logger.Debugf("Getting Group with path %v...", path)
+	c.config.Logger.Debugf("Getting Group with path %v...", path)
 	var group Group
 	if path[:1] == "/" {
 		path = path[1:]
@@ -419,7 +419,7 @@ func (c *Cx1Client) GetGroupByPath(path string) (Group, error) {
 
 	data, err := c.sendRequestIAM(http.MethodGet, "/auth/admin", fmt.Sprintf("/group-by-path/%v", path), nil, http.Header{})
 	if err != nil {
-		c.logger.Tracef("Fetching group %v failed: %s", path, err)
+		c.config.Logger.Tracef("Fetching group %v failed: %s", path, err)
 		return group, err
 	}
 
@@ -431,7 +431,7 @@ func (c *Cx1Client) GetGroupByPath(path string) (Group, error) {
 }
 
 func (c *Cx1Client) GroupLink(g *Group) string {
-	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/groups/%v", c.iamUrl, c.tenant, c.tenant, g.GroupID)
+	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/groups/%v", c.config.IAMUrl, c.config.Tenant, c.config.Tenant, g.GroupID)
 }
 
 // Sets group g as child of group parent
@@ -445,13 +445,13 @@ func (c *Cx1Client) SetGroupParent(g *Group, parent *Group) error {
 	if parent != nil {
 		_, err := c.sendRequestIAM(http.MethodPost, "/auth/admin", fmt.Sprintf("/groups/%v/children", parent.GroupID), bytes.NewReader(jsonBody), http.Header{})
 		if err != nil {
-			c.logger.Tracef("Failed to add child to parent: %s", err)
+			c.config.Logger.Tracef("Failed to add child to parent: %s", err)
 			return err
 		}
 	} else {
 		_, err := c.sendRequestIAM(http.MethodPost, "/auth/admin", "/groups", bytes.NewReader(jsonBody), http.Header{})
 		if err != nil {
-			c.logger.Tracef("Failed to move group to top-level: %s", err)
+			c.config.Logger.Tracef("Failed to move group to top-level: %s", err)
 			return err
 		}
 	}
@@ -628,7 +628,7 @@ func (c *Cx1Client) DeleteRolesFromGroup(g *Group, clientRoles map[string][]stri
 				return fmt.Errorf("failed to remove roles from group %v: %s", g.String(), err)
 			}
 		} else {
-			c.logger.Warnf("DeleteRolesFromGroup called but there are no roles to delete")
+			c.config.Logger.Warnf("DeleteRolesFromGroup called but there are no roles to delete")
 		}
 	}
 
@@ -671,7 +671,7 @@ func (c *Cx1Client) AddRolesToGroup(g *Group, clientRoles map[string][]string) e
 				return fmt.Errorf("failed to add roles to group %v: %s", g.String(), err)
 			}
 		} else {
-			c.logger.Warnf("AddRolesToGroup called but there are no roles to add")
+			c.config.Logger.Warnf("AddRolesToGroup called but there are no roles to add")
 		}
 	}
 
@@ -684,7 +684,7 @@ func (c *Cx1Client) GetGroupMembers(group *Group) ([]User, error) {
 
 func (c *Cx1Client) GetGroupMembersByID(groupId string) ([]User, error) {
 	_, users, err := c.GetAllGroupMembersFiltered(groupId, GroupMembersFilter{
-		BaseIAMFilter: BaseIAMFilter{Max: c.pagination.GroupMembers},
+		BaseIAMFilter: BaseIAMFilter{Max: c.config.Pagination.GroupMembers},
 	})
 	return users, err
 }

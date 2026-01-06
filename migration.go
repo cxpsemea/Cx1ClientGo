@@ -15,7 +15,7 @@ func (c *Cx1Client) StartMigration(dataArchive, projectMapping []byte, encryptio
 		return "", fmt.Errorf("error uploading migration data: %s", err)
 	}
 
-	c.logger.Debugf("Uploaded data archive to %v", dataUrl)
+	c.config.Logger.Debugf("Uploaded data archive to %v", dataUrl)
 	dataFilename := getFilenameFromURL(dataUrl)
 
 	mappingFilename := ""
@@ -27,7 +27,7 @@ func (c *Cx1Client) StartMigration(dataArchive, projectMapping []byte, encryptio
 			return "", fmt.Errorf("error uploading project mapping data: %s", err)
 		}
 
-		c.logger.Debugf("Uploaded project mapping to %v", mappingUrl)
+		c.config.Logger.Debugf("Uploaded project mapping to %v", mappingUrl)
 	}
 
 	return c.StartImport(dataFilename, mappingFilename, encryptionKey)
@@ -80,12 +80,12 @@ func (c *Cx1Client) GetImportByID(importID string) (DataImport, error) {
 }
 
 func (c *Cx1Client) GetImportLogsByID(importID string) ([]byte, error) {
-	c.logger.Debugf("Fetching import logs for import %v", importID)
+	c.config.Logger.Debugf("Fetching import logs for import %v", importID)
 
 	response, err := c.sendRequestRawCx1(http.MethodGet, fmt.Sprintf("/imports/%v/logs/download", importID), nil, nil)
 
 	if err != nil {
-		c.logger.Tracef("Error retrieving import log url: %s", err)
+		c.config.Logger.Tracef("Error retrieving import log url: %s", err)
 		return []byte{}, err
 	}
 
@@ -94,10 +94,10 @@ func (c *Cx1Client) GetImportLogsByID(importID string) ([]byte, error) {
 		return []byte{}, fmt.Errorf("expected location header response not found")
 	}
 
-	c.logger.Tracef("Retrieved url: %v", importlogURL)
+	c.config.Logger.Tracef("Retrieved url: %v", importlogURL)
 	data, err := c.sendRequestInternal(http.MethodGet, importlogURL, nil, nil)
 	if err != nil {
-		c.logger.Tracef("Failed to download logs from %v: %s", importlogURL, err)
+		c.config.Logger.Tracef("Failed to download logs from %v: %s", importlogURL, err)
 		return []byte{}, nil
 	}
 
@@ -105,7 +105,7 @@ func (c *Cx1Client) GetImportLogsByID(importID string) ([]byte, error) {
 }
 
 func (c *Cx1Client) ImportPollingByID(importID string) (string, error) {
-	return c.ImportPollingByIDWithTimeout(importID, c.consts.MigrationPollingDelaySeconds, c.consts.MigrationPollingMaxSeconds)
+	return c.ImportPollingByIDWithTimeout(importID, c.config.Polling.MigrationPollingDelaySeconds, c.config.Polling.MigrationPollingMaxSeconds)
 }
 
 func (c *Cx1Client) ImportPollingByIDWithTimeout(importID string, delaySeconds, maxSeconds int) (string, error) {
@@ -128,7 +128,7 @@ func (c *Cx1Client) ImportPollingByIDWithTimeout(importID string, delaySeconds, 
 				return "timeout", fmt.Errorf("import polling reached %d seconds, aborting - use cx1client.get/setclientvars to change", pollingCounter)
 			}
 
-			c.logger.Infof("Polling every %d seconds, up to %d", delaySeconds, maxSeconds)
+			c.config.Logger.Infof("Polling every %d seconds, up to %d", delaySeconds, maxSeconds)
 			time.Sleep(time.Duration(delaySeconds) * time.Second)
 			pollingCounter += delaySeconds
 		} else {
@@ -137,7 +137,7 @@ func (c *Cx1Client) ImportPollingByIDWithTimeout(importID string, delaySeconds, 
 				if fail_counter == 0 {
 					return "", fmt.Errorf("import ID %v does not exist", importID)
 				}
-				c.logger.Warnf("Import ID %v doesn't exist (yet) - waiting to retry %d more times", importID, fail_counter)
+				c.config.Logger.Warnf("Import ID %v doesn't exist (yet) - waiting to retry %d more times", importID, fail_counter)
 				time.Sleep(time.Duration(delaySeconds) * time.Second)
 			} else {
 				return "", err

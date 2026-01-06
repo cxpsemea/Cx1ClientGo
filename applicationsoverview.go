@@ -9,9 +9,9 @@ import (
 )
 
 func (c *Cx1Client) GetAllApplicationOverviews() ([]ApplicationOverview, error) {
-	c.logger.Debugf("Get All Cx1 Application Overviews")
+	c.config.Logger.Debugf("Get All Cx1 Application Overviews")
 	_, applications, err := c.GetAllApplicationOverviewsFiltered(ApplicationOverviewFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.Applications},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.Applications},
 	})
 
 	return applications, err
@@ -72,7 +72,7 @@ func (c *Cx1Client) GetXApplicationOverviewsFiltered(filter ApplicationOverviewF
 func (c *Cx1Client) GetApplicationOverviewCountFiltered(filter ApplicationOverviewFilter) (uint64, error) {
 	filter.Limit = 1
 	params, _ := query.Values(filter)
-	c.logger.Debugf("Get Cx1 Application count matching filter: %v", params.Encode())
+	c.config.Logger.Debugf("Get Cx1 Application count matching filter: %v", params.Encode())
 	count, _, err := c.GetApplicationOverviewsFiltered(filter)
 	return count, err
 }

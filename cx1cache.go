@@ -48,7 +48,7 @@ func (c *Cx1Cache) ClientSummary() string {
 }
 
 func (c *Cx1Cache) RefreshProjects(client *Cx1Client) error {
-	client.logger.Infof("Refreshing projects in Cx1 cache")
+	////client.logger.Infof("Refreshing projects in Cx1 cache")
 	var err error
 	if !c.ProjectRefresh {
 		c.ProjectRefresh = true
@@ -59,7 +59,7 @@ func (c *Cx1Cache) RefreshProjects(client *Cx1Client) error {
 }
 
 func (c *Cx1Cache) RefreshApplications(client *Cx1Client) error {
-	client.logger.Infof("Refreshing applications in Cx1 cache")
+	////client.logger.Infof("Refreshing applications in Cx1 cache")
 	var err error
 	if !c.ApplicationRefresh {
 		c.ApplicationRefresh = true
@@ -70,7 +70,7 @@ func (c *Cx1Cache) RefreshApplications(client *Cx1Client) error {
 }
 
 func (c *Cx1Cache) RefreshClients(client *Cx1Client) error {
-	client.logger.Infof("Refreshing OIDC Clients in Cx1 cache")
+	////client.logger.Infof("Refreshing OIDC Clients in Cx1 cache")
 	var err error
 	if !c.ClientRefresh {
 		c.ClientRefresh = true
@@ -81,7 +81,7 @@ func (c *Cx1Cache) RefreshClients(client *Cx1Client) error {
 }
 
 func (c *Cx1Cache) RefreshGroups(client *Cx1Client) error {
-	client.logger.Infof("Refreshing groups in Cx1 cache")
+	////client.logger.Infof("Refreshing groups in Cx1 cache")
 	var err error
 	if !c.GroupRefresh {
 		c.GroupRefresh = true
@@ -92,7 +92,7 @@ func (c *Cx1Cache) RefreshGroups(client *Cx1Client) error {
 }
 
 func (c *Cx1Cache) RefreshUsers(client *Cx1Client) error {
-	client.logger.Infof("Refreshing users in Cx1 cache")
+	////client.logger.Infof("Refreshing users in Cx1 cache")
 	var err error
 	if !c.UserRefresh {
 		c.UserRefresh = true
@@ -105,7 +105,7 @@ func (c *Cx1Cache) RefreshUsers(client *Cx1Client) error {
 // This is only the SAST queries
 // To do - add IAC?
 func (c *Cx1Cache) RefreshQueries(client *Cx1Client) error {
-	client.logger.Infof("Refreshing queries in Cx1 cache")
+	//client.logger.Infof("Refreshing queries in Cx1 cache")
 	var err error
 	if !c.QueryRefresh {
 		c.QueryRefresh = true
@@ -116,7 +116,7 @@ func (c *Cx1Cache) RefreshQueries(client *Cx1Client) error {
 }
 
 func (c *Cx1Cache) RefreshPresets(client *Cx1Client) error {
-	client.logger.Infof("Refreshing presets in Cx1 cache")
+	//client.logger.Infof("Refreshing presets in Cx1 cache")
 	var err error
 	if !c.PresetRefresh {
 		c.PresetRefresh = true
@@ -127,12 +127,12 @@ func (c *Cx1Cache) RefreshPresets(client *Cx1Client) error {
 		presets, err = client.GetAllSASTPresets()
 
 		if err != nil {
-			client.logger.Tracef("Failed while retrieving presets: %s", err)
+			//client.logger.Tracef("Failed while retrieving presets: %s", err)
 		} else {
 			for id := range presets {
 				err := client.GetPresetContents(&presets[id])
 				if err != nil {
-					client.logger.Tracef("Failed to retrieve preset contents for preset %v: %s", presets[id].String(), err)
+					//client.logger.Tracef("Failed to retrieve preset contents for preset %v: %s", presets[id].String(), err)
 				}
 			}
 		}
@@ -141,12 +141,12 @@ func (c *Cx1Cache) RefreshPresets(client *Cx1Client) error {
 		presets, err = client.GetAllIACPresets()
 
 		if err != nil {
-			client.logger.Tracef("Failed while retrieving presets: %s", err)
+			//client.logger.Tracef("Failed while retrieving presets: %s", err)
 		} else {
 			for id := range presets {
 				err := client.GetPresetContents(&presets[id])
 				if err != nil {
-					client.logger.Tracef("Failed to retrieve preset contents for preset %v: %s", presets[id].String(), err)
+					//client.logger.Tracef("Failed to retrieve preset contents for preset %v: %s", presets[id].String(), err)
 				}
 			}
 		}
@@ -158,13 +158,13 @@ func (c *Cx1Cache) RefreshPresets(client *Cx1Client) error {
 }
 
 func (c *Cx1Cache) RefreshRoles(client *Cx1Client) error {
-	client.logger.Infof("Refreshing roles in Cx1 cache")
+	//client.logger.Infof("Refreshing roles in Cx1 cache")
 	var err error
 	if !c.RoleRefresh {
 		c.RoleRefresh = true
 		c.Roles, err = client.GetRoles()
 		if err != nil {
-			client.logger.Tracef("Failed while retrieving roles: %s", err)
+			//client.logger.Tracef("Failed while retrieving roles: %s", err)
 		} else {
 			for id, r := range c.Roles {
 				var role Role
@@ -174,7 +174,7 @@ func (c *Cx1Cache) RefreshRoles(client *Cx1Client) error {
 				}
 				c.Roles[id].Attributes = role.Attributes
 				if err != nil {
-					client.logger.Tracef("Failed to retrieve details for role %v: %s", r.String(), err)
+					//client.logger.Tracef("Failed to retrieve details for role %v: %s", r.String(), err)
 				}
 			}
 		}

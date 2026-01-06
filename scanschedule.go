@@ -13,7 +13,7 @@ import (
 // Get all scan schedules - v3.44+
 func (c *Cx1Client) GetAllScanSchedules() ([]ProjectScanSchedule, error) {
 	_, schedules, err := c.GetAllScanSchedulesFiltered(ProjectScanScheduleFilter{
-		BaseFilter: BaseFilter{Limit: c.pagination.ScanSchedules},
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.ScanSchedules},
 	})
 	return schedules, err
 }
@@ -79,7 +79,7 @@ func (c *Cx1Client) GetXScanSchedulesFiltered(filter ProjectScanScheduleFilter, 
 func (c *Cx1Client) GetScanScheduleCountFiltered(filter ProjectScanScheduleFilter) (uint64, error) {
 	filter.Limit = 1
 	params, _ := query.Values(filter)
-	c.logger.Debugf("Get Cx1 Project count matching filter: %v", params.Encode())
+	c.config.Logger.Debugf("Get Cx1 Project count matching filter: %v", params.Encode())
 	count, _, err := c.GetScanSchedulesFiltered(filter)
 	return count, err
 }

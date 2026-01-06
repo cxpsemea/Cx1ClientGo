@@ -60,9 +60,10 @@ func getConfigurationByKey(config *[]ConfigurationSetting, configKey string) *Co
 // Add a scan engine to a configuration set.
 // This is only required if you don't want to set specific configs via AddConfig
 func (s *ScanConfigurationSet) AddScanEngine(engine string) {
-	if engine == "iac" {
+	switch engine {
+	case "iac":
 		engine = "kics"
-	} else if engine == "2ms" || engine == "secrets" {
+	case "2ms", "secrets":
 		s.AddConfig("microengines", "2ms", "true")
 		return
 	}
@@ -76,9 +77,10 @@ func (s *ScanConfigurationSet) AddScanEngine(engine string) {
 // Add a specific key-value configuration for a scan, for example "sast", "incremental", "true"
 // You can find the full list of key-value pairs via Swagger or Get*Configuration calls
 func (s *ScanConfigurationSet) AddConfig(engine, key, value string) {
-	if engine == "iac" {
+	switch engine {
+	case "iac":
 		engine = "kics"
-	} else if engine == "2ms" || engine == "secrets" {
+	case "2ms", "secrets":
 		s.AddConfig("microengines", "2ms", "true")
 		return
 	}

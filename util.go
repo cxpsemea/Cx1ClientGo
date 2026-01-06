@@ -14,11 +14,11 @@ func ShortenGUID(guid string) string {
 }
 
 func (c *Cx1Client) depwarn(old, new string) {
-	if !c.suppressdepwarn {
+	if !c.config.SuppressDepWarn {
 		if new == "" {
-			c.logger.Warnf("Cx1ClientGo deprecation notice: %v will be deprecated", old)
+			c.config.Logger.Warnf("Cx1ClientGo deprecation notice: %v will be deprecated", old)
 		} else {
-			c.logger.Warnf("Cx1ClientGo deprecation notice: %v will be deprecated and replaced by %v", old, new)
+			c.config.Logger.Warnf("Cx1ClientGo deprecation notice: %v will be deprecated and replaced by %v", old, new)
 		}
 	}
 }

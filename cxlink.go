@@ -14,7 +14,7 @@ func (c *Cx1Client) GetCxLinks(count uint64) ([]CxLink, error) {
 		CxLinkFilter{
 			BaseFilter: BaseFilter{
 				Offset: 0,
-				Limit:  c.pagination.CxLinks,
+				Limit:  c.config.Pagination.CxLinks,
 			},
 		},
 		count,
@@ -28,7 +28,7 @@ func (c *Cx1Client) GetAllCxLinks() ([]CxLink, error) {
 		CxLinkFilter{
 			BaseFilter: BaseFilter{
 				Offset: 0,
-				Limit:  c.pagination.CxLinks,
+				Limit:  c.config.Pagination.CxLinks,
 			},
 		},
 	)
@@ -130,7 +130,7 @@ func (c *Cx1Client) GetXCxLinksFiltered(filter CxLinkFilter, count uint64) (uint
 func (c *Cx1Client) GetCxLinkCountFiltered(filter CxLinkFilter) (uint64, error) {
 	filter.Limit = 1
 	params, _ := query.Values(filter)
-	c.logger.Debugf("Get Cx1 CxLink count matching filter: %v", params.Encode())
+	c.config.Logger.Debugf("Get Cx1 CxLink count matching filter: %v", params.Encode())
 	count, _, err := c.GetCxLinksFiltered(filter)
 	return count, err
 }

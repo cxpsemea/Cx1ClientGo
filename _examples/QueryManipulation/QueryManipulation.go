@@ -83,7 +83,7 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 
 	defer func() {
 		logger.Infof("Terminating audit session %v", session.ID)
-		err = cx1client.AuditDeleteSession(&session)
+		err = cx1client.DeleteAuditSession(&session)
 		if err != nil {
 			logger.Errorf("Failed to terminate audit session: %s", err)
 		}
@@ -363,7 +363,7 @@ func makeIACQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pro
 		//logger.Infof("Continuing...")
 
 		logger.Infof("Terminating audit session %v", session.ID)
-		err = cx1client.AuditDeleteSession(&session)
+		err = cx1client.DeleteAuditSession(&session)
 		if err != nil {
 			logger.Errorf("Failed to terminate audit session: %s", err)
 		}

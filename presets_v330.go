@@ -17,7 +17,7 @@ func (p Preset_v330) String() string {
 
 func (c *Cx1Client) GetPresets_v330(count uint64) ([]Preset_v330, error) {
 	c.depwarn("GetPresets_v330", "Get(SAST|IAC)Presets")
-	c.logger.Debugf("Get Cx1 Presets")
+	c.config.Logger.Debugf("Get Cx1 Presets")
 	var preset_response struct {
 		TotalCount uint64        `json:"totalCount"`
 		Presets    []Preset_v330 `json:"presets"`
@@ -29,13 +29,13 @@ func (c *Cx1Client) GetPresets_v330(count uint64) ([]Preset_v330, error) {
 	}
 
 	err = json.Unmarshal(response, &preset_response)
-	c.logger.Tracef("Got %d presets", len(preset_response.Presets))
+	c.config.Logger.Tracef("Got %d presets", len(preset_response.Presets))
 	return preset_response.Presets, err
 }
 
 func (c *Cx1Client) GetPresetCount_v330() (uint64, error) {
 	c.depwarn("GetPresetCount_v330", "Get(SAST|IAC)PresetCount")
-	c.logger.Debugf("Get Cx1 Presets count")
+	c.config.Logger.Debugf("Get Cx1 Presets count")
 
 	response, err := c.sendRequest(http.MethodGet, "/presets?limit=1", nil, nil)
 	if err != nil {
@@ -48,8 +48,8 @@ func (c *Cx1Client) GetPresetCount_v330() (uint64, error) {
 
 	err = json.Unmarshal(response, &preset_response)
 	if err != nil {
-		c.logger.Tracef("Failed to unmarshal response: %s", err)
-		c.logger.Tracef("Response was: %v", string(response))
+		c.config.Logger.Tracef("Failed to unmarshal response: %s", err)
+		c.config.Logger.Tracef("Response was: %v", string(response))
 
 	}
 
@@ -58,7 +58,7 @@ func (c *Cx1Client) GetPresetCount_v330() (uint64, error) {
 
 func (c *Cx1Client) GetPresetByName_v330(name string) (Preset_v330, error) {
 	c.depwarn("GetPresetByName_v330", "Get(SAST|IAC)PresetByName")
-	c.logger.Debugf("Get preset by name %v", name)
+	c.config.Logger.Debugf("Get preset by name %v", name)
 	var preset_response struct {
 		TotalCount uint64        `json:"totalCount"`
 		Presets    []Preset_v330 `json:"presets"`
@@ -90,7 +90,7 @@ func (c *Cx1Client) GetPresetByName_v330(name string) (Preset_v330, error) {
 
 func (c *Cx1Client) GetPresetByID_v330(id uint64) (Preset_v330, error) {
 	c.depwarn("GetPresetByID_v330", "Get(SAST|IAC)PresetByID")
-	c.logger.Debugf("Get preset by id %d", id)
+	c.config.Logger.Debugf("Get preset by id %d", id)
 	var temp_preset struct {
 		Preset_v330
 		QueryStr []string `json:"queryIds"`
@@ -118,7 +118,7 @@ func (c *Cx1Client) GetPresetByID_v330(id uint64) (Preset_v330, error) {
 
 func (c *Cx1Client) GetPresetContents_v330(p *Preset_v330, qc *SASTQueryCollection) error {
 	c.depwarn("GetPresetContents_v330", "GetPresetContents")
-	c.logger.Tracef("Fetching contents for preset %v", p.PresetID)
+	c.config.Logger.Tracef("Fetching contents for preset %v", p.PresetID)
 	if !p.Filled {
 		preset, err := c.GetPresetByID_v330(p.PresetID)
 		if err != nil {
@@ -163,11 +163,11 @@ func (p *Preset_v330) AddQueryID(queryId uint64) {
 
 func (c *Cx1Client) CreatePreset_v330(name, description string, queryIDs []uint64) (Preset_v330, error) {
 	c.depwarn("CreatePreset_v330", "Create(SAST|IAC)Preset")
-	c.logger.Debugf("Creating preset %v", name)
+	c.config.Logger.Debugf("Creating preset %v", name)
 	var preset Preset_v330
 
 	if len(description) > 60 {
-		c.logger.Warnf("Description is longer than 60 characters, will be truncated")
+		c.config.Logger.Warnf("Description is longer than 60 characters, will be truncated")
 		description = description[:60]
 	}
 
@@ -208,7 +208,7 @@ func (c *Cx1Client) CreatePreset_v330(name, description string, queryIDs []uint6
 
 func (c *Cx1Client) UpdatePreset_v330(preset *Preset_v330) error {
 	c.depwarn("UpdatePreset_v330", "Update(SAST|IAC)Preset")
-	c.logger.Debugf("Saving preset %v", preset.Name)
+	c.config.Logger.Debugf("Saving preset %v", preset.Name)
 
 	qidstr := make([]string, len(preset.QueryIDs))
 
@@ -218,7 +218,7 @@ func (c *Cx1Client) UpdatePreset_v330(preset *Preset_v330) error {
 
 	description := preset.Description
 	if len(description) > 60 {
-		c.logger.Warnf("Description is longer than 60 characters, will be truncated")
+		c.config.Logger.Warnf("Description is longer than 60 characters, will be truncated")
 		description = description[:60]
 	}
 
@@ -239,7 +239,7 @@ func (c *Cx1Client) UpdatePreset_v330(preset *Preset_v330) error {
 
 func (c *Cx1Client) DeletePreset_v330(preset *Preset_v330) error {
 	c.depwarn("DeletePreset_v330", "DeletePreset")
-	c.logger.Debugf("Removing preset %v", preset.Name)
+	c.config.Logger.Debugf("Removing preset %v", preset.Name)
 	if !preset.Custom {
 		return fmt.Errorf("cannot delete preset %v - this is a product-default preset", preset.String())
 	}
@@ -260,7 +260,7 @@ func (c *Cx1Client) GetPresetQueries_v330() (SASTQueryCollection, error) {
 
 	err = json.Unmarshal(response, &queries)
 	if err != nil {
-		c.logger.Tracef("Failed to parse %v", string(response))
+		c.config.Logger.Tracef("Failed to parse %v", string(response))
 	}
 
 	for i := range queries {

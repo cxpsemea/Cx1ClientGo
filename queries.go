@@ -57,7 +57,7 @@ func (q AuditQuery_v312) ToQuery() SASTQuery {
 // This function uses the cx-audit/queries endpoint, which will at some point be deprecated.
 func (c *Cx1Client) GetQueriesByLevelID(level, levelId string) (SASTQueryCollection, error) {
 	c.depwarn("GetQueriesByLevelID", "GetAuditSASTQueriesByLevelID")
-	c.logger.Debugf("Get all queries for %v", level)
+	c.config.Logger.Debugf("Get all queries for %v", level)
 
 	var url string
 	collection := SASTQueryCollection{}
@@ -348,5 +348,5 @@ func (q IACQuery) MetadataDifferent(metadata AuditIACQueryMetadata) bool {
 }
 
 func (c *Cx1Client) QueryLink(q *SASTQuery) string {
-	return fmt.Sprintf("%v/audit/?queryid=%d", c.baseUrl, q.QueryID)
+	return fmt.Sprintf("%v/audit/?queryid=%d", c.config.Cx1Url, q.QueryID)
 }

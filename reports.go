@@ -130,7 +130,7 @@ func (c *Cx1Client) GetReportStatusByID(reportID string) (ReportStatus, error) {
 
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/reports/%v?returnUrl=true", reportID), nil, nil)
 	if err != nil {
-		c.logger.Tracef("Failed to fetch report status for reportID %v: %s", reportID, err)
+		c.config.Logger.Tracef("Failed to fetch report status for reportID %v: %s", reportID, err)
 		return response, fmt.Errorf("failed to fetch report status for reportID %v: %s", reportID, err)
 	}
 
@@ -148,7 +148,7 @@ func (c *Cx1Client) DownloadReport(reportUrl string) ([]byte, error) {
 
 // convenience function, polls and returns the URL to download the report
 func (c *Cx1Client) ReportPollingByID(reportID string) (string, error) {
-	return c.ReportPollingByIDWithTimeout(reportID, c.consts.ReportPollingDelaySeconds, c.consts.ReportPollingMaxSeconds)
+	return c.ReportPollingByIDWithTimeout(reportID, c.config.Polling.ReportPollingDelaySeconds, c.config.Polling.ReportPollingMaxSeconds)
 }
 
 func (c *Cx1Client) ReportPollingByIDWithTimeout(reportID string, delaySeconds, maxSeconds int) (string, error) {
@@ -159,9 +159,10 @@ func (c *Cx1Client) ReportPollingByIDWithTimeout(reportID string, delaySeconds, 
 			return "", err
 		}
 
-		if status.Status == "completed" {
+		switch status.Status {
+		case "completed":
 			return status.ReportURL, nil
-		} else if status.Status == "failed" {
+		case "failed":
 			return "", fmt.Errorf("report generation failed")
 		}
 
@@ -206,7 +207,7 @@ func (c *Cx1Client) GetExportStatusByID(exportID string) (ExportStatus, error) {
 
 	data, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/sca/export/requests?exportId=%v", exportID), nil, nil)
 	if err != nil {
-		c.logger.Tracef("Failed to fetch export status for exportID %v: %s", exportID, err)
+		c.config.Logger.Tracef("Failed to fetch export status for exportID %v: %s", exportID, err)
 		return response, fmt.Errorf("failed to fetch export status for exportID %v: %s", exportID, err)
 	}
 
@@ -224,7 +225,7 @@ func (c *Cx1Client) DownloadExport(exportUrl string) ([]byte, error) {
 
 // convenience function, polls and returns the URL to download the export
 func (c *Cx1Client) ExportPollingByID(exportID string) (string, error) {
-	return c.ExportPollingByIDWithTimeout(exportID, c.consts.ExportPollingDelaySeconds, c.consts.ExportPollingMaxSeconds)
+	return c.ExportPollingByIDWithTimeout(exportID, c.config.Polling.ExportPollingDelaySeconds, c.config.Polling.ExportPollingMaxSeconds)
 }
 
 func (c *Cx1Client) ExportPollingByIDWithTimeout(exportID string, delaySeconds, maxSeconds int) (string, error) {
