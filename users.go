@@ -312,7 +312,7 @@ func (c *Cx1Client) DeleteUserByID(userid string) error {
 }
 
 func (c *Cx1Client) UserLink(u *User) string {
-	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/users/%v", c.config.IamUrl, c.config.Tenant, c.config.Tenant, u.UserID)
+	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/users/%v", c.config.IAMUrl, c.config.Tenant, c.config.Tenant, u.UserID)
 }
 
 func (c *Cx1Client) UserIsTenantOwner(u *User) (bool, error) {

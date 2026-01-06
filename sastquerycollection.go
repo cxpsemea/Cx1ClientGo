@@ -554,11 +554,11 @@ func (qc SASTQueryCollection) GetQueryFamilies(executableOnly bool) []QueryFamil
 }
 
 func (c *Cx1Client) QueryGroupLink(q *SASTQueryGroup) string {
-	return fmt.Sprintf("%v/audit/?language=%v&group=%v", c.config.BaseUrl, q.Language, q.Name)
+	return fmt.Sprintf("%v/audit/?language=%v&group=%v", c.config.Cx1Url, q.Language, q.Name)
 }
 
 func (c *Cx1Client) QueryLanguageLink(q *SASTQueryLanguage) string {
-	return fmt.Sprintf("%v/audit/?language=%v", c.config.BaseUrl, q.Name)
+	return fmt.Sprintf("%v/audit/?language=%v", c.config.Cx1Url, q.Name)
 }
 
 func (q SASTQueryGroup) String() string {

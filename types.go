@@ -33,8 +33,8 @@ type Cx1Client struct {
 type Cx1ClientConfiguration struct {
 	HttpClient      *http.Client
 	Auth            Cx1ClientAuth
-	BaseUrl         string
-	IamUrl          string
+	Cx1Url          string
+	IAMUrl          string
 	Tenant          string
 	Logger          Logger
 	Polling         *ClientVars

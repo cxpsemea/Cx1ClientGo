@@ -431,7 +431,7 @@ func (c *Cx1Client) GetGroupByPath(path string) (Group, error) {
 }
 
 func (c *Cx1Client) GroupLink(g *Group) string {
-	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/groups/%v", c.config.IamUrl, c.config.Tenant, c.config.Tenant, g.GroupID)
+	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/groups/%v", c.config.IAMUrl, c.config.Tenant, c.config.Tenant, g.GroupID)
 }
 
 // Sets group g as child of group parent

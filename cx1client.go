@@ -29,9 +29,9 @@ func NewClient(client *http.Client, logger Logger) (*Cx1Client, error) {
 			ClientSecret: *ClientSecret,
 			AccessToken:  *Token,
 		},
-		BaseUrl: *Cx1URL,
-		IamUrl:  *IAMURL,
-		Tenant:  *Tenant,
+		Cx1Url: *Cx1URL,
+		IAMUrl: *IAMURL,
+		Tenant: *Tenant,
 	}
 
 	config.HTTPHeaders.Add("User-Agent", *UserAgent)
@@ -50,9 +50,9 @@ func NewOAuthClient(client *http.Client, base_url, iam_url, tenant, client_id, c
 			ClientSecret: client_secret,
 			AccessToken:  last_token,
 		},
-		BaseUrl: base_url,
-		IamUrl:  iam_url,
-		Tenant:  tenant,
+		Cx1Url: base_url,
+		IAMUrl: iam_url,
+		Tenant: tenant,
 	})
 }
 
@@ -153,5 +153,5 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 }
 
 func (c Cx1Client) String() string {
-	return fmt.Sprintf("%v @ %v on %v", c.userinfo.String(), c.config.Tenant, c.config.BaseUrl)
+	return fmt.Sprintf("%v @ %v on %v", c.userinfo.String(), c.config.Tenant, c.config.Cx1Url)
 }

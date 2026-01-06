@@ -58,7 +58,7 @@ func (c *Cx1Client) createRequest(method, url string, body io.Reader, header *ht
 }
 
 func (c *Cx1Client) sendTokenRequest(body io.Reader) (access_token string, err error) {
-	tokenUrl := fmt.Sprintf("%v/auth/realms/%v/protocol/openid-connect/token", c.config.IamUrl, c.config.Tenant)
+	tokenUrl := fmt.Sprintf("%v/auth/realms/%v/protocol/openid-connect/token", c.config.IAMUrl, c.config.Tenant)
 	header := http.Header{
 		"Content-Type": {"application/x-www-form-urlencoded"},
 	}
@@ -284,28 +284,28 @@ func isRetryableError(err error) bool {
 }
 
 func (c *Cx1Client) sendRequest(method, url string, body io.Reader, header http.Header) ([]byte, error) {
-	cx1url := fmt.Sprintf("%v/api%v", c.config.BaseUrl, url)
+	cx1url := fmt.Sprintf("%v/api%v", c.config.Cx1Url, url)
 	return c.sendRequestInternal(method, cx1url, body, header)
 }
 
 func (c *Cx1Client) sendRequestRawCx1(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
-	cx1url := fmt.Sprintf("%v/api%v", c.config.BaseUrl, url)
+	cx1url := fmt.Sprintf("%v/api%v", c.config.Cx1Url, url)
 	return c.sendRequestRaw(method, cx1url, body, header)
 }
 
 func (c *Cx1Client) sendRequestIAM(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
-	iamurl := fmt.Sprintf("%v%v/realms/%v%v", c.config.IamUrl, base, c.config.Tenant, url)
+	iamurl := fmt.Sprintf("%v%v/realms/%v%v", c.config.IAMUrl, base, c.config.Tenant, url)
 	return c.sendRequestInternal(method, iamurl, body, header)
 }
 
 func (c *Cx1Client) sendRequestRawIAM(method, base, url string, body io.Reader, header http.Header) (*http.Response, error) {
-	iamurl := fmt.Sprintf("%v%v/realms/%v%v", c.config.IamUrl, base, c.config.Tenant, url)
+	iamurl := fmt.Sprintf("%v%v/realms/%v%v", c.config.IAMUrl, base, c.config.Tenant, url)
 	return c.sendRequestRaw(method, iamurl, body, header)
 }
 
 // not sure what to call this one? used for /console/ calls, not part of the /realms/ path
 func (c *Cx1Client) sendRequestOther(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
-	iamurl := fmt.Sprintf("%v%v/%v%v", c.config.IamUrl, base, c.config.Tenant, url)
+	iamurl := fmt.Sprintf("%v%v/%v%v", c.config.IAMUrl, base, c.config.Tenant, url)
 	return c.sendRequestInternal(method, iamurl, body, header)
 }
 
@@ -320,6 +320,8 @@ func (c *Cx1Client) parseToken() {
 	if claims.TenantID != "" {
 		c.tenantID = claims.TenantID
 	}
+
+	c.config.ParseClaims(claims)
 
 	c.userinfo = Cx1TokenUserInfo{}
 	c.userinfo.UserID = claims.UserID

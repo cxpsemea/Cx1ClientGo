@@ -500,7 +500,7 @@ func (c *Cx1Client) GetProjectCountFiltered(filter ProjectFilter) (uint64, error
 
 // Returns a URL to the project's overview page
 func (c *Cx1Client) ProjectLink(p *Project) string {
-	return fmt.Sprintf("%v/projects/%v/overview", c.config.BaseUrl, p.ProjectID)
+	return fmt.Sprintf("%v/projects/%v/overview", c.config.Cx1Url, p.ProjectID)
 }
 
 // Sets a project's default repository configuration

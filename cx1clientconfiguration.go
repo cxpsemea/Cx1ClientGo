@@ -10,18 +10,27 @@ func (c *Cx1ClientConfiguration) ParseToken(token string) error {
 	if err != nil {
 		return err
 	}
+	c.ParseClaims(claims)
+	return nil
+}
 
-	if c.BaseUrl == "" && claims.ASTBaseURL != "" {
-		c.BaseUrl = claims.ASTBaseURL
+func (c *Cx1ClientConfiguration) ParseClaims(claims Cx1Claims) {
+	if c.Cx1Url == "" && claims.ASTBaseURL != "" {
+		c.Cx1Url = claims.ASTBaseURL
 	}
-	if c.IamUrl == "" && claims.IAMURL != "" {
-		c.IamUrl = claims.IAMURL
+	if c.IAMUrl == "" && claims.IAMURL != "" {
+		c.IAMUrl = claims.IAMURL
 	}
 	if c.Tenant == "" && claims.TenantName != "" {
 		c.Tenant = claims.TenantName
 	}
 
-	return nil
+	if l := len(c.Cx1Url); l > 0 && c.Cx1Url[l-1:] == "/" {
+		c.Cx1Url = c.Cx1Url[:l-1]
+	}
+	if l := len(c.IAMUrl); l > 0 && c.IAMUrl[l-1:] == "/" {
+		c.IAMUrl = c.IAMUrl[:l-1]
+	}
 }
 
 // Validate that the configuration is valid
@@ -56,21 +65,11 @@ func (c *Cx1ClientConfiguration) Validate() error {
 		}
 	}
 
-	if c.BaseUrl == "" {
-		return fmt.Errorf("no cx1 base url set")
-	}
-	if c.IamUrl == "" {
+	if c.IAMUrl == "" {
 		return fmt.Errorf("no iam url set")
 	}
 	if c.Tenant == "" {
 		return fmt.Errorf("no tenant set")
-	}
-
-	if l := len(c.BaseUrl); c.BaseUrl[l-1:] == "/" {
-		c.BaseUrl = c.BaseUrl[:l-1]
-	}
-	if l := len(c.IamUrl); c.IamUrl[l-1:] == "/" {
-		c.IamUrl = c.IamUrl[:l-1]
 	}
 
 	if c.Polling == nil {

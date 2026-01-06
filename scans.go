@@ -515,7 +515,7 @@ func (c *Cx1Client) GetScanSourcesByID(scanID string) ([]byte, error) {
 	c.config.Logger.Debugf("Fetching scan sources for scan %v", scanID)
 
 	//c.config.Logger.Tracef("Retrieved url: %v", enginelogURL)
-	data, err := c.sendRequestInternal(http.MethodGet, fmt.Sprintf("%v/api/repostore/code/%v", c.config.BaseUrl, scanID), nil, nil)
+	data, err := c.sendRequestInternal(http.MethodGet, fmt.Sprintf("%v/api/repostore/code/%v", c.config.Cx1Url, scanID), nil, nil)
 	if err != nil {
 		c.config.Logger.Tracef("Failed to download sources from scan %v: %s", scanID, err)
 		return []byte{}, nil

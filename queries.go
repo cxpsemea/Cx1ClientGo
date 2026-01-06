@@ -348,5 +348,5 @@ func (q IACQuery) MetadataDifferent(metadata AuditIACQueryMetadata) bool {
 }
 
 func (c *Cx1Client) QueryLink(q *SASTQuery) string {
-	return fmt.Sprintf("%v/audit/?queryid=%d", c.config.BaseUrl, q.QueryID)
+	return fmt.Sprintf("%v/audit/?queryid=%d", c.config.Cx1Url, q.QueryID)
 }

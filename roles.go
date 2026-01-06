@@ -317,5 +317,5 @@ func (c *Cx1Client) GetRolesByName(name string) ([]Role, error) {
 }
 
 func (c *Cx1Client) RoleLink(r *Role) string {
-	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/roles/%v", c.config.IamUrl, c.config.Tenant, c.config.Tenant, r.RoleID)
+	return fmt.Sprintf("%v/auth/admin/%v/console/#/realms/%v/roles/%v", c.config.IAMUrl, c.config.Tenant, c.config.Tenant, r.RoleID)
 }

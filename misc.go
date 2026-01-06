@@ -337,11 +337,11 @@ func (c *Cx1Client) GetTenantName() string {
 }
 
 func (c *Cx1Client) GetBaseURL() string {
-	return c.config.BaseUrl
+	return c.config.Cx1Url
 }
 
 func (c *Cx1Client) GetIAMURL() string {
-	return c.config.IamUrl
+	return c.config.IAMUrl
 }
 
 func (u Cx1TokenUserInfo) String() string {
