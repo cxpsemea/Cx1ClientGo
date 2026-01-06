@@ -39,16 +39,22 @@ func NewClient(client *http.Client, logger Logger) (*Cx1Client, error) {
 	return NewClientWithOptions(config)
 }
 
-// Create a new Cx1Client using OAuth Client ID & Client Secret with an optional access_token to reuse
+// Create a new Cx1Client using OAuth Client ID & Client Secret
 // You can also use NewClient instead which automatically pulls from command-line arguments
-func NewOAuthClient(client *http.Client, base_url, iam_url, tenant, client_id, client_secret, last_token string, logger Logger) (*Cx1Client, error) {
+func NewOAuthClient(client *http.Client, base_url, iam_url, tenant, client_id, client_secret string, logger Logger) (*Cx1Client, error) {
+	return NewOAuthClientWithToken(client, base_url, iam_url, tenant, client_id, client_secret, "", logger)
+}
+
+// Create a new Cx1Client using OAuth Client ID & Client Secret along with an existing access_token
+// You can also use NewClient instead which automatically pulls from command-line arguments
+func NewOAuthClientWithToken(client *http.Client, base_url, iam_url, tenant, client_id, client_secret, last_access_token string, logger Logger) (*Cx1Client, error) {
 	return NewClientWithOptions(Cx1ClientConfiguration{
 		HttpClient: client,
 		Logger:     logger,
 		Auth: Cx1ClientAuth{
 			ClientID:     client_id,
 			ClientSecret: client_secret,
-			AccessToken:  last_token,
+			AccessToken:  last_access_token,
 		},
 		Cx1Url: base_url,
 		IAMUrl: iam_url,
@@ -56,15 +62,21 @@ func NewOAuthClient(client *http.Client, base_url, iam_url, tenant, client_id, c
 	})
 }
 
-// Create a new Cx1Client using an API Key with an optional access_token to reuse
+// Create a new Cx1Client using an API Key
 // You can also use NewClient instead which automatically pulls from command-line arguments
-func NewAPIKeyClient(client *http.Client, api_key, last_token string, logger Logger) (*Cx1Client, error) {
+func NewAPIKeyClient(client *http.Client, api_key string, logger Logger) (*Cx1Client, error) {
+	return NewAPIKeyClientWithToken(client, api_key, "", logger)
+}
+
+// Create a new Cx1Client using an API Key along with an existing access_token
+// You can also use NewClient instead which automatically pulls from command-line arguments
+func NewAPIKeyClientWithToken(client *http.Client, api_key, last_access_token string, logger Logger) (*Cx1Client, error) {
 	return NewClientWithOptions(Cx1ClientConfiguration{
 		HttpClient: client,
 		Logger:     logger,
 		Auth: Cx1ClientAuth{
 			APIKey:      api_key,
-			AccessToken: last_token,
+			AccessToken: last_access_token,
 		},
 	})
 }
@@ -94,7 +106,7 @@ func NewClientWithOptions(options Cx1ClientConfiguration) (*Cx1Client, error) {
 	}
 
 	cli := Cx1Client{config: options}
-	err := cli.InitializeClient(false)
+	err := cli.InitializeClient(options.QuickStart)
 	return &cli, err
 }
 
@@ -114,7 +126,7 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 			c.config.Logger.Warnf("Failed to get tenant flags: %s", err)
 		}
 
-		if !c.IsUser {
+		if !c.IsUser() {
 			oidcclient, err := c.GetClientByName(c.userinfo.ClientName)
 			if err != nil {
 				c.config.Logger.Warnf("Insufficient permissions to retrieve details for current OIDC Client %v: %v", c.userinfo.ClientName, err)
@@ -153,5 +165,5 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 }
 
 func (c Cx1Client) String() string {
-	return fmt.Sprintf("%v @ %v on %v", c.userinfo.String(), c.config.Tenant, c.config.Cx1Url)
+	return fmt.Sprintf("%v @ tenant %v on %v", c.userinfo.String(), c.config.Tenant, c.config.Cx1Url)
 }

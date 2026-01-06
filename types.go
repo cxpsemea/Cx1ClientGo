@@ -21,7 +21,6 @@ type Cx1Client struct {
 	claims      Cx1Claims
 	user        *User
 	client      *OIDCClient
-	IsUser      bool
 	userinfo    Cx1TokenUserInfo
 	version     *VersionInfo
 	astAppID    string
@@ -36,6 +35,7 @@ type Cx1ClientConfiguration struct {
 	Cx1Url          string
 	IAMUrl          string
 	Tenant          string
+	QuickStart      bool // Skip certain checks (flags, versions) during initialization. may affect some functionality due to API changes between Cx1 versions
 	Logger          Logger
 	Polling         *ClientVars
 	Pagination      *PaginationSettings

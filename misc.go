@@ -344,6 +344,10 @@ func (c *Cx1Client) GetIAMURL() string {
 	return c.config.IAMUrl
 }
 
+func (c Cx1Client) IsUser() bool {
+	return c.config.Auth.APIKey != ""
+}
+
 func (u Cx1TokenUserInfo) String() string {
 	if u.UserName != "" {
 		return fmt.Sprintf("User [%v] %v", ShortenGUID(u.UserID), u.UserName)

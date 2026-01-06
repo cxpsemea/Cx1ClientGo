@@ -62,6 +62,13 @@ func (c *Cx1Client) sendTokenRequest(body io.Reader) (access_token string, err e
 	header := http.Header{
 		"Content-Type": {"application/x-www-form-urlencoded"},
 	}
+
+	for name, headers := range c.config.HTTPHeaders {
+		for _, h := range headers {
+			header.Add(name, h)
+		}
+	}
+
 	request, err := http.NewRequest(http.MethodPost, tokenUrl, body)
 	if err != nil {
 		return "", fmt.Errorf("failed to create token request: %v", err)
