@@ -524,6 +524,27 @@ func (c *Cx1Client) GetScanSourcesByID(scanID string) ([]byte, error) {
 	return data, nil
 }
 
+// retrieve a specific scanned file
+func (c *Cx1Client) GetScannedFileSourceByID(scanID, path string) (string, error) {
+	c.config.Logger.Debugf("Fetching scanned file %v for scan %v", path, scanID)
+	response, err := c.sendRequestRawCx1(http.MethodGet, fmt.Sprintf("/repostore/files/%v%v", scanID, path), nil, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to retrieve scanned file %v for scan %v: %s", path, scanID, err)
+	}
+
+	if response.Header.Get("Location") != "" {
+		response, err = c.sendRequestRaw(http.MethodGet, response.Header.Get("Location"), nil, nil)
+		var resBody []byte
+		if response != nil && response.Body != nil {
+			resBody, _ = io.ReadAll(response.Body)
+			response.Body.Close()
+		}
+		return string(resBody), err
+	} else {
+		return "", fmt.Errorf("expected location header response not found")
+	}
+}
+
 // returns the workflow for a scan by ID
 // this shows the steps in the scan flow from when the scan was uploaded until it was complete
 func (c *Cx1Client) GetScanWorkflowByID(scanID string) ([]WorkflowLog, error) {

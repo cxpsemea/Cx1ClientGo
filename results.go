@@ -58,7 +58,7 @@ func (c *Cx1Client) GetScanResultsFiltered(filter ScanResultsFilter) (uint64, Sc
 		return 0, results, err
 	}
 
-	count, results, err := c.parseScanResults(data)
+	count, results, err := c.parseScanResults(filter.ScanID, data)
 	return count, results, err
 }
 
@@ -363,7 +363,7 @@ func (s ScanResultSummary) String() string {
 }
 
 // Note: response.TotalCount may be greater than the resultset, due to limited cx1clientgo engine support
-func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, error) {
+func (c *Cx1Client) parseScanResults(scanId string, response []byte) (uint64, ScanResultSet, error) {
 	var resultResponse struct {
 		Results    []map[string]interface{}
 		TotalCount uint64
@@ -398,6 +398,9 @@ func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, er
 			if err != nil {
 				c.config.Logger.Warnf("Failed to unmarshal result %v to SAST type: %s", r["similarityId"].(string), err)
 			} else {
+				if SASTResult.ScanID == "" {
+					SASTResult.ScanID = scanId
+				}
 				ResultSet.SAST = append(ResultSet.SAST, SASTResult)
 			}
 		case "sca":
@@ -406,6 +409,9 @@ func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, er
 			if err != nil {
 				c.config.Logger.Warnf("Failed to unmarshal result %v to SCA type: %s", r["similarityId"].(string), err)
 			} else {
+				if SCAResult.ScanID == "" {
+					SCAResult.ScanID = scanId
+				}
 				ResultSet.SCA = append(ResultSet.SCA, SCAResult)
 			}
 		case "kics":
@@ -414,6 +420,9 @@ func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, er
 			if err != nil {
 				c.config.Logger.Warnf("Failed to unmarshal result %v to IAC type: %s", r["similarityId"].(string), err)
 			} else {
+				if IACResult.ScanID == "" {
+					IACResult.ScanID = scanId
+				}
 				ResultSet.IAC = append(ResultSet.IAC, IACResult)
 			}
 		case "sca-container":
@@ -422,6 +431,9 @@ func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, er
 			if err != nil {
 				c.config.Logger.Warnf("Failed to unmarshal result %v to SCAContainer type: %s", r["similarityId"].(string), err)
 			} else {
+				if SCACResult.ScanID == "" {
+					SCACResult.ScanID = scanId
+				}
 				ResultSet.SCAContainer = append(ResultSet.SCAContainer, SCACResult)
 			}
 		case "containers":
@@ -430,6 +442,9 @@ func (c *Cx1Client) parseScanResults(response []byte) (uint64, ScanResultSet, er
 			if err != nil {
 				c.config.Logger.Warnf("Failed to unmarshal result %v to Containers type: %s", r["similarityId"].(string), err)
 			} else {
+				if ContainerResult.ScanID == "" {
+					ContainerResult.ScanID = scanId
+				}
 				ResultSet.Containers = append(ResultSet.Containers, ContainerResult)
 			}
 		default:
