@@ -371,9 +371,14 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (uint64, Sc
 
 	var ResultSet ScanResultSet
 
+	scan, err := c.GetScanByID(scanId)
+	if err != nil {
+		return 0, ResultSet, err
+	}
+
 	dec := json.NewDecoder(bytes.NewReader(response))
 	dec.UseNumber()
-	err := dec.Decode(&resultResponse)
+	err = dec.Decode(&resultResponse)
 	if err != nil {
 		c.config.Logger.Tracef("Failed while parsing response: %s", err)
 		//c.config.Logger.Tracef("Response contents: %s", string(response))
@@ -401,6 +406,9 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (uint64, Sc
 				if SASTResult.ScanID == "" {
 					SASTResult.ScanID = scanId
 				}
+				if SASTResult.ProjectID == "" {
+					SASTResult.ProjectID = scan.ProjectID
+				}
 				ResultSet.SAST = append(ResultSet.SAST, SASTResult)
 			}
 		case "sca":
@@ -411,6 +419,9 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (uint64, Sc
 			} else {
 				if SCAResult.ScanID == "" {
 					SCAResult.ScanID = scanId
+				}
+				if SCAResult.ProjectID == "" {
+					SCAResult.ProjectID = scan.ProjectID
 				}
 				ResultSet.SCA = append(ResultSet.SCA, SCAResult)
 			}
@@ -423,6 +434,9 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (uint64, Sc
 				if IACResult.ScanID == "" {
 					IACResult.ScanID = scanId
 				}
+				if IACResult.ProjectID == "" {
+					IACResult.ProjectID = scan.ProjectID
+				}
 				ResultSet.IAC = append(ResultSet.IAC, IACResult)
 			}
 		case "sca-container":
@@ -434,6 +448,9 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (uint64, Sc
 				if SCACResult.ScanID == "" {
 					SCACResult.ScanID = scanId
 				}
+				if SCACResult.ProjectID == "" {
+					SCACResult.ProjectID = scan.ProjectID
+				}
 				ResultSet.SCAContainer = append(ResultSet.SCAContainer, SCACResult)
 			}
 		case "containers":
@@ -444,6 +461,9 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (uint64, Sc
 			} else {
 				if ContainerResult.ScanID == "" {
 					ContainerResult.ScanID = scanId
+				}
+				if ContainerResult.ProjectID == "" {
+					ContainerResult.ProjectID = scan.ProjectID
 				}
 				ResultSet.Containers = append(ResultSet.Containers, ContainerResult)
 			}
