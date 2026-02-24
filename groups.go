@@ -123,15 +123,13 @@ func (c *Cx1Client) GetGroupByName(groupname string) (Group, error) {
 		BriefRepresentation: boolPtr(false),
 		PopulateHierarchy:   boolPtr(false),
 		Search:              groupname,
-		Exact:               boolPtr(true),
+		Exact:               boolPtr(false),
 		BaseIAMFilter:       BaseIAMFilter{Max: c.config.Pagination.Groups},
 	}, false)
 
 	if err != nil {
 		return Group{}, err
 	}
-
-	c.config.Logger.Tracef("Got %d groups", len(groups))
 
 	for i := range groups {
 		if check, _ := c.version.CheckCxOne("3.20.0"); check >= 0 {

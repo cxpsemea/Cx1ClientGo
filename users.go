@@ -77,16 +77,19 @@ func (c *Cx1Client) GetUserByUserName(username string) (User, error) {
 		BaseIAMFilter:       BaseIAMFilter{Max: c.config.Pagination.Users},
 		BriefRepresentation: boolPtr(false),
 		Username:            username,
-		Exact:               boolPtr(true),
+		Exact:               boolPtr(false),
 	})
 
-	if len(users) == 0 {
-		return User{}, fmt.Errorf("no user %v found", username)
+	if err != nil {
+		return User{}, err
 	}
-	if len(users) > 1 {
-		return User{}, fmt.Errorf("too many users (%d) match %v", len(users), username)
+
+	for _, u := range users {
+		if u.UserName == username {
+			return u, nil
+		}
 	}
-	return users[0], err
+	return User{}, fmt.Errorf("no user %v found", username)
 }
 
 func (c *Cx1Client) GetUsersByUserName(username string) ([]User, error) {
@@ -107,18 +110,19 @@ func (c *Cx1Client) GetUserByEmail(email string) (User, error) {
 		BaseIAMFilter:       BaseIAMFilter{Max: c.config.Pagination.Users},
 		BriefRepresentation: boolPtr(false),
 		Email:               email,
-		Exact:               boolPtr(true),
+		Exact:               boolPtr(false),
 	})
 
 	if err != nil {
 		return User{}, err
 	}
 
-	if len(users) == 0 {
-		return User{}, fmt.Errorf("no user with email %v found", email)
+	for _, u := range users {
+		if u.Email == email {
+			return u, nil
+		}
 	}
-
-	return users[0], nil
+	return User{}, fmt.Errorf("no user with email %v found", email)
 }
 
 func (c *Cx1Client) GetUserCount() (uint64, error) {
