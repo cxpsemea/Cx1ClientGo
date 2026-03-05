@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/google/go-querystring/query"
 )
@@ -58,8 +59,9 @@ func (c *Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (ui
 		CweID           int
 		Compliances     []string
 		ConfidenceLevel int
-		FirstFoundAt    string
-		FoundAt         string
+		FirstFoundAt    time.Time
+		FoundAt         time.Time
+		CreatedAt       time.Time
 		FirstScanId     string
 		Group           string
 		Language        string `json:"languageName"`
@@ -106,7 +108,6 @@ func (c *Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (ui
 				State:           r.State,
 				Severity:        r.Severity,
 				ConfidenceLevel: r.ConfidenceLevel,
-				CreatedAt:       r.FirstFoundAt,
 				FirstFoundAt:    r.FirstFoundAt,
 				FoundAt:         r.FoundAt,
 				FirstScanId:     r.FirstScanId,

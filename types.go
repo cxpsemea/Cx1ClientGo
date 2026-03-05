@@ -172,7 +172,7 @@ type AccessAssignment struct {
 	ResourceID   string               `json:"resourceID"`
 	ResourceType string               `json:"resourceType"`
 	ResourceName string               `json:"resourceName"`
-	CreatedAt    string               `json:"createdAt"`
+	CreatedAt    time.Time            `json:"createdAt"`
 }
 
 type AccessAssignedRole struct {
@@ -293,8 +293,8 @@ type Application struct {
 	Tags               map[string]string `json:"tags"`
 	ProjectIds         *[]string         `json:"projectIds,omitempty"`
 	originalProjectIds []string          `json:"-"` // Cx1clientgo internal/restricted, do not change
-	CreatedAt          string            `json:"createdAt"`
-	UpdatedAt          string            `json:"updatedAt"`
+	CreatedAt          time.Time         `json:"createdAt"`
+	UpdatedAt          time.Time         `json:"updatedAt"`
 }
 
 type ApplicationPatch struct {
@@ -519,7 +519,7 @@ type CxLinkFilter struct {
 type DataImport struct {
 	MigrationId string             `json:"migrationId"`
 	Status      string             `json:"status"`
-	CreatedAt   string             `json:"createdAt"`
+	CreatedAt   time.Time          `json:"createdAt"`
 	Logs        []DataImportStatus `json:"logs"`
 }
 
@@ -742,8 +742,8 @@ type Preset_v330 struct {
 type Project struct {
 	ProjectID            string                 `json:"id"`
 	Name                 string                 `json:"name"`
-	CreatedAt            string                 `json:"createdAt"`
-	UpdatedAt            string                 `json:"updatedAt"`
+	CreatedAt            time.Time              `json:"createdAt"`
+	UpdatedAt            time.Time              `json:"updatedAt"`
 	Groups               []string               `json:"groups,omitempty"`
 	Applications         *[]string              `json:"applicationIds,omitempty"`
 	originalApplications []string               `json:"-"` // Cx1clientgo internal/restricted, do not change
@@ -921,15 +921,15 @@ type ResultsChangelog struct {
 }
 
 type ResultsPredicatesBase struct {
-	PredicateID  string `json:"ID,omitempty"`
-	SimilarityID string `json:"similarityId"`
-	ProjectID    string `json:"projectId"`
-	ScanID       string `json:"scanId"`
-	State        string `json:"state,omitempty"`
-	Comment      string `json:"comment"`
-	Severity     string `json:"severity,omitempty"`
-	CreatedBy    string `json:"createdBy,omitempty"`
-	CreatedAt    string `json:"createdAt,omitempty"`
+	PredicateID  string    `json:"ID,omitempty"`
+	SimilarityID string    `json:"similarityId"`
+	ProjectID    string    `json:"projectId"`
+	ScanID       string    `json:"scanId"`
+	State        string    `json:"state,omitempty"`
+	Comment      string    `json:"comment"`
+	Severity     string    `json:"severity,omitempty"`
+	CreatedBy    string    `json:"createdBy,omitempty"`
+	CreatedAt    time.Time `json:"createdAt,omitempty"`
 }
 
 type ResultState struct {
@@ -1074,8 +1074,8 @@ type Scan struct {
 	Status        string              `json:"status"`
 	StatusDetails []ScanStatusDetails `json:"statusDetails"`
 	Branch        string              `json:"branch"`
-	CreatedAt     string              `json:"createdAt"`
-	UpdatedAt     string              `json:"updatedAt"`
+	CreatedAt     time.Time           `json:"createdAt"`
+	UpdatedAt     time.Time           `json:"updatedAt"`
 	ProjectID     string              `json:"projectId"`
 	ProjectName   string              `json:"projectName"`
 	UserAgent     string              `json:"userAgent"`
@@ -1178,10 +1178,10 @@ type ScanResultBase struct {
 	Status          string
 	State           string
 	Severity        string
-	ConfidenceLevel int    `json:"confidenceLevel"`
-	CreatedAt       string `json:"created"`
-	FirstFoundAt    string
-	FoundAt         string
+	ConfidenceLevel int       `json:"confidenceLevel"`
+	CreatedAt       time.Time `json:"created"`
+	FirstFoundAt    time.Time
+	FoundAt         time.Time
 	FirstScanId     string
 	Description     string
 	// Comments			// currently doesn't do anything?
@@ -1317,7 +1317,7 @@ type ScanSCAResult struct {
 }
 type ScanSCAResultData struct {
 	PackageIdentifier  string
-	PublishedAt        string
+	PublishedAt        time.Time
 	Recommendation     string
 	RecommendedVersion string
 	//ExploitableMethods // TODO
@@ -1352,9 +1352,9 @@ type ScanSCAContainerResultData struct {
 	Metadata struct {
 		Enrichers []string `json:"enrichers"`
 	} `json:"metadata"`
-	PackageName    string `json:"packageName"`
-	PackageVersion string `json:"packageVersion"`
-	PublishedAt    string `json:"publishedAt"`
+	PackageName    string    `json:"packageName"`
+	PackageVersion string    `json:"packageVersion"`
+	PublishedAt    time.Time `json:"publishedAt"`
 }
 
 type ScanStatusDetails struct {
