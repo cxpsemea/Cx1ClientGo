@@ -288,6 +288,7 @@ type Application struct {
 	ApplicationID      string            `json:"id"`
 	Name               string            `json:"name"`
 	Description        string            `json:"description"`
+	Type               string            `json:"type"`
 	Criticality        uint              `json:"criticality"`
 	Rules              []ApplicationRule `json:"rules"`
 	Tags               map[string]string `json:"tags"`

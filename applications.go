@@ -11,6 +11,14 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+var ApplicationTypes = struct {
+	Business string
+	Internal string
+}{
+	Business: "Business",
+	Internal: "Internal",
+}
+
 // Get the first count Applications
 // uses the pagination behind the scenes
 func (c *Cx1Client) GetApplications(count uint64) ([]Application, error) {
