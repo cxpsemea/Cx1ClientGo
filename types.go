@@ -1580,6 +1580,52 @@ type ScanSummaryFilter struct {
 	ExcludeTypes   []string `url:"exclude-result-types"` // DEV_AND_TEST, NONE
 }
 
+type SCMIntegration struct {
+	ID          uint64 `json:"id"`
+	Type        string `json:"type"`
+	RepoBaseURL string `json:"repoBaseUrl"`
+	AuthBaseURL string `json:"authBaseUrl"`
+	APIBaseURL  string `json:"apiBaseUrl"`
+	DisplayName string `json:"displayName"`
+	ClientID    string `json:"clientId"`
+	Scope       string `json:"scope"`
+	OnPrem      bool   `json:"onPrem"`
+}
+
+type SCMRepository struct {
+	ID                             string `json:"id"`
+	URL                            string `json:"url"`
+	WebhookID                      string `json:"webhookId"`
+	WebhookEnabled                 bool   `json:"webhookEnabled"`
+	PrDecorationEnabled            bool   `json:"prDecorationEnabled"`
+	IsRepoAdmin                    bool   `json:"isRepoAdmin"`
+	SastIncrementalScan            bool   `json:"sastIncrementalScan"`
+	SastScannerEnabled             bool   `json:"sastScannerEnabled"`
+	ScaScannerEnabled              bool   `json:"scaScannerEnabled"`
+	KicsScannerEnabled             bool   `json:"kicsScannerEnabled"`
+	APISecScannerEnabled           bool   `json:"apiSecScannerEnabled"`
+	ContainerScannerEnabled        bool   `json:"containerScannerEnabled"`
+	OssfScoreCardScannerEnabled    bool   `json:"ossfScoreCardScannerEnabled"`
+	SecretsDetectionScannerEnabled bool   `json:"secretsDetectionScannerEnabled"`
+	PrivatePackage                 bool   `json:"privatePackage"`
+	Criticality                    int    `json:"criticality"`
+	Branches                       []struct {
+		Pattern         string `json:"pattern"`
+		IsDefaultBranch bool   `json:"isDefaultBranch"`
+		Tags            struct {
+		} `json:"tags,omitempty"`
+	} `json:"branches"`
+	RemediationSeverities []interface{} `json:"remediationSeverities"`
+	SSHRepoURL            string        `json:"sshRepoUrl"`
+	ScmID                 int           `json:"scmId"`
+	Scm                   struct {
+		TypeName string `json:"typeName"`
+	} `json:"scm"`
+	ScaAutoPrEnabled  bool `json:"scaAutoPrEnabled"`
+	KicsAutoPrEnabled bool `json:"kicsAutoPrEnabled"`
+	SastAutoPrEnabled bool `json:"sastAutoPrEnabled"`
+}
+
 type Status struct {
 	ID      int               `json:"id"`
 	Name    string            `json:"name"`

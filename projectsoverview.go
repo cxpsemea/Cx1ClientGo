@@ -40,6 +40,9 @@ func (c *Cx1Client) GetProjectOverviewsFiltered(filter ProjectOverviewFilter) (u
 // Retrieves all projects matching the filter
 func (c *Cx1Client) GetAllProjectOverviewsFiltered(filter ProjectOverviewFilter) (uint64, []ProjectOverview, error) {
 	var projects []ProjectOverview
+	if filter.Limit == 0 {
+		filter.Limit = c.config.Pagination.ProjectOverviews
+	}
 
 	count, err := c.GetProjectOverviewCountFiltered(filter)
 	if err != nil {
