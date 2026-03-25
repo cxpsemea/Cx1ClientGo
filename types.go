@@ -1093,14 +1093,15 @@ type Scan struct {
 
 type ScanFilter struct {
 	BaseFilter
-	ProjectID string    `url:"project-id"`
-	Sort      []string  `url:"sort,omitempty"` // Available values : -created_at, +created_at, -status, +status, +branch, -branch, +initiator, -initiator, +user_agent, -user_agent, +name, -name
-	TagKeys   []string  `url:"tags-keys,omitempty"`
-	TagValues []string  `url:"tags-values,omitempty"`
-	Statuses  []string  `url:"statuses,omitempty"`
-	Branches  []string  `url:"branches,omitempty"`
-	FromDate  time.Time `url:"from-date,omitempty"`
-	ToDate    time.Time `url:"to-date,omitempty"`
+	ProjectID     string    `url:"project-id"`
+	Sort          []string  `url:"sort,omitempty"` // Available values : -created_at, +created_at, -status, +status, +branch, -branch, +initiator, -initiator, +user_agent, -user_agent, +name, -name
+	TagKeys       []string  `url:"tags-keys,omitempty"`
+	TagValues     []string  `url:"tags-values,omitempty"`
+	Statuses      []string  `url:"statuses,omitempty"`
+	Branches      []string  `url:"branches,omitempty"`
+	SourceOrigins []string  `url:"source-origins,omitempty"` // "Github Action", "webapp" etc
+	FromDate      time.Time `url:"from-date,omitempty"`
+	ToDate        time.Time `url:"to-date,omitempty"`
 }
 
 type ScanConfiguration struct {
