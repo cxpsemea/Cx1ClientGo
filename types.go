@@ -1360,9 +1360,12 @@ type ScanSCAContainerResultData struct {
 }
 
 type ScanStatusDetails struct {
-	Name    string `json:"name"`
-	Status  string `json:"status"`
-	Details string `json:"details"`
+	Name      string    `json:"name"`
+	Status    string    `json:"status"`
+	Details   string    `json:"details"`
+	StartDate time.Time `json:"startDate"`
+	EndDate   time.Time `json:"endDate"`
+	LOC       uint64    `json:"loc"`
 }
 
 type ScanResultStatusSummary struct {
