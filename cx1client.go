@@ -111,8 +111,10 @@ func NewClientWithOptions(options Cx1ClientConfiguration) (*Cx1Client, error) {
 }
 
 func (c *Cx1Client) InitializeClient(quick bool) error {
-	if err := c.refreshAccessToken(); err != nil {
-		return err
+	if c.config.Auth.AccessToken == "" {
+		if err := c.refreshAccessToken(); err != nil {
+			return err
+		}
 	}
 
 	c.parseToken()

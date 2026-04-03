@@ -324,6 +324,7 @@ func (c *Cx1Client) parseToken() {
 	}
 
 	c.claims = claims
+	c.config.Auth.Expiry = claims.ExpiryTime
 	if claims.TenantID != "" {
 		c.tenantID = claims.TenantID
 	}
