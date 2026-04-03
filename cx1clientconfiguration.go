@@ -52,16 +52,18 @@ func (c *Cx1ClientConfiguration) Validate() error {
 		}
 	}
 
-	if c.Auth.APIKey != "" {
-		if err := c.ParseToken(c.Auth.APIKey); err != nil {
-			return err
-		}
-	} else {
-		if c.Auth.ClientID == "" {
-			return fmt.Errorf("no client id set")
-		}
-		if c.Auth.ClientSecret == "" {
-			return fmt.Errorf("no client secret set")
+	if c.Auth.AccessToken == "" {
+		if c.Auth.APIKey != "" {
+			if err := c.ParseToken(c.Auth.APIKey); err != nil {
+				return err
+			}
+		} else {
+			if c.Auth.ClientID == "" {
+				return fmt.Errorf("no client id set")
+			}
+			if c.Auth.ClientSecret == "" {
+				return fmt.Errorf("no client secret set")
+			}
 		}
 	}
 
