@@ -279,7 +279,7 @@ func (c *Cx1Client) GetAccessToken() string {
 }
 
 func (c *Cx1Client) GetCurrentUsername() string {
-	return c.claims.Username
+	return c.claims.PreferredUsername
 }
 
 func (c *Cx1Client) SetLogger(logger Logger) {
@@ -345,11 +345,11 @@ func (c *Cx1Client) GetIAMURL() string {
 }
 
 func (c Cx1Client) IsUser() bool {
-	return c.config.Auth.APIKey != ""
+	return c.userinfo.ClientName == ""
 }
 
 func (u Cx1TokenUserInfo) String() string {
-	if u.UserName != "" {
+	if u.ClientName == "" {
 		return fmt.Sprintf("User [%v] %v", ShortenGUID(u.UserID), u.UserName)
 	}
 	return fmt.Sprintf("OIDC Client %v", u.ClientName)

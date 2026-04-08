@@ -46,23 +46,26 @@ func (c *Cx1ClientConfiguration) Validate() error {
 		c.HTTPHeaders.Set("User-Agent", "Cx1ClientGo")
 	}
 
-	if c.Auth.AccessToken != "" {
-		if err := c.ParseToken(c.Auth.AccessToken); err != nil {
-			return err
-		}
-	}
-
 	if c.Auth.APIKey != "" {
 		if err := c.ParseToken(c.Auth.APIKey); err != nil {
 			return err
 		}
-	} else {
+	} else if c.Auth.AccessToken == "" {
 		if c.Auth.ClientID == "" {
 			return fmt.Errorf("no client id set")
 		}
 		if c.Auth.ClientSecret == "" {
 			return fmt.Errorf("no client secret set")
 		}
+	}
+
+	if c.Auth.AccessToken != "" {
+		claims, err := parseJWT(c.Auth.AccessToken)
+		if err != nil {
+			return err
+		}
+		c.ParseClaims(claims)
+		c.Auth.Expiry = claims.ExpiryTime
 	}
 
 	if c.IAMUrl == "" {

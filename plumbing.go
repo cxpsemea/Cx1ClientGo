@@ -101,44 +101,33 @@ func (c *Cx1Client) sendTokenRequest(body io.Reader) (access_token string, err e
 func (c *Cx1Client) refreshAccessToken() error {
 	if c.config.Auth.AccessToken == "" || c.config.Auth.Expiry.Before(time.Now().Add(30*time.Second)) {
 		c.config.Logger.Tracef("Refreshing access token (%v) with expiry %v", ShortenGUID(c.config.Auth.AccessToken), c.config.Auth.Expiry)
+
+		data := url.Values{}
 		if c.config.Auth.APIKey != "" {
-			data := url.Values{}
 			data.Set("grant_type", "refresh_token")
 			data.Set("client_id", "ast-app")
 			data.Set("refresh_token", c.config.Auth.APIKey)
-
-			access_token, err := c.sendTokenRequest(strings.NewReader(data.Encode()))
-			if err != nil {
-				return err
-			}
-			c.config.Auth.AccessToken = access_token
-
-			claims, err := parseJWT(c.config.Auth.AccessToken)
-			if err != nil {
-				return fmt.Errorf("failed to parse API Key JWT: %v", err)
-			}
-			c.claims = claims
-			c.config.Auth.Expiry = c.claims.ExpiryTime
-			c.config.Logger.Tracef("New token (%v) has expiry %v", ShortenGUID(access_token), c.config.Auth.Expiry)
-		} else {
+		} else if c.config.Auth.ClientID != "" && c.config.Auth.ClientSecret != "" {
 			data := url.Values{}
 			data.Set("grant_type", "client_credentials")
 			data.Set("client_id", c.config.Auth.ClientID)
 			data.Set("client_secret", c.config.Auth.ClientSecret)
-
-			access_token, err := c.sendTokenRequest(strings.NewReader(data.Encode()))
-			if err != nil {
-				return err
-			}
-			c.config.Auth.AccessToken = access_token
-			claims, err := parseJWT(c.config.Auth.AccessToken)
-			if err != nil {
-				return fmt.Errorf("failed to parse API Key JWT: %v", err)
-			}
-			c.claims = claims
-			c.config.Auth.Expiry = c.claims.ExpiryTime
-			c.config.Logger.Tracef("New token (%v) has expiry %v", ShortenGUID(access_token), c.config.Auth.Expiry)
+		} else {
+			return fmt.Errorf("no valid authentication method available to refresh access token")
 		}
+
+		access_token, err := c.sendTokenRequest(strings.NewReader(data.Encode()))
+		if err != nil {
+			return err
+		}
+		c.config.Auth.AccessToken = access_token
+		claims, err := parseJWT(c.config.Auth.AccessToken)
+		if err != nil {
+			return fmt.Errorf("failed to parse API Key JWT: %v", err)
+		}
+		c.claims = claims
+		c.config.Auth.Expiry = c.claims.ExpiryTime
+		c.config.Logger.Tracef("New token (%v) has expiry %v", ShortenGUID(access_token), c.config.Auth.Expiry)
 	}
 	return nil
 }
@@ -332,9 +321,9 @@ func (c *Cx1Client) parseToken() {
 
 	c.userinfo = Cx1TokenUserInfo{}
 	c.userinfo.UserID = claims.UserID
-	c.userinfo.UserName = claims.Username
-	if claims.AZP != "" {
-		c.userinfo.ClientName = claims.AZP
+	c.userinfo.UserName = claims.PreferredUsername
+	if claims.ClientID != "" {
+		c.userinfo.ClientName = claims.ClientID
 	}
 }
 
