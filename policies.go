@@ -1,6 +1,7 @@
 package Cx1ClientGo
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -141,6 +142,32 @@ func (c *Cx1Client) GetPolicyViolationCountFiltered(filter PolicyViolationFilter
 	c.config.Logger.Debugf("Get Cx1 PolicyViolation count matching filter: %v", params.Encode())
 	count, _, err := c.GetPolicyViolationsFiltered(filter)
 	return count, err
+}
+
+func (c *Cx1Client) AssignPolicyToProject(policyId string, project *Project) error {
+	return c.AssignPolicyToProjects(policyId, []Project{*project})
+}
+
+func (c *Cx1Client) AssignPolicyToProjects(policyId string, projects []Project) error {
+	type policyProject struct {
+		Name         string
+		AstProjectId string
+	}
+	var policyBody struct {
+		ID       string          `json:"id"`
+		Projects []policyProject `json:"projects"`
+	}
+	policyBody.ID = policyId
+	for _, project := range projects {
+		policyBody.Projects = append(policyBody.Projects, policyProject{Name: project.Name, AstProjectId: project.ProjectID})
+	}
+	jsonBody, err := json.Marshal(policyBody)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.sendRequest(http.MethodPost, "/policy_management_service_uri/policies/projects/"+policyId, bytes.NewReader(jsonBody), nil)
+	return err
 }
 
 func (p Policy) String() string {
