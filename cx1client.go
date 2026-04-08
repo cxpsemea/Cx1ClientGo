@@ -127,13 +127,13 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 		}
 
 		if !c.IsUser() {
-			oidcclient, err := c.GetClientByName(c.userinfo.ClientName)
+			oidcclient, err := c.GetClientByName(c.Userinfo.ClientName)
 			if err != nil {
-				c.config.Logger.Warnf("Insufficient permissions to retrieve details for current OIDC Client %v: %v", c.userinfo.ClientName, err)
+				c.config.Logger.Warnf("Insufficient permissions to retrieve details for current OIDC Client %v: %v", c.Userinfo.ClientName, err)
 			} else {
 				user, err := c.GetServiceAccountByID(oidcclient.ID)
 				if err != nil {
-					c.config.Logger.Warnf("Insufficient permissions to retrieve details for user behind OIDC Client %v: %v", c.userinfo.ClientName, err)
+					c.config.Logger.Warnf("Insufficient permissions to retrieve details for user behind OIDC Client %v: %v", c.Userinfo.ClientName, err)
 				} else {
 					c.user = &user
 				}
@@ -165,5 +165,5 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 }
 
 func (c Cx1Client) String() string {
-	return fmt.Sprintf("%v @ tenant %v on %v", c.userinfo.String(), c.config.Tenant, c.config.Cx1Url)
+	return fmt.Sprintf("%v @ tenant %v on %v", c.Userinfo.String(), c.config.Tenant, c.config.Cx1Url)
 }

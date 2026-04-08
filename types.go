@@ -21,7 +21,7 @@ type Cx1Client struct {
 	claims      Cx1Claims
 	user        *User
 	client      *OIDCClient
-	userinfo    Cx1TokenUserInfo
+	Userinfo    Cx1TokenUserInfo
 	version     *VersionInfo
 	astAppID    string
 	tenantID    string
@@ -48,7 +48,7 @@ type Cx1ClientConfiguration struct {
 type Cx1TokenUserInfo struct {
 	UserID     string // token.sub
 	UserName   string // token.preferred_username
-	ClientName string // token.azp
+	ClientName string // token.client_id
 }
 
 type Cx1ClientAuth struct {
@@ -61,18 +61,18 @@ type Cx1ClientAuth struct {
 
 type Cx1Claims struct {
 	jwt.RegisteredClaims
-	Cx1License    ASTLicense `json:"ast-license"`
-	IsServiceUser string     `json:"is-service-user"`
-	ISS           string     `json:"iss"`
-	UserID        string     `json:"sub"`
-	Username      string     `json:"name"`
-	ClientID      string     `json:"clientId"`
-	ASTBaseURL    string     `json:"ast-base-url"`
-	TenantID      string     `json:"tenant_id"`
-	TenantName    string     `json:"tenant_name"`
-	Email         string     `json:"email"`
-	Expiry        int64      `json:"exp"`
-	AZP           string     `json:"azp"`
+	Cx1License        ASTLicense `json:"ast-license"`
+	IsServiceUser     string     `json:"is-service-user"`
+	ISS               string     `json:"iss"`
+	UserID            string     `json:"sub"`
+	PreferredUsername string     `json:"preferred_username"`
+	ClientID          string     `json:"client_id"`
+	ASTBaseURL        string     `json:"ast-base-url"`
+	TenantID          string     `json:"tenant_id"`
+	TenantName        string     `json:"tenant_name"`
+	Email             string     `json:"email"`
+	Expiry            int64      `json:"exp"`
+	AZP               string     `json:"azp"`
 
 	// the following are generated during parsing
 	IAMURL     string    `json:"-"`
@@ -1360,9 +1360,12 @@ type ScanSCAContainerResultData struct {
 }
 
 type ScanStatusDetails struct {
-	Name    string `json:"name"`
-	Status  string `json:"status"`
-	Details string `json:"details"`
+	Name      string    `json:"name"`
+	Status    string    `json:"status"`
+	Details   string    `json:"details"`
+	StartDate time.Time `json:"startDate"`
+	EndDate   time.Time `json:"endDate"`
+	LOC       uint64    `json:"loc"`
 }
 
 type ScanResultStatusSummary struct {
