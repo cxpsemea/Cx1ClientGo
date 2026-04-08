@@ -21,7 +21,7 @@ type Cx1Client struct {
 	claims      Cx1Claims
 	user        *User
 	client      *OIDCClient
-	userinfo    Cx1TokenUserInfo
+	Userinfo    Cx1TokenUserInfo
 	version     *VersionInfo
 	astAppID    string
 	tenantID    string

@@ -345,7 +345,7 @@ func (c *Cx1Client) GetIAMURL() string {
 }
 
 func (c Cx1Client) IsUser() bool {
-	return c.userinfo.ClientName == ""
+	return c.Userinfo.ClientName == ""
 }
 
 func (u Cx1TokenUserInfo) String() string {

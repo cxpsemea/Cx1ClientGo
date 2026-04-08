@@ -317,7 +317,7 @@ func (c *Cx1Client) GetCurrentClient() (OIDCClient, error) {
 	}
 	var client OIDCClient
 
-	client, err := c.GetClientByName(c.config.Auth.ClientID)
+	client, err := c.GetClientByName(c.Userinfo.ClientName)
 	c.client = &client
 
 	return *c.client, err

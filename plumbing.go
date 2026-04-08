@@ -319,11 +319,11 @@ func (c *Cx1Client) parseToken() {
 
 	c.config.ParseClaims(claims)
 
-	c.userinfo = Cx1TokenUserInfo{}
-	c.userinfo.UserID = claims.UserID
-	c.userinfo.UserName = claims.PreferredUsername
+	c.Userinfo = Cx1TokenUserInfo{}
+	c.Userinfo.UserID = claims.UserID
+	c.Userinfo.UserName = claims.PreferredUsername
 	if claims.ClientID != "" {
-		c.userinfo.ClientName = claims.ClientID
+		c.Userinfo.ClientName = claims.ClientID
 	}
 }
 
