@@ -8,6 +8,14 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
+func (c *Cx1Client) GetAllAuditEvents() ([]AuditEvent, error) {
+	_, events, err := c.GetAllAuditEventsFiltered(AuditEventFilter{
+		BaseFilter: BaseFilter{Limit: c.config.Pagination.AuditEvents},
+	})
+
+	return events, err
+}
+
 // Underlying function used by many GetAuditEvent* calls
 // Returns the total number of matching results plus an array of auditevents with
 // one page of results (from filter.Offset to filter.Offset+filter.Limit)
@@ -33,6 +41,9 @@ func (c *Cx1Client) GetAuditEventsFiltered(filter AuditEventFilter) (uint64, []A
 
 // Retrieves all auditevents matching the filter
 func (c *Cx1Client) GetAllAuditEventsFiltered(filter AuditEventFilter) (uint64, []AuditEvent, error) {
+	if filter.Limit == 0 {
+		filter.Limit = c.config.Pagination.AuditEvents
+	}
 	var auditevents []AuditEvent
 	count, err := c.GetAuditEventsCountFiltered(filter)
 	if err != nil {

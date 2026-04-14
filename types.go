@@ -127,6 +127,7 @@ type ClientVars struct {
 // Related to pagination and filtering
 type PaginationSettings struct {
 	Applications     uint64
+	AuditEvents      uint64
 	Branches         uint64
 	Clients          uint64
 	CxLinks          uint64

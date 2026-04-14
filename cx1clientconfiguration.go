@@ -122,6 +122,7 @@ func (c *Cx1ClientConfiguration) GetDefaultClientVars() ClientVars {
 func (c *Cx1ClientConfiguration) GetPaginationDefaultsSingleTenant() PaginationSettings {
 	return PaginationSettings{
 		Applications:     500,
+		AuditEvents:      200,
 		Branches:         100,
 		Clients:          100,
 		CxLinks:          100,
@@ -142,6 +143,7 @@ func (c *Cx1ClientConfiguration) GetPaginationDefaultsSingleTenant() PaginationS
 func (c *Cx1ClientConfiguration) GetPaginationDefaultsMultiTenant() PaginationSettings {
 	return PaginationSettings{
 		Applications:     50,
+		AuditEvents:      100,
 		Branches:         100,
 		Clients:          20,
 		CxLinks:          100,
