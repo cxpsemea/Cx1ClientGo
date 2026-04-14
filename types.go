@@ -127,6 +127,7 @@ type ClientVars struct {
 // Related to pagination and filtering
 type PaginationSettings struct {
 	Applications     uint64
+	AuditEvents      uint64
 	Branches         uint64
 	Clients          uint64
 	CxLinks          uint64
@@ -345,6 +346,24 @@ type ApplicationOverviewFilter struct { // max limit = 100
 	EmptyTags   bool     `url:"empty-tags,omitempty"`
 	Criticality []uint64 `url:"criticality"`
 	Sort        []string `url:"sort,omitempty"` //  nname, criticality, num-of-projects, risk-level
+}
+
+type AuditEvent struct {
+	EventID       string
+	EventDate     time.Time
+	EventType     string
+	AuditResource string
+	ActionType    string
+	ActionUserID  string
+	IPAddress     string
+	TenantID      string
+	Data          map[string]any
+}
+
+type AuditEventFilter struct {
+	BaseFilter
+	StartDate *time.Time `url:"startDate,omitempty"`
+	EndDate   *time.Time `url:"endDate,omitempty"`
 }
 
 type AuditIACQuery struct {
