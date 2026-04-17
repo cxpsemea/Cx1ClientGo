@@ -108,7 +108,6 @@ func (c *Cx1Client) refreshAccessToken() error {
 			data.Set("client_id", "ast-app")
 			data.Set("refresh_token", c.config.Auth.APIKey)
 		} else if c.config.Auth.ClientID != "" && c.config.Auth.ClientSecret != "" {
-			data := url.Values{}
 			data.Set("grant_type", "client_credentials")
 			data.Set("client_id", c.config.Auth.ClientID)
 			data.Set("client_secret", c.config.Auth.ClientSecret)
