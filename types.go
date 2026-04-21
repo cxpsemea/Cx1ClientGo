@@ -917,6 +917,20 @@ type QueryUpdateMetadata_v310 struct {
 	Severity uint `json:"severity"`
 }
 
+type ReportRequest struct {
+	EntityType string   `json:"entityType,omitempty"`
+	IDs        []string `json:"ids,omitempty"`
+	Sections   []string `json:"sections,omitempty"`
+	Scanners   []string `json:"scanners,omitempty"`
+	Severities []string `json:"severities,omitempty"`
+	States     []string `json:"states,omitempty"`
+	Statuses   []string `json:"statuses,omitempty"`
+	Emails     []string `json:"emails,omitempty"`
+	Tags       []string `json:"tags,omitempty"`
+	Format     string   `json:"format,omitempty"`
+	Timezone   string   `json:"timezone,omitempty"`
+}
+
 type ReportStatus struct {
 	ReportID  string `json:"reportId"`
 	Status    string `json:"status"`
