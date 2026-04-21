@@ -453,6 +453,7 @@ func (c *Cx1Client) GetScanSummariesByID(scanIDs []string) ([]ScanSummary, error
 
 // Return a list of scan summaries for scans matching the filter
 func (c *Cx1Client) GetScanSummariesFiltered(filter ScanSummaryFilter) ([]ScanSummary, error) {
+	c.depwarn("GetScanSummaries*", "GetScanSASTAggregateSummary*")
 	var ScansSummaries struct {
 		BaseFilteredResponse
 		ScanSum []ScanSummary `json:"scansSummaries"`

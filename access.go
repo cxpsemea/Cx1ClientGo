@@ -34,8 +34,8 @@ func (c *Cx1Client) GetAccessAssignmentByID(entityId, resourceId string) (Access
 // Create a new access assignment object and issue it to the platform.
 // If only the project is provided: project-level access.
 // If only the application is provided: application-level access.
-// If the tenant bool is set (regardless of project/application): tenant-level access.
-// Similar behavior for the user, group, and client pointers
+// If neither project or application is set: tenant-level access.
+// The access will only use the first non-nil: user, group, or client
 func (c *Cx1Client) CreateAccessAssignment(user *User, group *Group, client *OIDCClient, project *Project, application *Application, roles []AccessAssignedRole) (AccessAssignment, error) {
 	aa := AccessAssignment{
 		EntityRoles: roles,
