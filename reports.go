@@ -57,17 +57,18 @@ func (c *Cx1Client) RequestNewReportByScanIDv2(scanID string, scanners, emails, 
 	if flag, _ := c.CheckFlag("CVSS_V3_ENABLED"); flag {
 		severities = append(severities, "critical")
 	}
-	return c.RequestNewReportByIDsv2(
-		"scan",
-		[]string{scanID},
-		[]string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details"},
-		scanners,
-		severities,
-		[]string{"to-verify", "confirmed", "urgent"},
-		[]string{"new", "recurrent"},
-		emails,
-		tags,
-		format)
+	return c.RequestNewReportByIDsv2(ReportRequest{
+		EntityType: "scan",
+		IDs:        []string{scanID},
+		Sections:   []string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details"},
+		Scanners:   scanners,
+		Severities: severities,
+		States:     []string{"to-verify", "confirmed", "urgent"},
+		Statuses:   []string{"new", "recurrent"},
+		Emails:     emails,
+		Tags:       tags,
+		Format:     format,
+	})
 }
 
 func (c *Cx1Client) RequestNewReportByProjectIDv2(projectIDs, scanners, emails, tags []string, format string) (string, error) {
@@ -75,47 +76,51 @@ func (c *Cx1Client) RequestNewReportByProjectIDv2(projectIDs, scanners, emails, 
 	if flag, _ := c.CheckFlag("CVSS_V3_ENABLED"); flag {
 		severities = append(severities, "critical")
 	}
-	return c.RequestNewReportByIDsv2(
-		"project",
-		projectIDs,
-		[]string{"projects-overview", "total-vulnerabilities-overview", "vulnerabilities-insights"},
-		scanners,
-		severities,
-		[]string{"to-verify", "confirmed", "urgent"},
-		[]string{"new", "recurrent"},
-		emails,
-		tags,
-		format)
+	return c.RequestNewReportByIDsv2(ReportRequest{
+		EntityType: "project",
+		IDs:        projectIDs,
+		Sections:   []string{"projects-overview", "total-vulnerabilities-overview", "vulnerabilities-insights"},
+		Scanners:   scanners,
+		Severities: severities,
+		States:     []string{"to-verify", "confirmed", "urgent"},
+		Statuses:   []string{"new", "recurrent"},
+		Emails:     emails,
+		Tags:       tags,
+		Format:     format,
+	})
 }
 
 // function used by RequestNewReportByIDv2
-func (c *Cx1Client) RequestNewReportByIDsv2(entityType string, ids, sections, scanners, severities, states, statuses, emails, tags []string, format string) (string, error) {
+func (c *Cx1Client) RequestNewReportByIDsv2(request ReportRequest) (string, error) {
 	jsonData := map[string]interface{}{
-		"reportName": fmt.Sprintf("improved-%v-report", entityType),
-		"sections":   sections,
+		"reportName": fmt.Sprintf("improved-%v-report", request.EntityType),
+		"sections":   request.Sections,
 		"entities": []map[string]interface{}{
 			{
-				"entity": entityType,
-				"ids":    ids,
-				"tags":   tags,
+				"entity": request.EntityType,
+				"ids":    request.IDs,
+				"tags":   request.Tags,
 			},
 		},
 		"filters": map[string][]string{
-			"scanners":   scanners,
-			"severities": severities,
-			"states":     states,
-			"status":     statuses,
+			"scanners":   request.Scanners,
+			"severities": request.Severities,
+			"states":     request.States,
+			"status":     request.Statuses,
 		},
 		"reportType": "ui",
-		"fileFormat": format,
-		"emails":     emails,
+		"fileFormat": request.Format,
+		"emails":     request.Emails,
+	}
+	if request.Timezone != "" {
+		jsonData["timezone"] = request.Timezone
 	}
 
 	jsonValue, _ := json.Marshal(jsonData)
 
 	data, err := c.sendRequest(http.MethodPost, "/reports/v2", bytes.NewReader(jsonValue), nil)
 	if err != nil {
-		return "", fmt.Errorf("failed to trigger report v2 generation for %v(s) %v: %s", entityType, strings.Join(ids, ","), err)
+		return "", fmt.Errorf("failed to trigger report v2 generation for %v(s) %v: %s", request.EntityType, strings.Join(request.IDs, ","), err)
 	}
 
 	var reportResponse struct {
