@@ -206,7 +206,7 @@ func (c *OIDCClient) clientToMap() {
 			timestamp := attributes["client.secret.expiration.time"].(string)
 			expiry, _ := strconv.ParseUint(timestamp, 10, 64)
 			if expiry != c.ClientSecretExpiry {
-				attributes["client.secret.expiration.time"] = expiry
+				attributes["client.secret.expiration.time"] = c.ClientSecretExpiry
 			}
 		}
 
