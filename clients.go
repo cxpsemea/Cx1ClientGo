@@ -201,14 +201,11 @@ func (c *OIDCClient) ClientFromMap(data map[string]interface{}) error {
 // used internally (before oidcclient.update) to update the internal json attributes map
 func (c *OIDCClient) clientToMap() {
 	if c.OIDCClientRaw["attributes"] != nil {
-		fmt.Println("attributes exist")
 		attributes := c.OIDCClientRaw["attributes"].(map[string]interface{})
 		if attributes["client.secret.expiration.time"] != nil {
-			fmt.Println("client.secret.expiration.time exists")
 			timestamp := attributes["client.secret.expiration.time"].(string)
 			expiry, _ := strconv.ParseUint(timestamp, 10, 64)
 			if expiry != c.ClientSecretExpiry {
-				fmt.Printf("Expiry %d != client secret expiry %d\n", expiry, c.ClientSecretExpiry)
 				attributes["client.secret.expiration.time"] = c.ClientSecretExpiry
 			}
 		}
