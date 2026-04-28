@@ -225,8 +225,6 @@ func (c *OIDCClient) clientToMap() {
 			}
 		}
 
-		fmt.Printf("Updated attributes: %v\n", attributes)
-
 		c.OIDCClientRaw["attributes"] = attributes
 	}
 }
