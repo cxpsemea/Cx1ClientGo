@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -349,4 +350,34 @@ func (q IACQuery) MetadataDifferent(metadata AuditIACQueryMetadata) bool {
 
 func (c *Cx1Client) QueryLink(q *SASTQuery) string {
 	return fmt.Sprintf("%v/audit/?queryid=%d", c.config.Cx1Url, q.QueryID)
+}
+
+func (c *Cx1Client) GetSASTQueryDescription(queryId uint64) (SASTQueryDescription, error) {
+	queryDescriptions, err := c.GetSASTQueryDescriptions([]uint64{queryId})
+	if err != nil {
+		return SASTQueryDescription{}, err
+	}
+	if len(queryDescriptions) != 1 {
+		return SASTQueryDescription{}, fmt.Errorf("expected 1 query description, got %v", len(queryDescriptions))
+	}
+	return queryDescriptions[0], nil
+}
+
+func (c *Cx1Client) GetSASTQueryDescriptions(queryIds []uint64) ([]SASTQueryDescription, error) {
+	params := url.Values{}
+	// url should end up: "/queries/descriptions?ids=1&ids=2&scan-id=&tenant-id="
+	for _, id := range queryIds {
+		params.Add("ids", strconv.FormatUint(id, 10))
+	}
+	params.Add("scan-id", "")
+	params.Add("tenant-id", c.GetTenantName())
+
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/queries/descriptions?%s", params.Encode()), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var descriptions []SASTQueryDescription
+	err = json.Unmarshal(response, &descriptions)
+	return descriptions, err
 }

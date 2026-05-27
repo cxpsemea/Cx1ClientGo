@@ -592,14 +592,6 @@ type GroupMembersFilter struct {
 	BriefRepresentation bool `url:"briefRepresentation,omitempty"`
 }
 
-/*
-type IACPreset struct {
-	PresetBase
-	IACQueryIDs []string
-	//Queries  []SASTQuery `json:"-"`
-}
-*/
-
 type IACQuery struct {
 	QueryID        string `json:"queryId"` // this is a unique ID per query per level (eg: query1 tenant-level override will have a different ID from the query1 project-level override)
 	Name           string `json:"name"`
@@ -1047,6 +1039,23 @@ type SASTQueryLanguage struct {
 
 type SASTQueryCollection struct {
 	QueryLanguages []SASTQueryLanguage
+}
+
+type SASTQueryDescription struct {
+	QueryID                uint64 `json:"queryID,string"`
+	QueryName              string `json:"queryName"`
+	QueryDescriptionID     string `json:"queryDescriptionId"`
+	QuerySource            string `json:"querySource"`
+	QuerySourcePath        string `json:"querySourcePath"`
+	ResultDescription      string `json:"resultDescription"`
+	Risk                   string `json:"risk"`
+	Cause                  string `json:"cause"`
+	GeneralRecommendations string `json:"generalRecommendations"`
+	Samples                []struct {
+		ProgLanguage string `json:"progLanguage"`
+		Code         string `json:"code"`
+		Title        string `json:"title"`
+	}
 }
 
 type SASTResultsPredicates struct {

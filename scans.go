@@ -679,6 +679,24 @@ func (c *Cx1Client) ScanProjectByID(projectID, sourceUrl, branch, scanType strin
 	return Scan{}, fmt.Errorf("invalid scanType provided, must be 'upload' or 'git'")
 }
 
+// Rescans a project using the last valid complete scan and current project configuration
+func (c *Cx1Client) RescanProjectByID(projectId string) (Scan, error) {
+	scan := Scan{}
+	body := map[string]string{"project_id": projectId}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return scan, err
+	}
+
+	data, err := c.sendRequest(http.MethodPost, "/scans/rescan", bytes.NewReader(jsonBody), nil)
+	if err != nil {
+		return scan, err
+	}
+
+	err = json.Unmarshal(data, &scan)
+	return scan, err
+}
+
 // convenience function to retrieve if a Scan was incremental
 // this information is also available through the Scan.Metadata.Configs struct
 func (s *Scan) IsIncremental() (bool, error) {
