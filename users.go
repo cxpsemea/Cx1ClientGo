@@ -70,6 +70,7 @@ func (c *Cx1Client) GetUserByID(userID string) (User, error) {
 	return toUser(&user), err
 }
 
+// Username is matched case-insensitive
 func (c *Cx1Client) GetUserByUserName(username string) (User, error) {
 	c.config.Logger.Debugf("Get Cx1 User by Username: %v", username)
 
@@ -85,7 +86,7 @@ func (c *Cx1Client) GetUserByUserName(username string) (User, error) {
 	}
 
 	for _, u := range users {
-		if u.UserName == username {
+		if strings.EqualFold(u.UserName, username) {
 			return u, nil
 		}
 	}
@@ -104,6 +105,7 @@ func (c *Cx1Client) GetUsersByUserName(username string) ([]User, error) {
 	return users, err
 }
 
+// User email is matched case-insensitive
 func (c *Cx1Client) GetUserByEmail(email string) (User, error) {
 	c.config.Logger.Debugf("Get Cx1 User by email: %v", email)
 	_, users, err := c.GetAllUsersFiltered(UserFilter{
@@ -118,7 +120,7 @@ func (c *Cx1Client) GetUserByEmail(email string) (User, error) {
 	}
 
 	for _, u := range users {
-		if u.Email == email {
+		if strings.EqualFold(u.Email, email) {
 			return u, nil
 		}
 	}
