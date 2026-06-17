@@ -506,11 +506,6 @@ func (c *Cx1Client) DeletePreset(preset Preset) error {
 	return err
 }
 
-func (c *Cx1Client) PresetLink(p *Preset) string {
-	c.depwarn("PresetLink", "will be removed")
-	return fmt.Sprintf("%v/resourceManagement/presets?presetId=%v", c.config.Cx1Url, p.PresetID)
-}
-
 func (p Preset) GetSASTQueryCollection(queries SASTQueryCollection) SASTQueryCollection {
 	coll := SASTQueryCollection{}
 	if p.Engine != "sast" {
