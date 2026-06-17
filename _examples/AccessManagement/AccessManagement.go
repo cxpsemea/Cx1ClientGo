@@ -52,7 +52,7 @@ func main() {
 
 	err = addAccessAssignments(cx1client, testclient, logger)
 
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "409") {
 		logger.Errorf("Failed to add user assignment for cx1clientgo_test service user: %s", err)
 	} else {
 		logger.Infof("Testing new OIDC Client by logging in as cx1clientgo_test")
@@ -64,12 +64,11 @@ func main() {
 		}
 	}
 
-	/*
-		err = cx1client.DeleteClientByID(testclient.ID)
-		if err != nil {
-			logger.Fatalf("Failed to delete oidc client 'cx1clientgo_test': %s", err)
-		}
-	*/
+	err = cx1client.DeleteClientByID(testclient.ID)
+	if err != nil {
+		logger.Fatalf("Failed to delete oidc client 'cx1clientgo_test': %s", err)
+	}
+
 }
 
 func checkCurrentUserAccess(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger) {
@@ -101,11 +100,12 @@ func createOIDCClient(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger) (
 	testclient, err := cx1client.GetClientByName("cx1clientgo_test")
 	var user Cx1ClientGo.User
 	if err != nil {
-		logger.Warnf("Failed to find existing OIDC Client 'cx1clientgo_test' - trying to create this OIDC client. Error: %s", err)
+		logger.Warnf("Failed to find existing OIDC Client 'cx1clientgo_test': %s", err)
 		testclient, err = cx1client.CreateClient("cx1clientgo_test", []string{ /*no email for notification*/ }, 30)
 		if err != nil {
 			return testclient, fmt.Errorf("failed to create oidc client 'cx1clientgo_test': %s", err)
 		}
+		logger.Infof("Created OIDC Client 'cx1clientgo_test'")
 	}
 
 	user, err = cx1client.GetServiceAccountByID(testclient.ID)

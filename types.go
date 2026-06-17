@@ -876,7 +876,7 @@ type ProjectScanScheduleFilter struct {
 	Sort             []string   `url:"sort,omitempty"` //  -created_at, +created_at, -status, +status, +name, -name, +trigger_time, -trigger_time
 }
 
-type QueryError struct {
+type QueryRunError struct {
 	Line        uint64
 	StartColumn uint64
 	EndColumn   uint64
@@ -884,14 +884,16 @@ type QueryError struct {
 	Message     string
 }
 
-type QueryFailure struct {
-	QueryID string       `json:"query_id"`
-	Errors  []QueryError `json:"error"`
+type QueryRunFailure struct {
+	QueryID string          `json:"query_id"`
+	Errors  []QueryRunError `json:"error"`
 }
 
-type QueryResult struct {
-	RunID    string
-	ResultID string
+type QueryRunResult struct {
+	RequestID string
+	RunID     string
+	Language  string
+	Title     string
 }
 
 type QueryVulnerabilityShort struct {
@@ -927,8 +929,8 @@ type QueryVulnerability struct {
 }
 
 type QueryRun struct {
-	FailedQueries []QueryFailure
-	Results       []QueryResult
+	FailedQueries []QueryRunFailure
+	Results       []QueryRunResult
 }
 
 type QueryFamily struct {
