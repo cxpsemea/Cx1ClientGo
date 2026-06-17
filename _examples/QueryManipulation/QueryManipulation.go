@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/tls"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/cxpsemea/Cx1ClientGo"
@@ -25,6 +27,14 @@ func main() {
 	logger.Infof("Starting")
 
 	httpClient := &http.Client{}
+	if true {
+		proxyURL, _ := url.Parse("http://127.0.0.1:8080")
+		transport := &http.Transport{}
+		transport.Proxy = http.ProxyURL(proxyURL)
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		httpClient.Transport = transport
+		logger.Infof("Using proxy")
+	}
 	cx1client, err := Cx1ClientGo.NewClient(httpClient, logger)
 	if err != nil {
 		logger.Fatalf("Error creating client: %s", err)
@@ -69,7 +79,7 @@ func main() {
 	}
 
 	makeSASTQueries(cx1client, logger, project, lastscan)
-	makeIACQueries(cx1client, logger, project, lastscan)
+	//makeIACQueries(cx1client, logger, project, lastscan)
 
 }
 
@@ -112,7 +122,7 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 		}
 	}
 
-	corpOverride := newSASTCorpOverride(cx1client, logger, &qc, &session)
+	/*corpOverride := newSASTCorpOverride(cx1client, logger, &qc, &session)
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
 		logger.Errorf("Audit session may have expired: %s", err)
 	}
@@ -122,7 +132,7 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
 		logger.Errorf("Audit session may have expired: %s", err)
 	}
-	defer DeleteSASTQuery(cx1client, logger, &session, appOverride)
+	defer DeleteSASTQuery(cx1client, logger, &session, appOverride)*/
 
 	projOverride := newSASTProjectOverride(cx1client, logger, &qc, &session)
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
@@ -130,11 +140,11 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	}
 	defer DeleteSASTQuery(cx1client, logger, &session, projOverride)
 
-	corpQuery := newSASTCorpQuery(cx1client, logger, &qc, &session)
+	/*corpQuery := newSASTCorpQuery(cx1client, logger, &qc, &session)
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
 		logger.Errorf("Audit session may have expired: %s", err)
 	}
-	defer DeleteSASTQuery(cx1client, logger, &session, corpQuery)
+	defer DeleteSASTQuery(cx1client, logger, &session, corpQuery)*/
 
 	logger.Infof("Retrieving an updated list of queries")
 	qc, err = cx1client.GetSASTQueryCollection()
@@ -148,11 +158,11 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	}
 
 	qc.AddCollection(&aq)
-	if corpQuery != nil {
-		qc.UpdateNewQuery(corpQuery) // fill in the missing QueryID for this new query
-	}
 
 	cqc = qc.GetCustomQueryCollection()
+	/*if corpQuery != nil {
+		cqc.UpdateNewQuery(corpQuery) // fill in the missing QueryID for this new query
+	}*/
 
 	logger.Infof("The following custom (not Cx-level) queries exist for project Id %v", project.ProjectID)
 
@@ -178,8 +188,8 @@ func doQueryEdits(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, sessi
 		logger.Infof("Query error: %+v", r)
 	}
 
-	logger.Infof("Running query with valid override")
-	result, err = cx1client.RunSASTQuery(session, override, "result = base.Reflected_XSS();")
+	logger.Infof("Running query with valid override - will return all strings results instead")
+	result, err = cx1client.RunSASTQuery(session, override, "result = Find_Strings();")
 	if err != nil {
 		logger.Errorf("Error running query: %s", err)
 	}
