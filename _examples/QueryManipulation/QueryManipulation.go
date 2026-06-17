@@ -107,7 +107,7 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	for lid := range cqc.QueryLanguages {
 		for gid := range cqc.QueryLanguages[lid].QueryGroups {
 			for _, q := range cqc.QueryLanguages[lid].QueryGroups[gid].Queries {
-				logger.Infof(q.StringDetailed())
+				logger.Info(q.StringDetailed())
 			}
 		}
 	}
@@ -159,7 +159,47 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	for lid := range cqc.QueryLanguages {
 		for gid := range cqc.QueryLanguages[lid].QueryGroups {
 			for _, q := range cqc.QueryLanguages[lid].QueryGroups[gid].Queries {
-				logger.Infof(q.StringDetailed())
+				logger.Info(q.StringDetailed())
+			}
+		}
+	}
+
+	doQueryEdits(cx1client, logger, &session, projOverride)
+}
+
+func doQueryEdits(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, session *Cx1ClientGo.AuditSession, override *Cx1ClientGo.SASTQuery) {
+	logger.Infof("Running query with invalid override")
+	result, err := cx1client.RunSASTQuery(session, override, "herpaderp")
+	if err != nil {
+		logger.Errorf("Error running query: %s", err)
+	}
+	logger.Info("Query errors:")
+	for _, r := range result.FailedQueries {
+		logger.Infof("Query error: %+v", r)
+	}
+
+	logger.Infof("Running query with valid override")
+	result, err = cx1client.RunSASTQuery(session, override, "result = base.Reflected_XSS();")
+	if err != nil {
+		logger.Errorf("Error running query: %s", err)
+	}
+	logger.Info("Query result:")
+	for _, r := range result.Results {
+		logger.Infof("Getting vulnerabilities for query result: %+v", r)
+
+		vulnerabilities, err := cx1client.GetQueryRunResultsByID(session, r.RunID)
+		if err != nil {
+			logger.Errorf("Error getting results: %s", err)
+		} else {
+			for _, v := range vulnerabilities {
+				logger.Infof("Getting details for vulnerability: %+v", v)
+
+				vuln, err := cx1client.GetQueryRunVulnerabilityByID(session, r.RunID, v.VulnerabilityID)
+				if err != nil {
+					logger.Errorf("Error getting vulnerability: %s", err)
+				} else {
+					logger.Infof("Details: %+v", vuln)
+				}
 			}
 		}
 	}

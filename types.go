@@ -165,15 +165,16 @@ type BaseFilteredResponse struct {
 }
 
 type AccessAssignment struct {
-	TenantID     string               `json:"tenantID"`
-	EntityID     string               `json:"entityID"`
-	EntityType   string               `json:"entityType"`
-	EntityName   string               `json:"entityName"`
-	EntityRoles  []AccessAssignedRole `json:"entityRoles"`
-	ResourceID   string               `json:"resourceID"`
-	ResourceType string               `json:"resourceType"`
-	ResourceName string               `json:"resourceName"`
-	CreatedAt    time.Time            `json:"createdAt"`
+	TenantID       string               `json:"tenantID"`
+	EntityID       string               `json:"entityID"`
+	OriginEntityID string               `json:"originEntityID"` // this is the entity that directly has the role assignment, it may be different from EntityID if the assignment is inherited (eg: if a user is assigned a role at the project level, EntityID will be the user ID but OriginEntityID will be the
+	EntityType     string               `json:"entityType"`
+	EntityName     string               `json:"entityName"`
+	EntityRoles    []AccessAssignedRole `json:"entityRoles"`
+	ResourceID     string               `json:"resourceID"`
+	ResourceType   string               `json:"resourceType"`
+	ResourceName   string               `json:"resourceName"`
+	CreatedAt      time.Time            `json:"createdAt"`
 }
 
 type AccessAssignedRole struct {
