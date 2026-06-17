@@ -889,6 +889,48 @@ type QueryFailure struct {
 	Errors  []QueryError `json:"error"`
 }
 
+type QueryResult struct {
+	RunID    string
+	ResultID string
+}
+
+type QueryVulnerabilityShort struct {
+	VulnerabilityID string
+	Nodes           uint
+	SourceFile      string
+	SourceLine      uint64
+	SourceID        uint64
+	SourceName      string
+	SourceType      string
+	DestinationFile string
+	DestinationLine uint64
+	DestinationID   uint64
+	DestinationName string
+	DestinationType string
+}
+
+type QueryVulnerabilityNode struct {
+	Name        string
+	Language    string
+	FullName    string
+	TypeName    string
+	Line        uint64
+	StartColumn uint
+	EndColumn   uint64
+	DomType     string
+	NodeID      uint64
+}
+
+type QueryVulnerability struct {
+	VulnerabilityID string
+	Nodes           []QueryVulnerabilityNode
+}
+
+type QueryRun struct {
+	FailedQueries []QueryFailure
+	Results       []QueryResult
+}
+
 type QueryFamily struct {
 	Name       string   `json:"familyName"`
 	TotalCount uint64   `json:"totalCount"`
