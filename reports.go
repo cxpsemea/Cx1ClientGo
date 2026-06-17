@@ -44,14 +44,6 @@ func (c *Cx1Client) RequestNewReportByID(scanID, projectID, branch, reportType s
 	return reportResponse.ReportId, err
 }
 
-// the v2 report is the "improved scan report" which can be used the same as the existing RequestNewReportByID
-// returns the report ID which can be passed to GetReportStatusByID or ReportPollingByID
-// supports pdf, csv, and json format (not xml)
-func (c *Cx1Client) RequestNewReportByIDv2(scanID string, scanners []string, format string) (string, error) {
-	c.depwarn("RequestNewReportByIDv2", "RequestNewReportByScanIDv2")
-	return c.RequestNewReportByScanIDv2(scanID, scanners, []string{}, []string{}, format)
-}
-
 func (c *Cx1Client) RequestNewReportByScanIDv2(scanID string, scanners, emails, tags []string, format string) (string, error) {
 	severities := []string{"high", "medium"}
 	if flag, _ := c.CheckFlag("CVSS_V3_ENABLED"); flag {

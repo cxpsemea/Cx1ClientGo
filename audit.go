@@ -53,13 +53,6 @@ func (c *Cx1Client) QueryTypeProject() string {
 	return AUDIT_QUERY.PROJECT
 }
 
-// This function will be deprecated - use GetAuditSession instead
-// They are functionally identical but this function name is misleading
-func (c *Cx1Client) AuditCreateSession(engine, language string) (AuditSession, error) {
-	c.depwarn("AuditCreateSession", "GetAuditSession")
-	return c.GetAuditSession(engine, language)
-}
-
 // Create an audit session on the tenant-level
 // eg: engine = "sast", language = "go"
 // The session will expire unless you call AuditSessionKeepAlive periodically
@@ -113,13 +106,6 @@ func (c *Cx1Client) GetAuditSession(engine, language string) (AuditSession, erro
 
 	return session, nil
 
-}
-
-// You should probably use GetAuditSessionByID instead
-func (c *Cx1Client) AuditCreateSessionByID(engine, projectId, scanId string) (AuditSession, error) {
-	c.depwarn("AuditCreateSessionByID", "GetAuditSessionByID")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.auditCreateSessionByID(engine, projectId, scanId)
 }
 
 // This is an internal function to create an Audit session for a specific project based on a scan ID
@@ -203,12 +189,6 @@ func (c *Cx1Client) auditCreateSessionByID(engine, projectId, scanId string) (Au
 	return session, nil
 }
 
-// Please use DeleteAuditSession instead (renamed for consistency)
-func (c *Cx1Client) AuditDeleteSession(auditSession *AuditSession) error {
-	c.depwarn("AuditDeleteSession", "DeleteAuditSession")
-	return c.DeleteAuditSession(auditSession)
-}
-
 // Delete an audit session. Frees up a slot for new sessions.
 func (c *Cx1Client) DeleteAuditSession(auditSession *AuditSession) error {
 	if auditSession == nil {
@@ -222,15 +202,6 @@ func (c *Cx1Client) DeleteAuditSession(auditSession *AuditSession) error {
 	}
 
 	return nil
-}
-
-// This function is unlikely to be needed directly and will be deprecated.
-// If you need this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue)
-// to discuss your use case. This function will be removed to simplify the interface.
-func (c *Cx1Client) AuditGetRequestStatusByID(auditSession *AuditSession, requestId string) (bool, interface{}, error) {
-	c.depwarn("AuditGetRequestStatusByID", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.auditGetRequestStatusByID(auditSession, requestId)
 }
 
 func (c *Cx1Client) auditGetRequestStatusByID(auditSession *AuditSession, requestId string) (bool, interface{}, error) {
@@ -265,25 +236,7 @@ func (c *Cx1Client) auditGetRequestStatusByID(auditSession *AuditSession, reques
 	return status.Completed, status.Value, nil
 }
 
-// This function is unlikely to be needed directly and will be deprecated.
-// If you need this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue)
-// to discuss your use case. This function will be removed to simplify the interface.
-func (c *Cx1Client) AuditRequestStatusPollingByID(auditSession *AuditSession, requestId string) (interface{}, error) {
-	c.depwarn("AuditRequestStatusPollingByID", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.auditRequestStatusPollingByID(auditSession, requestId)
-}
-
 func (c *Cx1Client) auditRequestStatusPollingByID(auditSession *AuditSession, requestId string) (interface{}, error) {
-	return c.auditRequestStatusPollingByIDWithTimeout(auditSession, requestId, c.config.Polling.AuditEnginePollingDelaySeconds, c.config.Polling.AuditEnginePollingMaxSeconds)
-}
-
-// This function is unlikely to be needed directly and will be deprecated.
-// If you need this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue)
-// to discuss your use case. This function will be removed to simplify the interface.
-func (c *Cx1Client) AuditRequestStatusPollingByIDWithTimeout(auditSession *AuditSession, requestId string, delaySeconds, maxSeconds int) (interface{}, error) {
-	c.depwarn("AuditRequestStatusPollingByIDWithTimeout", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
 	return c.auditRequestStatusPollingByIDWithTimeout(auditSession, requestId, c.config.Polling.AuditEnginePollingDelaySeconds, c.config.Polling.AuditEnginePollingMaxSeconds)
 }
 
@@ -372,15 +325,6 @@ func (c *Cx1Client) GetAuditSessionByID(engine, projectId, scanId string) (Audit
 	return session, nil
 }
 
-// This function is unlikely to be needed directly and will be deprecated.
-// If you need this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue)
-// to discuss your use case. This function will be removed to simplify the interface.
-func (c *Cx1Client) AuditGetScanSourcesByID(auditSession *AuditSession) ([]AuditScanSourceFile, error) {
-	c.depwarn("AuditGetScanSourcesByID", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.auditGetScanSourcesByID(auditSession)
-}
-
 // This is an internal function to create an Audit session for a specific project based on a scan ID
 // This is step 2 of a multi-step process to create an audit session for a specific scan
 func (c *Cx1Client) auditGetScanSourcesByID(auditSession *AuditSession) ([]AuditScanSourceFile, error) {
@@ -395,15 +339,6 @@ func (c *Cx1Client) auditGetScanSourcesByID(auditSession *AuditSession) ([]Audit
 
 	err = json.Unmarshal(response, &sourcefiles)
 	return sourcefiles, err
-}
-
-// This function is unlikely to be needed directly and will be deprecated.
-// If you need this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue)
-// to discuss your use case. This function will be removed to simplify the interface.
-func (c *Cx1Client) AuditRunScanByID(auditSession *AuditSession) error {
-	c.depwarn("AuditRunScanByID", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.auditRunScanByID(auditSession)
 }
 
 // This is an internal function to create an Audit session for a specific project based on a scan ID
@@ -544,15 +479,6 @@ func (c *Cx1Client) GetAuditIACQueriesByLevelID(auditSession *AuditSession, leve
 	collection.AddQueryTree(&querytree, auditSession.ApplicationID, levelId)
 
 	return collection, nil
-}
-
-// Get the query tree for an audit session
-// You probably don't need this and should use GetAuditSASTQueriesByLevelID or GetAuditIACQueriesByLevelID instead
-// The tree is an internal structure converted to SAST/IAC query collections as appropriate
-func (c *Cx1Client) GetAuditQueryTreeByLevelID(auditSession *AuditSession, level, levelId string) ([]AuditQueryTree, error) {
-	c.depwarn("GetAuditQueryTreeByLevelID", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.getAuditQueryTreeByLevelID(auditSession, level, levelId)
 }
 
 func (c *Cx1Client) getAuditQueryTreeByLevelID(auditSession *AuditSession, level, levelId string) ([]AuditQueryTree, error) {
@@ -1173,15 +1099,6 @@ func (c *Cx1Client) UpdateIACQuerySource(auditSession *AuditSession, query IACQu
 	return newQuery, queryFail, nil
 }
 
-/*
-You should use ValidateS(AST|IAC)QuerySource instead of this function
-This will test if the code compiles and will not update the source code in Cx1 nor in the query object
-*/
-func (c *Cx1Client) ValidateQuerySourceByKey(auditSession *AuditSession, queryKey, source string) ([]QueryFailure, error) {
-	c.depwarn("ValidateQuerySourceByKey", "Validate(SAST|IAC)QuerySource")
-	return c.validateQuerySourceByKey(auditSession, queryKey, source)
-}
-
 func (c *Cx1Client) validateQuerySourceByKey(auditSession *AuditSession, queryKey, source string) ([]QueryFailure, error) {
 	c.config.Logger.Debugf("Validating query source by key: %v", queryKey)
 	type QueryUpdate struct {
@@ -1236,23 +1153,14 @@ func (c *Cx1Client) ValidateSASTQuerySource(auditSession *AuditSession, query *S
 	if query.EditorKey == "" {
 		return []QueryFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditQueries* calls", query.String())
 	}
-	return c.ValidateQuerySourceByKey(auditSession, query.EditorKey, source)
+	return c.validateQuerySourceByKey(auditSession, query.EditorKey, source)
 }
 
 func (c *Cx1Client) ValidateIACQuerySource(auditSession *AuditSession, query *IACQuery, source string) ([]QueryFailure, error) {
 	if query.Key == "" {
 		return []QueryFailure{}, fmt.Errorf("query %v does not have an Key, this should be retrieved with the GetAuditQueries* calls", query.String())
 	}
-	return c.ValidateQuerySourceByKey(auditSession, query.Key, source)
-}
-
-/*
-Use Run(SAST|IAC)Query instead.
-Cx1ClientGo does not yet expose a method to retrieve the results of an audit query execution - this is effectively the same as Validate*QuerySource
-*/
-func (c *Cx1Client) RunQueryByKey(auditSession *AuditSession, queryKey, source string) (QueryFailure, error) {
-	c.depwarn("RunQueryByKey", "Run(SAST|IAC)Query")
-	return c.runQueryByKey(auditSession, queryKey, source)
+	return c.validateQuerySourceByKey(auditSession, query.Key, source)
 }
 
 func (c *Cx1Client) runQueryByKey(auditSession *AuditSession, queryKey, source string) (QueryFailure, error) {

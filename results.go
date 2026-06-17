@@ -139,10 +139,7 @@ func (c *Cx1Client) AddSASTResultsPredicates(predicates []SASTResultsPredicates)
 	_, err = c.sendRequest(http.MethodPost, "/sast-results-predicates", bytes.NewReader(jsonBody), nil)
 	return err
 }
-func (c *Cx1Client) AddKICSResultsPredicates(predicates []IACResultsPredicates) error {
-	c.depwarn("AddKICSResultsPredicates", "AddIACResultsPredicates")
-	return c.AddIACResultsPredicates(predicates)
-}
+
 func (c *Cx1Client) AddIACResultsPredicates(predicates []IACResultsPredicates) error {
 	c.config.Logger.Debugf("Adding %d IAC results predicates", len(predicates))
 
@@ -208,11 +205,6 @@ func (c *Cx1Client) GetLastSASTResultsPredicateByID(SimilarityID string, Project
 	}
 
 	return Predicates.LatestPredicatePerProject[0], err
-}
-
-func (c *Cx1Client) GetKICSResultsPredicatesByID(SimilarityID string, ProjectID string) ([]IACResultsPredicates, error) {
-	c.depwarn("GetKICSResultsPredicatesByID", "GetIACResultsPredicatesByID")
-	return c.GetIACResultsPredicatesByID(SimilarityID, ProjectID)
 }
 
 func (c *Cx1Client) GetIACResultsPredicatesByID(SimilarityID string, ProjectID string) ([]IACResultsPredicates, error) {
