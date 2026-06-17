@@ -459,15 +459,6 @@ func (c *Cx1Client) GetAllUserRoles(user *User) ([]Role, error) {
 	return roles, nil
 }
 
-// this function was ambiguous (returned only directly-assigned roles)
-// now you can use GetUserAssignedRoles (roles assigned directly to user),
-// GetUserInheritedRoles (roles inherited from group membership) or
-// GetAllUserRoles (GetUserAssignedRoles + GetUserInheritedRoles)
-func (c *Cx1Client) GetUserRoles(user *User) ([]Role, error) {
-	c.depwarn("GetUserRoles", "GetAllUserRoles, GetUserAssignedRoles, or GetUserInheritedRoles")
-	return c.GetUserAssignedRoles(user)
-}
-
 // this returns the roles that are directly assigned to the user
 // does not include roles inherited from group membership
 func (c *Cx1Client) GetUserAssignedRoles(user *User) ([]Role, error) {
