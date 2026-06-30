@@ -393,12 +393,30 @@ func (q *SASTQuery) GetDependencies(qc *SASTQueryCollection) (OpenCalls, BaseCal
 		return
 	}
 
-	open_call := regexp.MustCompile(`[^a-zA-Z0-9_.]([a-zA-Z_0-9.]+)\(\)`)
-	base_call := regexp.MustCompile(`base\.([a-zA-Z_0-9]+)\(\)`)
-
-	open_calls := open_call.FindAllStringSubmatch(q.Source, -1)
+	base_call := regexp.MustCompile(`([a-zA-Z0-9_]+)\.([a-zA-Z_0-9]+)\(`)
 	base_calls := base_call.FindAllStringSubmatch(q.Source, -1)
+	if len(base_calls) > 0 {
+		for _, matches := range base_calls {
 
+			if strings.EqualFold(matches[1], "base") {
+				var qq *SASTQuery = nil
+				qq = qc.GetQueryByName(q.Language, q.Group, matches[2])
+				if qq != nil {
+					if !slices.Contains(BaseCalls, qq) {
+						BaseCalls = append(BaseCalls, qq)
+						continue
+					}
+				}
+			}
+			callstr := matches[1] + "." + matches[2]
+			if !slices.Contains(ProductCalls, callstr) {
+				ProductCalls = append(ProductCalls, callstr)
+			}
+		}
+	}
+
+	open_call := regexp.MustCompile(`[^.a-zA-Z0-9_]([a-zA-Z_0-9]+)\(`)
+	open_calls := open_call.FindAllStringSubmatch(q.Source, -1)
 	if len(open_calls) > 0 {
 		for _, matches := range open_calls {
 			var qq *SASTQuery = nil
@@ -408,7 +426,7 @@ func (q *SASTQuery) GetDependencies(qc *SASTQueryCollection) (OpenCalls, BaseCal
 			}
 
 			if qq != nil {
-				if !slices.Contains(OpenCalls, qq) {
+				if !slices.Contains(OpenCalls, qq) && !slices.Contains(BaseCalls, qq) {
 					OpenCalls = append(OpenCalls, qq)
 				}
 			} else {
@@ -418,21 +436,14 @@ func (q *SASTQuery) GetDependencies(qc *SASTQueryCollection) (OpenCalls, BaseCal
 			}
 		}
 	}
-	if len(base_calls) > 0 {
-		for _, matches := range base_calls {
 
-			var qq *SASTQuery = nil
-			qq = qc.GetQueryByName(q.Language, q.Group, matches[1])
-			if qq != nil {
-				if !slices.Contains(BaseCalls, qq) {
-					BaseCalls = append(BaseCalls, qq)
-				}
-			} else {
-				if !slices.Contains(ProductCalls, matches[1]) {
-					ProductCalls = append(ProductCalls, "base."+matches[1])
-				}
-			}
+	chained_call := regexp.MustCompile(`\)\.([a-zA-Z_0-9]+)\(`)
+	chained_calls := chained_call.FindAllStringSubmatch(q.Source, -1)
+	for _, matches := range chained_calls {
+		if !slices.Contains(ProductCalls, matches[1]) {
+			ProductCalls = append(ProductCalls, matches[1])
 		}
 	}
+
 	return
 }
