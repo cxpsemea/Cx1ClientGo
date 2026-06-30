@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
+
+	"golang.org/x/exp/slices"
 )
 
 /*
@@ -194,6 +197,7 @@ func GetSeverity(severity uint) string {
 	return "Unknown"
 }
 
+// update self's empty values with nq's non-empty
 func (q *SASTQuery) MergeQuery(nq SASTQuery) {
 	if q.QueryID == 0 && nq.QueryID != 0 {
 		q.QueryID = nq.QueryID
@@ -380,4 +384,55 @@ func (c *Cx1Client) GetSASTQueryDescriptions(queryIds []uint64) ([]SASTQueryDesc
 	var descriptions []SASTQueryDescription
 	err = json.Unmarshal(response, &descriptions)
 	return descriptions, err
+}
+
+// finds the function-calls that are either open (result = Find_Strings();)
+// or base (result = base.Find_Missing_HSTS();)
+func (q *SASTQuery) GetDependencies(qc *SASTQueryCollection) (OpenCalls, BaseCalls []*SASTQuery, ProductCalls []string) {
+	if q.Source == "" {
+		return
+	}
+
+	open_call := regexp.MustCompile(`[^a-zA-Z0-9_.]([a-zA-Z_0-9.]+)\(\)`)
+	base_call := regexp.MustCompile(`base\.([a-zA-Z_0-9]+)\(\)`)
+
+	open_calls := open_call.FindAllStringSubmatch(q.Source, -1)
+	base_calls := base_call.FindAllStringSubmatch(q.Source, -1)
+
+	if len(open_calls) > 0 {
+		for _, matches := range open_calls {
+			var qq *SASTQuery = nil
+			qq = qc.GetQueryByName(q.Language, q.Group, matches[1])
+			if qq == nil {
+				qq = qc.GetQueryByName(q.Language, "General", matches[1])
+			}
+
+			if qq != nil {
+				if !slices.Contains(OpenCalls, qq) {
+					OpenCalls = append(OpenCalls, qq)
+				}
+			} else {
+				if !slices.Contains(ProductCalls, matches[1]) {
+					ProductCalls = append(ProductCalls, matches[1])
+				}
+			}
+		}
+	}
+	if len(base_calls) > 0 {
+		for _, matches := range base_calls {
+
+			var qq *SASTQuery = nil
+			qq = qc.GetQueryByName(q.Language, q.Group, matches[1])
+			if qq != nil {
+				if !slices.Contains(BaseCalls, qq) {
+					BaseCalls = append(BaseCalls, qq)
+				}
+			} else {
+				if !slices.Contains(ProductCalls, matches[1]) {
+					ProductCalls = append(ProductCalls, "base."+matches[1])
+				}
+			}
+		}
+	}
+	return
 }

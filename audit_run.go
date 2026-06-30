@@ -200,3 +200,7 @@ func (c *Cx1Client) GetQueryRunVulnerabilityByID(auditSession *AuditSession, run
 	err = json.Unmarshal(responseBytes, &vuln)
 	return vuln, err
 }
+
+func (q QueryVulnerability) String() string {
+	return fmt.Sprintf("%v - %v to %v - in file %v:%d", q.VulnerabilityID, q.Nodes[0].Name, q.Nodes[len(q.Nodes)-1].Name, q.Nodes[0].FileID, q.Nodes[0].Line)
+}

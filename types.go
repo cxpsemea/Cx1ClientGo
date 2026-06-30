@@ -918,10 +918,11 @@ type QueryVulnerabilityNode struct {
 	FullName    string
 	TypeName    string
 	Line        uint64
-	StartColumn uint
+	StartColumn uint64
 	EndColumn   uint64
 	DomType     string
 	NodeID      uint64
+	FileID      string
 }
 
 type QueryVulnerability struct {
@@ -1058,7 +1059,7 @@ type SASTQuery struct {
 	LevelID            string `json:"levelId"`
 	Path               string `json:"path"`
 	Modified           string `json:"-"`
-	Source             string `json:"-"`
+	Source             string `json:"source,omitempty"`
 	Name               string `json:"queryName"`
 	Group              string `json:"group"`
 	Language           string `json:"language"`
@@ -1389,7 +1390,7 @@ type ScanSASTResultsFilter struct {
 	FirstFoundAtOperation  string   `url:"first-found-at-operation,omitempty"` // LESS_THAN, GREATER_THAN
 	QueryIDs               []uint64 `url:"query-ids,omitempty"`
 	PresetID               uint64   `url:"preset-id,omitempty"`
-	ResultIDs              []string `url:"result-ids,omitempty"`
+	ResultIDs              []string `url:"result-id,omitempty"`
 	Categories             string   `url:"category,omitempty"` // comma-separated list
 	Search                 string   `url:"search,omitempty"`
 	IncludeNodes           *bool    `url:"include-nodes,omitempty"`
