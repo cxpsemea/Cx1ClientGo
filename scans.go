@@ -516,9 +516,20 @@ func (c *Cx1Client) GetScanSourcesByID(scanID string) ([]byte, error) {
 	c.config.Logger.Debugf("Fetching scan sources for scan %v", scanID)
 
 	//c.config.Logger.Tracef("Retrieved url: %v", enginelogURL)
-	data, err := c.sendRequestInternal(http.MethodGet, fmt.Sprintf("%v/api/repostore/code/%v", c.config.Cx1Url, scanID), nil, nil)
+	response, err := c.sendRequestRaw(http.MethodGet, fmt.Sprintf("%v/api/repostore/code/%v", c.config.Cx1Url, scanID), nil, nil)
 	if err != nil {
 		c.config.Logger.Tracef("Failed to download sources from scan %v: %s", scanID, err)
+		return []byte{}, nil
+	}
+
+	sourcesURL := response.Header.Get("Location")
+	if sourcesURL == "" {
+		return []byte{}, fmt.Errorf("expected location header response not found")
+	}
+
+	data, err := c.sendRequestInternal(http.MethodGet, sourcesURL, nil, nil)
+	if err != nil {
+		c.config.Logger.Tracef("Failed to download sources from %v: %s", sourcesURL, err)
 		return []byte{}, nil
 	}
 
