@@ -524,7 +524,15 @@ func (c *Cx1Client) GetScanSourcesByID(scanID string) ([]byte, error) {
 
 	sourcesURL := response.Header.Get("Location")
 	if sourcesURL == "" {
-		return []byte{}, fmt.Errorf("expected location header response not found")
+		if r, _ := c.version.CheckCxOne("3.60.0"); r >= 0 {
+			return []byte{}, fmt.Errorf("expected location header response not found")
+		}
+		var resBody []byte
+		if response != nil && response.Body != nil {
+			resBody, _ = io.ReadAll(response.Body)
+			response.Body.Close()
+		}
+		return resBody, nil
 	}
 
 	data, err := c.sendRequestInternal(http.MethodGet, sourcesURL, nil, nil)
