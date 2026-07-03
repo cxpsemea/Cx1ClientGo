@@ -165,15 +165,16 @@ type BaseFilteredResponse struct {
 }
 
 type AccessAssignment struct {
-	TenantID     string               `json:"tenantID"`
-	EntityID     string               `json:"entityID"`
-	EntityType   string               `json:"entityType"`
-	EntityName   string               `json:"entityName"`
-	EntityRoles  []AccessAssignedRole `json:"entityRoles"`
-	ResourceID   string               `json:"resourceID"`
-	ResourceType string               `json:"resourceType"`
-	ResourceName string               `json:"resourceName"`
-	CreatedAt    time.Time            `json:"createdAt"`
+	TenantID       string               `json:"tenantID"`
+	EntityID       string               `json:"entityID"`
+	OriginEntityID string               `json:"originEntityID"` // this is the entity that directly has the role assignment, it may be different from EntityID if the assignment is inherited (eg: if a user is assigned a role at the project level, EntityID will be the user ID but OriginEntityID will be the
+	EntityType     string               `json:"entityType"`
+	EntityName     string               `json:"entityName"`
+	EntityRoles    []AccessAssignedRole `json:"entityRoles"`
+	ResourceID     string               `json:"resourceID"`
+	ResourceType   string               `json:"resourceType"`
+	ResourceName   string               `json:"resourceName"`
+	CreatedAt      time.Time            `json:"createdAt"`
 }
 
 type AccessAssignedRole struct {
@@ -876,7 +877,7 @@ type ProjectScanScheduleFilter struct {
 	Sort             []string   `url:"sort,omitempty"` //  -created_at, +created_at, -status, +status, +name, -name, +trigger_time, -trigger_time
 }
 
-type QueryError struct {
+type QueryRunError struct {
 	Line        uint64
 	StartColumn uint64
 	EndColumn   uint64
@@ -884,9 +885,54 @@ type QueryError struct {
 	Message     string
 }
 
-type QueryFailure struct {
-	QueryID string       `json:"query_id"`
-	Errors  []QueryError `json:"error"`
+type QueryRunFailure struct {
+	QueryID string          `json:"query_id"`
+	Errors  []QueryRunError `json:"error"`
+}
+
+type QueryRunResult struct {
+	RequestID string
+	RunID     string
+	Language  string
+	Title     string
+}
+
+type QueryVulnerabilityShort struct {
+	VulnerabilityID string
+	Nodes           uint
+	SourceFile      string
+	SourceLine      uint64
+	SourceID        uint64
+	SourceName      string
+	SourceType      string
+	DestinationFile string
+	DestinationLine uint64
+	DestinationID   uint64
+	DestinationName string
+	DestinationType string
+}
+
+type QueryVulnerabilityNode struct {
+	Name        string
+	Language    string
+	FullName    string
+	TypeName    string
+	Line        uint64
+	StartColumn uint64
+	EndColumn   uint64
+	DomType     string
+	NodeID      uint64
+	FileID      string
+}
+
+type QueryVulnerability struct {
+	VulnerabilityID string
+	Nodes           []QueryVulnerabilityNode
+}
+
+type QueryRun struct {
+	FailedQueries []QueryRunFailure
+	Results       []QueryRunResult
 }
 
 type QueryFamily struct {
@@ -1013,7 +1059,7 @@ type SASTQuery struct {
 	LevelID            string `json:"levelId"`
 	Path               string `json:"path"`
 	Modified           string `json:"-"`
-	Source             string `json:"-"`
+	Source             string `json:"source,omitempty"`
 	Name               string `json:"queryName"`
 	Group              string `json:"group"`
 	Language           string `json:"language"`
@@ -1344,7 +1390,7 @@ type ScanSASTResultsFilter struct {
 	FirstFoundAtOperation  string   `url:"first-found-at-operation,omitempty"` // LESS_THAN, GREATER_THAN
 	QueryIDs               []uint64 `url:"query-ids,omitempty"`
 	PresetID               uint64   `url:"preset-id,omitempty"`
-	ResultIDs              []string `url:"result-ids,omitempty"`
+	ResultIDs              []string `url:"result-id,omitempty"`
 	Categories             string   `url:"category,omitempty"` // comma-separated list
 	Search                 string   `url:"search,omitempty"`
 	IncludeNodes           *bool    `url:"include-nodes,omitempty"`

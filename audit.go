@@ -53,13 +53,6 @@ func (c *Cx1Client) QueryTypeProject() string {
 	return AUDIT_QUERY.PROJECT
 }
 
-// This function will be deprecated - use GetAuditSession instead
-// They are functionally identical but this function name is misleading
-func (c *Cx1Client) AuditCreateSession(engine, language string) (AuditSession, error) {
-	c.depwarn("AuditCreateSession", "GetAuditSession")
-	return c.GetAuditSession(engine, language)
-}
-
 // Create an audit session on the tenant-level
 // eg: engine = "sast", language = "go"
 // The session will expire unless you call AuditSessionKeepAlive periodically
@@ -113,13 +106,6 @@ func (c *Cx1Client) GetAuditSession(engine, language string) (AuditSession, erro
 
 	return session, nil
 
-}
-
-// You should probably use GetAuditSessionByID instead
-func (c *Cx1Client) AuditCreateSessionByID(engine, projectId, scanId string) (AuditSession, error) {
-	c.depwarn("AuditCreateSessionByID", "GetAuditSessionByID")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.auditCreateSessionByID(engine, projectId, scanId)
 }
 
 // This is an internal function to create an Audit session for a specific project based on a scan ID
@@ -203,12 +189,6 @@ func (c *Cx1Client) auditCreateSessionByID(engine, projectId, scanId string) (Au
 	return session, nil
 }
 
-// Please use DeleteAuditSession instead (renamed for consistency)
-func (c *Cx1Client) AuditDeleteSession(auditSession *AuditSession) error {
-	c.depwarn("AuditDeleteSession", "DeleteAuditSession")
-	return c.DeleteAuditSession(auditSession)
-}
-
 // Delete an audit session. Frees up a slot for new sessions.
 func (c *Cx1Client) DeleteAuditSession(auditSession *AuditSession) error {
 	if auditSession == nil {
@@ -222,15 +202,6 @@ func (c *Cx1Client) DeleteAuditSession(auditSession *AuditSession) error {
 	}
 
 	return nil
-}
-
-// This function is unlikely to be needed directly and will be deprecated.
-// If you need this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue)
-// to discuss your use case. This function will be removed to simplify the interface.
-func (c *Cx1Client) AuditGetRequestStatusByID(auditSession *AuditSession, requestId string) (bool, interface{}, error) {
-	c.depwarn("AuditGetRequestStatusByID", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.auditGetRequestStatusByID(auditSession, requestId)
 }
 
 func (c *Cx1Client) auditGetRequestStatusByID(auditSession *AuditSession, requestId string) (bool, interface{}, error) {
@@ -265,25 +236,7 @@ func (c *Cx1Client) auditGetRequestStatusByID(auditSession *AuditSession, reques
 	return status.Completed, status.Value, nil
 }
 
-// This function is unlikely to be needed directly and will be deprecated.
-// If you need this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue)
-// to discuss your use case. This function will be removed to simplify the interface.
-func (c *Cx1Client) AuditRequestStatusPollingByID(auditSession *AuditSession, requestId string) (interface{}, error) {
-	c.depwarn("AuditRequestStatusPollingByID", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.auditRequestStatusPollingByID(auditSession, requestId)
-}
-
 func (c *Cx1Client) auditRequestStatusPollingByID(auditSession *AuditSession, requestId string) (interface{}, error) {
-	return c.auditRequestStatusPollingByIDWithTimeout(auditSession, requestId, c.config.Polling.AuditEnginePollingDelaySeconds, c.config.Polling.AuditEnginePollingMaxSeconds)
-}
-
-// This function is unlikely to be needed directly and will be deprecated.
-// If you need this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue)
-// to discuss your use case. This function will be removed to simplify the interface.
-func (c *Cx1Client) AuditRequestStatusPollingByIDWithTimeout(auditSession *AuditSession, requestId string, delaySeconds, maxSeconds int) (interface{}, error) {
-	c.depwarn("AuditRequestStatusPollingByIDWithTimeout", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
 	return c.auditRequestStatusPollingByIDWithTimeout(auditSession, requestId, c.config.Polling.AuditEnginePollingDelaySeconds, c.config.Polling.AuditEnginePollingMaxSeconds)
 }
 
@@ -372,15 +325,6 @@ func (c *Cx1Client) GetAuditSessionByID(engine, projectId, scanId string) (Audit
 	return session, nil
 }
 
-// This function is unlikely to be needed directly and will be deprecated.
-// If you need this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue)
-// to discuss your use case. This function will be removed to simplify the interface.
-func (c *Cx1Client) AuditGetScanSourcesByID(auditSession *AuditSession) ([]AuditScanSourceFile, error) {
-	c.depwarn("AuditGetScanSourcesByID", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.auditGetScanSourcesByID(auditSession)
-}
-
 // This is an internal function to create an Audit session for a specific project based on a scan ID
 // This is step 2 of a multi-step process to create an audit session for a specific scan
 func (c *Cx1Client) auditGetScanSourcesByID(auditSession *AuditSession) ([]AuditScanSourceFile, error) {
@@ -395,15 +339,6 @@ func (c *Cx1Client) auditGetScanSourcesByID(auditSession *AuditSession) ([]Audit
 
 	err = json.Unmarshal(response, &sourcefiles)
 	return sourcefiles, err
-}
-
-// This function is unlikely to be needed directly and will be deprecated.
-// If you need this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue)
-// to discuss your use case. This function will be removed to simplify the interface.
-func (c *Cx1Client) AuditRunScanByID(auditSession *AuditSession) error {
-	c.depwarn("AuditRunScanByID", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.auditRunScanByID(auditSession)
 }
 
 // This is an internal function to create an Audit session for a specific project based on a scan ID
@@ -544,15 +479,6 @@ func (c *Cx1Client) GetAuditIACQueriesByLevelID(auditSession *AuditSession, leve
 	collection.AddQueryTree(&querytree, auditSession.ApplicationID, levelId)
 
 	return collection, nil
-}
-
-// Get the query tree for an audit session
-// You probably don't need this and should use GetAuditSASTQueriesByLevelID or GetAuditIACQueriesByLevelID instead
-// The tree is an internal structure converted to SAST/IAC query collections as appropriate
-func (c *Cx1Client) GetAuditQueryTreeByLevelID(auditSession *AuditSession, level, levelId string) ([]AuditQueryTree, error) {
-	c.depwarn("GetAuditQueryTreeByLevelID", "None")
-	c.config.Logger.Tracef("If you require this function, please reach out to michael.kubiaczyk@checkmarx.com (or via github issue) to discuss your use case. This function will be removed to simplify the interface.")
-	return c.getAuditQueryTreeByLevelID(auditSession, level, levelId)
 }
 
 func (c *Cx1Client) getAuditQueryTreeByLevelID(auditSession *AuditSession, level, levelId string) ([]AuditQueryTree, error) {
@@ -777,7 +703,7 @@ func (c *Cx1Client) CreateIACQueryOverride(auditSession *AuditSession, level str
 
 // Create a new SAST query (not an override)
 // This will be a tenant-level query to be overridden for Application or Project level as needed
-func (c *Cx1Client) CreateNewSASTQuery(auditSession *AuditSession, query SASTQuery) (SASTQuery, []QueryFailure, error) {
+func (c *Cx1Client) CreateNewSASTQuery(auditSession *AuditSession, query SASTQuery) (SASTQuery, []QueryRunFailure, error) {
 	c.config.Logger.Debugf("Creating new query %v under %v", query.String(), auditSession.String())
 	type NewQuery struct {
 		Name        string `json:"name"`
@@ -805,7 +731,7 @@ func (c *Cx1Client) CreateNewSASTQuery(auditSession *AuditSession, query SASTQue
 		newQueryData.Description = 0
 	}
 
-	var queryFail []QueryFailure
+	var queryFail []QueryRunFailure
 
 	jsonBody, _ := json.Marshal(newQueryData)
 
@@ -848,7 +774,7 @@ func (c *Cx1Client) CreateNewSASTQuery(auditSession *AuditSession, query SASTQue
 
 // Create a new IAC query (not an override)
 // This will be a tenant-level query to be overridden for Application or Project level as needed
-func (c *Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery) (IACQuery, []QueryFailure, error) {
+func (c *Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery) (IACQuery, []QueryRunFailure, error) {
 	c.config.Logger.Debugf("Creating new query %v under %v", query.String(), auditSession.String())
 	type NewQuery struct {
 		Category       string `json:"category"`
@@ -876,7 +802,7 @@ func (c *Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery
 		newQueryData.CloudProvider = ""
 	}
 
-	var queryFail []QueryFailure
+	var queryFail []QueryRunFailure
 
 	jsonBody, _ := json.Marshal(newQueryData)
 	response, err := c.sendRequest(http.MethodPost, fmt.Sprintf("/query-editor/sessions/%v/queries", auditSession.ID), bytes.NewReader(jsonBody), nil)
@@ -1001,7 +927,7 @@ func (c *Cx1Client) UpdateIACQueryMetadata(auditSession *AuditSession, query IAC
 	return newQuery, nil
 }
 
-func (c *Cx1Client) updateSASTQuerySourceByKey(auditSession *AuditSession, queryKey, source string) ([]QueryFailure, error) {
+func (c *Cx1Client) updateSASTQuerySourceByKey(auditSession *AuditSession, queryKey, source string) ([]QueryRunFailure, error) {
 	queryFail, err := c.updateQuerySourceByKey(auditSession, queryKey, source)
 	if err != nil {
 		return queryFail, err
@@ -1014,7 +940,7 @@ func (c *Cx1Client) updateSASTQuerySourceByKey(auditSession *AuditSession, query
 	return queryFail, err
 }
 
-func (c *Cx1Client) updateIACQuerySourceByID(auditSession *AuditSession, queryId, source string) ([]QueryFailure, error) {
+func (c *Cx1Client) updateIACQuerySourceByID(auditSession *AuditSession, queryId, source string) ([]QueryRunFailure, error) {
 	queryFail, err := c.updateQuerySourceByKey(auditSession, queryId, source)
 	if err != nil {
 		return queryFail, err
@@ -1028,9 +954,9 @@ func (c *Cx1Client) updateIACQuerySourceByID(auditSession *AuditSession, queryId
 	return queryFail, err
 }
 
-func (c *Cx1Client) updateQuerySourceByKey(auditSession *AuditSession, queryKey, source string) ([]QueryFailure, error) {
+func (c *Cx1Client) updateQuerySourceByKey(auditSession *AuditSession, queryKey, source string) ([]QueryRunFailure, error) {
 	c.config.Logger.Debugf("Updating query source by key: %v", queryKey)
-	var queryFail []QueryFailure
+	var queryFail []QueryRunFailure
 	type QueryUpdate struct {
 		ID     string `json:"id"`
 		Source string `json:"source"`
@@ -1081,9 +1007,9 @@ func (c *Cx1Client) updateQuerySourceByKey(auditSession *AuditSession, queryKey,
 // This function should be used only if you have updated both the source code and the metadata of a query
 // Use UpdateSASTQuerySource and UpdateSASTQueryMetadata separately if you are only updating one of those
 // It will perform both updates in sequence. Performing the update without a change may throw an error.
-func (c *Cx1Client) UpdateSASTQuery(auditSession *AuditSession, query SASTQuery) (SASTQuery, []QueryFailure, error) {
+func (c *Cx1Client) UpdateSASTQuery(auditSession *AuditSession, query SASTQuery) (SASTQuery, []QueryRunFailure, error) {
 	if query.EditorKey == "" {
-		return query, []QueryFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditSASTQueries* calls", query.String())
+		return query, []QueryRunFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditSASTQueries* calls", query.String())
 	}
 
 	queryFail, err := c.updateSASTQuerySourceByKey(auditSession, query.EditorKey, query.Source)
@@ -1103,9 +1029,9 @@ func (c *Cx1Client) UpdateSASTQuery(auditSession *AuditSession, query SASTQuery)
 // This function should be used only if you have updated both the source code and the metadata of a query
 // Use UpdateIACQuerySource and UpdateIACQueryMetadata separately if you are only updating one of those
 // It will perform both updates in sequence. Performing the update without a change may throw an error.
-func (c *Cx1Client) UpdateIACQuery(auditSession *AuditSession, query IACQuery) (IACQuery, []QueryFailure, error) {
+func (c *Cx1Client) UpdateIACQuery(auditSession *AuditSession, query IACQuery) (IACQuery, []QueryRunFailure, error) {
 	if query.QueryID == "" {
-		return query, []QueryFailure{}, fmt.Errorf("query %v does not have an ID, this should be retrieved with the GetAuditIACQueries* calls", query.String())
+		return query, []QueryRunFailure{}, fmt.Errorf("query %v does not have an ID, this should be retrieved with the GetAuditIACQueries* calls", query.String())
 	}
 
 	/*
@@ -1130,13 +1056,13 @@ func (c *Cx1Client) UpdateIACQuery(auditSession *AuditSession, query IACQuery) (
 
 // Update the source code of a query
 // This function updates the query only if the source code has changed - the backend may return an error if the source is unchanged
-func (c *Cx1Client) UpdateSASTQuerySource(auditSession *AuditSession, query SASTQuery, source string) (SASTQuery, []QueryFailure, error) {
+func (c *Cx1Client) UpdateSASTQuerySource(auditSession *AuditSession, query SASTQuery, source string) (SASTQuery, []QueryRunFailure, error) {
 	if query.EditorKey == "" {
-		return SASTQuery{}, []QueryFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditQueries* calls", query.String())
+		return SASTQuery{}, []QueryRunFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditQueries* calls", query.String())
 	}
 	if source == query.Source {
 		c.config.Logger.Debugf("Attempted to update source code but it is unchanged, skipping")
-		return query, []QueryFailure{}, nil
+		return query, []QueryRunFailure{}, nil
 	}
 	queryFail, err := c.updateSASTQuerySourceByKey(auditSession, query.EditorKey, source)
 	if err != nil {
@@ -1153,13 +1079,13 @@ func (c *Cx1Client) UpdateSASTQuerySource(auditSession *AuditSession, query SAST
 
 // Update the source code of a query
 // This function updates the query only if the source code has changed - the backend may return an error if the source is unchanged
-func (c *Cx1Client) UpdateIACQuerySource(auditSession *AuditSession, query IACQuery, source string) (IACQuery, []QueryFailure, error) {
+func (c *Cx1Client) UpdateIACQuerySource(auditSession *AuditSession, query IACQuery, source string) (IACQuery, []QueryRunFailure, error) {
 	if query.QueryID == "" {
-		return IACQuery{}, []QueryFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditQueries* calls", query.String())
+		return IACQuery{}, []QueryRunFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditQueries* calls", query.String())
 	}
 	if source == query.Source {
 		c.config.Logger.Debugf("Attempted to update source code but it is unchanged, skipping")
-		return query, []QueryFailure{}, nil
+		return query, []QueryRunFailure{}, nil
 	}
 	queryFail, err := c.updateIACQuerySourceByID(auditSession, query.QueryID, source)
 	if err != nil {
@@ -1171,162 +1097,6 @@ func (c *Cx1Client) UpdateIACQuerySource(auditSession *AuditSession, query IACQu
 	}
 	newQuery.MergeQuery(query)
 	return newQuery, queryFail, nil
-}
-
-/*
-You should use ValidateS(AST|IAC)QuerySource instead of this function
-This will test if the code compiles and will not update the source code in Cx1 nor in the query object
-*/
-func (c *Cx1Client) ValidateQuerySourceByKey(auditSession *AuditSession, queryKey, source string) ([]QueryFailure, error) {
-	c.depwarn("ValidateQuerySourceByKey", "Validate(SAST|IAC)QuerySource")
-	return c.validateQuerySourceByKey(auditSession, queryKey, source)
-}
-
-func (c *Cx1Client) validateQuerySourceByKey(auditSession *AuditSession, queryKey, source string) ([]QueryFailure, error) {
-	c.config.Logger.Debugf("Validating query source by key: %v", queryKey)
-	type QueryUpdate struct {
-		ID     string `json:"id"`
-		Source string `json:"source"`
-	}
-	var queryFail []QueryFailure
-	postbody := make([]QueryUpdate, 1)
-	postbody[0].ID = queryKey
-	postbody[0].Source = source
-
-	jsonBody, err := json.Marshal(postbody)
-	if err != nil {
-		return queryFail, fmt.Errorf("failed to marshal query source: %s", err)
-	}
-
-	response, err := c.sendRequest(http.MethodPost, fmt.Sprintf("/query-editor/sessions/%v/queries/validate", auditSession.ID), bytes.NewReader(jsonBody), nil)
-	if err != nil {
-		return queryFail, fmt.Errorf("failed to send source: %s", err)
-	}
-
-	var responseBody requestIDBody
-	err = json.Unmarshal(response, &responseBody)
-	if err != nil {
-		return queryFail, fmt.Errorf("failed to unmarshal response: %s", err)
-	}
-
-	responseObj, err := c.auditRequestStatusPollingByID(auditSession, responseBody.Id)
-	if err != nil {
-		return queryFail, fmt.Errorf("failed due to %s: %v", err, responseObj)
-	}
-
-	if responseMap, ok := responseObj.(map[string]interface{}); ok {
-		if val, ok := responseMap["failed_queries"]; ok {
-			bytes, _ := json.Marshal(val)
-			err = json.Unmarshal(bytes, &queryFail)
-			if err != nil {
-				return queryFail, fmt.Errorf("failed to unmarshal failure: %s", err)
-			}
-
-			if len(queryFail) == 0 {
-				return queryFail, nil
-			} else {
-				return queryFail, fmt.Errorf("failed to validate source")
-			}
-		}
-	}
-	return queryFail, nil
-}
-
-func (c *Cx1Client) ValidateSASTQuerySource(auditSession *AuditSession, query *SASTQuery, source string) ([]QueryFailure, error) {
-	if query.EditorKey == "" {
-		return []QueryFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditQueries* calls", query.String())
-	}
-	return c.ValidateQuerySourceByKey(auditSession, query.EditorKey, source)
-}
-
-func (c *Cx1Client) ValidateIACQuerySource(auditSession *AuditSession, query *IACQuery, source string) ([]QueryFailure, error) {
-	if query.Key == "" {
-		return []QueryFailure{}, fmt.Errorf("query %v does not have an Key, this should be retrieved with the GetAuditQueries* calls", query.String())
-	}
-	return c.ValidateQuerySourceByKey(auditSession, query.Key, source)
-}
-
-/*
-Use Run(SAST|IAC)Query instead.
-Cx1ClientGo does not yet expose a method to retrieve the results of an audit query execution - this is effectively the same as Validate*QuerySource
-*/
-func (c *Cx1Client) RunQueryByKey(auditSession *AuditSession, queryKey, source string) (QueryFailure, error) {
-	c.depwarn("RunQueryByKey", "Run(SAST|IAC)Query")
-	return c.runQueryByKey(auditSession, queryKey, source)
-}
-
-func (c *Cx1Client) runQueryByKey(auditSession *AuditSession, queryKey, source string) (QueryFailure, error) {
-	c.config.Logger.Debugf("Running query by key: %v", queryKey)
-	type QueryUpdate struct {
-		ID     string `json:"id"`
-		Source string `json:"source"`
-	}
-	postbody := make([]QueryUpdate, 1)
-	postbody[0].ID = queryKey
-	postbody[0].Source = source
-
-	var queryFail QueryFailure
-
-	jsonBody, err := json.Marshal(postbody)
-	if err != nil {
-		return queryFail, fmt.Errorf("failed to marshal query source: %s", err)
-	}
-
-	response, err := c.sendRequest(http.MethodPost, fmt.Sprintf("/query-editor/sessions/%v/queries/run", auditSession.ID), bytes.NewReader(jsonBody), nil)
-	if err != nil {
-		return queryFail, fmt.Errorf("failed to run: %s", err)
-	}
-
-	var responseBody requestIDBody
-	err = json.Unmarshal(response, &responseBody)
-	if err != nil {
-		return queryFail, fmt.Errorf("failed to unmarshal response: %s", err)
-	}
-
-	responseObj, err := c.auditRequestStatusPollingByID(auditSession, responseBody.Id)
-	if err != nil {
-		return queryFail, fmt.Errorf("failed due to %s: %v", err, responseObj)
-	}
-
-	if responseMap, ok := responseObj.(map[string]interface{}); ok {
-		if val, ok := responseMap["failed_queries"]; ok {
-			var failedQueries []QueryFailure
-
-			bytes, _ := json.Marshal(val)
-			err = json.Unmarshal(bytes, &failedQueries)
-			if err != nil {
-				return queryFail, fmt.Errorf("failed to unmarshal failure: %s", err)
-			}
-			if len(failedQueries) == 1 {
-				return failedQueries[0], fmt.Errorf("failed to run query")
-			} else {
-				return queryFail, fmt.Errorf("failed to run queries, details: %v", failedQueries)
-			}
-		}
-	}
-	return queryFail, nil
-}
-
-/*
-This will test if the code compiles and will not update the source code in Cx1 nor in the query object
-Cx1ClientGo does not yet expose a method to retrieve the results of an audit query execution - this is effectively the same as Validate*QuerySource
-*/
-func (c *Cx1Client) RunSASTQuery(auditSession *AuditSession, query *SASTQuery, source string) (QueryFailure, error) {
-	if query.EditorKey == "" {
-		return QueryFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditQueries* calls", query.String())
-	}
-	return c.runQueryByKey(auditSession, query.EditorKey, source)
-}
-
-/*
-This will test if the code compiles and will not update the source code in Cx1 nor in the query object
-Cx1ClientGo does not yet expose a method to retrieve the results of an audit query execution - this is effectively the same as Validate*QuerySource
-*/
-func (c *Cx1Client) RunIACQuery(auditSession *AuditSession, query *IACQuery, source string) (QueryFailure, error) {
-	if query.Key == "" {
-		return QueryFailure{}, fmt.Errorf("query %v does not have an editorKey, this should be retrieved with the GetAuditQueries* calls", query.String())
-	}
-	return c.runQueryByKey(auditSession, query.Key, source)
 }
 
 // This function will fill the metadata (severity etc) for all queries in the collection

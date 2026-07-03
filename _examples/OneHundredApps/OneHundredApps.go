@@ -33,7 +33,7 @@ func main() {
 	}
 
 	// no err means that the client is initialized
-	logger.Infof("Client initialized: " + cx1client.String())
+	logger.Infof("Client initialized: %v", cx1client.String())
 
 	// Old way to configure a scan:
 	// var scanConfig Cx1ClientGo.ScanConfiguration

@@ -66,15 +66,17 @@ func (c *Cx1Client) CreateAccessAssignment(user *User, group *Group, client *OID
 		aa.EntityName = group.Name
 	} else if client != nil {
 		aa.EntityType = "client"
+
+		sa, err := c.GetServiceAccountByID(client.ID)
+		if err != nil {
+			return aa, err
+		}
+
 		flag, _ := c.CheckFlag("ACCESS_MANAGEMENT_PHASE_2")
 		if !flag {
 			aa.EntityID = client.ID
 			aa.EntityName = client.ClientID
 		} else {
-			sa, err := c.GetServiceAccountByID(client.ID)
-			if err != nil {
-				return aa, err
-			}
 			aa.EntityID = sa.UserID
 			aa.EntityName = client.ClientID
 		}

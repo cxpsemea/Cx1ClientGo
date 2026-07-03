@@ -24,6 +24,9 @@ func (p Preset) String() string {
 }
 
 func (c *Cx1Client) newPresetsEnabled() bool {
+	if r, _ := c.version.CheckCxOne("3.61.0"); r >= 0 {
+		return true
+	}
 	flag, _ := c.CheckFlag("NEW_PRESET_MANAGEMENT_ENABLED")
 	if !flag {
 		c.config.Logger.Debugf("The New Preset Management feature is not enabled in this environment. Old /api/presets endpoints will be used, but these will be disabled in Cx1 Multi-Tenant EOY 2025 and removed from Cx1ClientGo at that time. Ensure your environment has the new feature if you wish to use newer Cx1ClientGo library versions in 2026.")
@@ -61,7 +64,7 @@ func (c *Cx1Client) GetPresets(engine string, count uint64) ([]Preset, error) {
 				return sastPresets, nil
 			}
 		}
-		return []Preset{}, fmt.Errorf("currently unsupported in this environment, requires flag NEW_PRESET_MANAGEMENT_ENABLED")
+		return []Preset{}, fmt.Errorf("currently unsupported in this environment, requires flag NEW_PRESET_MANAGEMENT_ENABLED or Cx1 version >= 3.61.0")
 	}
 	var preset_response struct {
 		TotalCount uint64   `json:"totalCount"`
@@ -101,7 +104,7 @@ func (c *Cx1Client) GetPresetCount(engine string) (uint64, error) {
 		if engine == "sast" {
 			return c.GetPresetCount_v330()
 		}
-		return 0, fmt.Errorf("currently unsupported in this environment, requires flag NEW_PRESET_MANAGEMENT_ENABLED")
+		return 0, fmt.Errorf("currently unsupported in this environment, requires flag NEW_PRESET_MANAGEMENT_ENABLED or Cx1 version >= 3.61.0")
 	}
 
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/preset-manager/%v/presets?limit=1", engine), nil, nil)
@@ -149,7 +152,7 @@ func (c *Cx1Client) GetPresetByName(engine, name string) (Preset, error) {
 			}
 			return preset.ToPreset(&queries), nil
 		}
-		return Preset{}, fmt.Errorf("currently unsupported in this environment, requires flag NEW_PRESET_MANAGEMENT_ENABLED")
+		return Preset{}, fmt.Errorf("currently unsupported in this environment, requires flag NEW_PRESET_MANAGEMENT_ENABLED or Cx1 version >= 3.61.0")
 	}
 
 	var preset_response struct {
@@ -197,7 +200,7 @@ func (c *Cx1Client) GetPresetByID(engine, id string) (Preset, error) {
 			}
 			return preset.ToPreset(&queries), nil
 		}
-		return Preset{}, fmt.Errorf("currently unsupported in this environment, requires flag NEW_PRESET_MANAGEMENT_ENABLED")
+		return Preset{}, fmt.Errorf("currently unsupported in this environment, requires flag NEW_PRESET_MANAGEMENT_ENABLED or Cx1 version >= 3.61.0")
 	}
 
 	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/preset-manager/%v/presets/%v", engine, id), nil, nil)
@@ -504,11 +507,6 @@ func (c *Cx1Client) DeletePreset(preset Preset) error {
 
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/preset-manager/%v/presets/%v", preset.Engine, preset.PresetID), nil, nil)
 	return err
-}
-
-func (c *Cx1Client) PresetLink(p *Preset) string {
-	c.depwarn("PresetLink", "will be removed")
-	return fmt.Sprintf("%v/resourceManagement/presets?presetId=%v", c.config.Cx1Url, p.PresetID)
 }
 
 func (p Preset) GetSASTQueryCollection(queries SASTQueryCollection) SASTQueryCollection {
