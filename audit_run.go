@@ -5,7 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/google/go-querystring/query"
 )
+
+func (f *QueryRunResultsFilter) Bump() {
+	f.CurrentPage++
+}
 
 func (c *Cx1Client) validateQuerySourceByKey(auditSession *AuditSession, queryKey, source string) ([]QueryRunFailure, error) {
 	c.config.Logger.Debugf("Validating query source by key: %v", queryKey)
@@ -174,18 +180,62 @@ func (c *Cx1Client) RunIACQuery(auditSession *AuditSession, query *IACQuery, sou
 }
 
 // Get the results for an Audit session query-run. This is a list of vulnerabilities found by the query run.
+// behind the scenes this will use the configured pagination (Get/SetPaginationSettings)
 func (c *Cx1Client) GetQueryRunResultsByID(auditSession *AuditSession, runId string) ([]QueryVulnerabilityShort, error) {
+	_, results, err := c.GetAllQueryRunResultsFiltered(auditSession, runId, QueryRunResultsFilter{
+		PageSize:    c.config.Pagination.QueryRunResults,
+		CurrentPage: 1,
+	})
+	return results, err
+}
+
+// Underlying function used by many GetQueryRunResults* calls
+// Returns the total number of matching results plus an array of QueryVulnerabilityShort with
+// one page of results (page filter.CurrentPage, sized filter.PageSize)
+func (c *Cx1Client) GetQueryRunResultsFiltered(auditSession *AuditSession, runId string, filter QueryRunResultsFilter) (uint64, []QueryVulnerabilityShort, error) {
+	params, _ := query.Values(filter)
+
 	var response struct {
-		Data []QueryVulnerabilityShort `json:"data"`
+		Data       []QueryVulnerabilityShort `json:"data"`
+		TotalCount uint64                    `json:"totalCount"`
 	}
 
-	responseBytes, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/query-editor/sessions/%v/results/%v/vulnerabilities?pageSize=10&currentPage=1", auditSession.ID, runId), nil, nil)
+	responseBytes, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/query-editor/sessions/%v/results/%v/vulnerabilities?%v", auditSession.ID, runId, params.Encode()), nil, nil)
 	if err != nil {
-		return nil, err
+		return response.TotalCount, response.Data, err
 	}
 
 	err = json.Unmarshal(responseBytes, &response)
-	return response.Data, err
+	return response.TotalCount, response.Data, err
+}
+
+// Retrieves all query run results matching the filter
+func (c *Cx1Client) GetAllQueryRunResultsFiltered(auditSession *AuditSession, runId string, filter QueryRunResultsFilter) (uint64, []QueryVulnerabilityShort, error) {
+	count, results, err := c.GetQueryRunResultsFiltered(auditSession, runId, filter)
+	if err != nil {
+		return count, results, err
+	}
+	return c.GetXQueryRunResultsFiltered(auditSession, runId, filter, count)
+}
+
+// Retrieves the top 'count' query run results matching the filter
+func (c *Cx1Client) GetXQueryRunResultsFiltered(auditSession *AuditSession, runId string, filter QueryRunResultsFilter, count uint64) (uint64, []QueryVulnerabilityShort, error) {
+	var results []QueryVulnerabilityShort
+
+	total, res, err := c.GetQueryRunResultsFiltered(auditSession, runId, filter)
+	results = res
+
+	for err == nil && count > filter.CurrentPage*filter.PageSize && filter.PageSize > 0 && uint64(len(results)) < count {
+		filter.Bump()
+		_, res, err = c.GetQueryRunResultsFiltered(auditSession, runId, filter)
+		results = append(results, res...)
+	}
+
+	if uint64(len(results)) > count {
+		return total, results[:count], err
+	}
+
+	return total, results, err
 }
 
 // Get the details of a vulnerability found during an audit session query run.
