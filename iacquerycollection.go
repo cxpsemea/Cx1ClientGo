@@ -65,7 +65,7 @@ func (qg IACQueryGroup) GetQueryByLevelAndKey(level, levelID, key string) *IACQu
 	return nil
 }
 
-func (qg IACQueryGroup) findQuery(level, levelID, name, key string) *IACQuery {
+func (qg IACQueryGroup) FindQuery(level, levelID, name, key string) *IACQuery {
 	var qgq *IACQuery = nil
 
 	if key != "" {
@@ -76,18 +76,18 @@ func (qg IACQueryGroup) findQuery(level, levelID, name, key string) *IACQuery {
 
 	return qgq
 }
-func (ql IACQueryPlatform) findQuery(level, levelID, name, key string) *IACQuery {
+func (ql IACQueryPlatform) FindQuery(level, levelID, name, key string) *IACQuery {
 	for gid := range ql.QueryGroups {
-		if qgq := ql.QueryGroups[gid].findQuery(level, levelID, name, key); qgq != nil {
+		if qgq := ql.QueryGroups[gid].FindQuery(level, levelID, name, key); qgq != nil {
 			return qgq
 		}
 	}
 
 	return nil
 }
-func (qc IACQueryCollection) findQuery(level, levelID, name, key string) *IACQuery {
+func (qc IACQueryCollection) FindQuery(level, levelID, name, key string) *IACQuery {
 	for lid := range qc.Platforms {
-		if qgq := qc.Platforms[lid].findQuery(level, levelID, name, key); qgq != nil {
+		if qgq := qc.Platforms[lid].FindQuery(level, levelID, name, key); qgq != nil {
 			return qgq
 		}
 	}
@@ -213,7 +213,7 @@ func (qc *IACQueryCollection) AddQuery(q IACQuery) {
 	if qg == nil {
 		qt.QueryGroups = append(qt.QueryGroups, IACQueryGroup{q.Group, q.Platform, []IACQuery{q}})
 	} else {
-		qgq := qg.findQuery(q.Level, q.LevelID, q.Name, q.Key)
+		qgq := qg.FindQuery(q.Level, q.LevelID, q.Name, q.Key)
 		if qgq == nil {
 			qg.Queries = append(qg.Queries, q)
 		} else {
@@ -345,7 +345,7 @@ func (qc *IACQueryCollection) AddCollection(collection *IACQueryCollection) {
 			}
 
 			for _, qq := range qg.Queries {
-				qgq := oqg.findQuery(qq.Level, qq.LevelID, qq.Name, qq.Key)
+				qgq := oqg.FindQuery(qq.Level, qq.LevelID, qq.Name, qq.Key)
 				if qgq == nil {
 					oqg.Queries = append(oqg.Queries, qq)
 				} else {
@@ -360,7 +360,7 @@ func (qc *IACQueryCollection) UpdateFromCollection(collection *IACQueryCollectio
 	for _, qt := range collection.Platforms {
 		for _, qg := range qt.QueryGroups {
 			for _, qq := range qg.Queries {
-				qgq := qc.findQuery(qq.Level, qq.LevelID, qq.Name, qq.Key)
+				qgq := qc.FindQuery(qq.Level, qq.LevelID, qq.Name, qq.Key)
 				if qgq != nil {
 					qgq.MergeQuery(qq)
 				}
