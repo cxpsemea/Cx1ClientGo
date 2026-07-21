@@ -9,14 +9,11 @@ import (
 )
 
 func (c *Cx1Client) GetSASTQueryCollection() (SASTQueryCollection, error) {
-	//var qc SASTQueryCollection
-
-	var qc SASTQueryCollection
-
 	qc, err := c.GetSASTPresetQueries()
 	if err != nil {
 		return qc, err
 	}
+
 	aq, err := c.GetQueriesByLevelID(c.QueryTypeTenant(), c.QueryTypeTenant())
 	if err != nil {
 		return qc, err
@@ -66,7 +63,7 @@ func (qg SASTQueryGroup) GetQueryByLevelAndID(level, levelID string, qid uint64)
 	}
 	return nil
 }
-func (qg SASTQueryGroup) findQuery(level, levelID, name string, qid uint64) *SASTQuery {
+func (qg SASTQueryGroup) FindQuery(level, levelID, name string, qid uint64) *SASTQuery {
 	var qgq *SASTQuery = nil
 
 	if qid != 0 {
@@ -77,19 +74,19 @@ func (qg SASTQueryGroup) findQuery(level, levelID, name string, qid uint64) *SAS
 
 	return qgq
 }
-func (ql SASTQueryLanguage) findQuery(level, levelID, name string, qid uint64) *SASTQuery {
+func (ql SASTQueryLanguage) FindQuery(level, levelID, name string, qid uint64) *SASTQuery {
 	for gid := range ql.QueryGroups {
-		if qgq := ql.QueryGroups[gid].findQuery(level, levelID, name, qid); qgq != nil {
+		if qgq := ql.QueryGroups[gid].FindQuery(level, levelID, name, qid); qgq != nil {
 			return qgq
 		}
 	}
 
 	return nil
 }
-func (qc SASTQueryCollection) findQuery(level, levelID, lang, name string, qid uint64) *SASTQuery {
+func (qc SASTQueryCollection) FindQuery(level, levelID, lang, name string, qid uint64) *SASTQuery {
 	for lid := range qc.QueryLanguages {
 		if strings.EqualFold(qc.QueryLanguages[lid].Name, lang) {
-			if qgq := qc.QueryLanguages[lid].findQuery(level, levelID, name, qid); qgq != nil {
+			if qgq := qc.QueryLanguages[lid].FindQuery(level, levelID, name, qid); qgq != nil {
 				return qgq
 			}
 			return nil
@@ -270,6 +267,24 @@ func (qc SASTQueryCollection) GetQueryByLevelAndID(level, levelID string, qid ui
 	return nil
 }
 
+// Searches the entire collection for a query with a matching editor key
+// Editor key is only populated from an Audit session (GetAuditQueries*)
+// Obtain a complete view with Cx1Client.GetSASTQueryCollection().Merge( Cx1Client.GetAuditSASTQueries* )
+func (qc SASTQueryCollection) GetQueryByEditorKey(key string) *SASTQuery {
+	for i := range qc.QueryLanguages {
+		lang := &qc.QueryLanguages[i]
+		for i := range lang.QueryGroups {
+			group := &lang.QueryGroups[i]
+			for i := range group.Queries {
+				if group.Queries[i].EditorKey == key {
+					return &group.Queries[i]
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (qc *SASTQueryCollection) GetQueryCount() uint {
 	var total uint = 0
 	for lid := range qc.QueryLanguages {
@@ -298,7 +313,7 @@ func (qc *SASTQueryCollection) AddQuery(q SASTQuery) {
 	if qg == nil {
 		ql.QueryGroups = append(ql.QueryGroups, SASTQueryGroup{q.Group, q.Language, []SASTQuery{q}})
 	} else {
-		qgq := qg.findQuery(q.Level, q.LevelID, q.Name, q.QueryID)
+		qgq := qg.FindQuery(q.Level, q.LevelID, q.Name, q.QueryID)
 		if qgq == nil {
 			qg.Queries = append(qg.Queries, q)
 		} else {
@@ -428,7 +443,7 @@ func (qc *SASTQueryCollection) AddCollection(collection *SASTQueryCollection) {
 			}
 
 			for _, qq := range qg.Queries {
-				qgq := oqg.findQuery(qq.Level, qq.LevelID, qq.Name, qq.QueryID)
+				qgq := oqg.FindQuery(qq.Level, qq.LevelID, qq.Name, qq.QueryID)
 				if qgq == nil {
 					oqg.Queries = append(oqg.Queries, qq)
 				} else {
@@ -444,7 +459,7 @@ func (qc *SASTQueryCollection) UpdateFromCollection(collection *SASTQueryCollect
 	for _, ql := range collection.QueryLanguages {
 		for _, qg := range ql.QueryGroups {
 			for _, qq := range qg.Queries {
-				qgq := qc.findQuery(qq.Level, qq.LevelID, ql.Name, qq.Name, qq.QueryID)
+				qgq := qc.FindQuery(qq.Level, qq.LevelID, ql.Name, qq.Name, qq.QueryID)
 				if qgq != nil {
 					qgq.MergeQuery(qq)
 				}
@@ -597,7 +612,7 @@ func (qc SASTQueryCollection) GetExtraQueries(collection *SASTQueryCollection) (
 	for _, lang := range qc.QueryLanguages {
 		for _, group := range lang.QueryGroups {
 			for _, query := range group.Queries {
-				if q := collection.findQuery(query.Level, query.LevelID, lang.Name, query.Name, query.QueryID); q == nil {
+				if q := collection.FindQuery(query.Level, query.LevelID, lang.Name, query.Name, query.QueryID); q == nil {
 					extra.AddQuery(query)
 				}
 			}
@@ -610,7 +625,7 @@ func (qc SASTQueryCollection) IsSubset(collection *SASTQueryCollection) bool {
 	for _, lang := range qc.QueryLanguages {
 		for _, group := range lang.QueryGroups {
 			for _, query := range group.Queries {
-				if q := collection.findQuery(query.Level, query.LevelID, lang.Name, query.Name, query.QueryID); q == nil {
+				if q := collection.FindQuery(query.Level, query.LevelID, lang.Name, query.Name, query.QueryID); q == nil {
 					return false
 				}
 			}

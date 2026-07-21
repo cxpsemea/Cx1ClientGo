@@ -325,6 +325,52 @@ func (q SASTQuery) MetadataDifferent(metadata AuditSASTQueryMetadata) bool {
 		q.Name != metadata.Name
 }
 
+func (q SASTQuery) GetMetadataDiffs(metadata AuditSASTQueryMetadata) []string {
+	var diffs []string
+
+	if q.CweID != metadata.Cwe {
+		diffs = append(diffs,
+			fmt.Sprintf("CweID: %d != %d", q.CweID, metadata.Cwe))
+	}
+
+	if q.IsExecutable != metadata.IsExecutable {
+		diffs = append(diffs,
+			fmt.Sprintf("IsExecutable: %t != %t", q.IsExecutable, metadata.IsExecutable))
+	}
+
+	if q.QueryDescriptionId != metadata.CxDescriptionID {
+		diffs = append(diffs,
+			fmt.Sprintf("QueryDescriptionId: %d != %d", q.QueryDescriptionId, metadata.CxDescriptionID))
+	}
+
+	if q.Language != metadata.Language {
+		diffs = append(diffs,
+			fmt.Sprintf("Language: %s != %s", q.Language, metadata.Language))
+	}
+
+	if q.Group != metadata.Group {
+		diffs = append(diffs,
+			fmt.Sprintf("Group: %s != %s", q.Group, metadata.Group))
+	}
+
+	if !strings.EqualFold(q.Severity, metadata.Severity) {
+		diffs = append(diffs,
+			fmt.Sprintf("Severity: %s != %s", q.Severity, metadata.Severity))
+	}
+
+	if q.SastID != metadata.SastID {
+		diffs = append(diffs,
+			fmt.Sprintf("SastID: %d != %d", q.SastID, metadata.SastID))
+	}
+
+	if q.Name != metadata.Name {
+		diffs = append(diffs,
+			fmt.Sprintf("Name: %s != %s", q.Name, metadata.Name))
+	}
+
+	return diffs
+}
+
 func (q IACQuery) GetMetadata() AuditIACQueryMetadata {
 	return AuditIACQueryMetadata{
 		Cwe:            q.CWE,

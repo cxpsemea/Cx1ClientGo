@@ -191,13 +191,13 @@ func TestAddQuery_MergeVsAppend(t *testing.T) {
 // MergeQuery fills in zero-value fields from the incoming query without overwriting populated ones.
 func TestAddQuery_MergesFields(t *testing.T) {
 	existing := SASTQuery{
-		QueryID:  10,
-		Level:    AUDIT_QUERY.PRODUCT,
-		LevelID:  AUDIT_QUERY.PRODUCT,
-		Language: "Java",
-		Group:    "Injection",
-		Name:     "SQL_Injection",
-		Path:     "existing/path.cs",
+		QueryID:   10,
+		Level:     AUDIT_QUERY.PRODUCT,
+		LevelID:   AUDIT_QUERY.PRODUCT,
+		Language:  "Java",
+		Group:     "Injection",
+		Name:      "SQL_Injection",
+		Path:      "existing/path.cs",
 		EditorKey: "",
 	}
 	incoming := SASTQuery{

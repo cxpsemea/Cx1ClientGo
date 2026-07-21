@@ -137,6 +137,7 @@ type PaginationSettings struct {
 	PolicyViolations uint64
 	Projects         uint64
 	ProjectOverviews uint64
+	QueryRunResults  uint64
 	Results          uint64
 	Scans            uint64
 	ScanSchedules    uint64
@@ -895,6 +896,11 @@ type QueryRunResult struct {
 	RunID     string
 	Language  string
 	Title     string
+}
+
+type QueryRunResultsFilter struct {
+	PageSize    uint64 `url:"pageSize"`
+	CurrentPage uint64 `url:"currentPage"`
 }
 
 type QueryVulnerabilityShort struct {

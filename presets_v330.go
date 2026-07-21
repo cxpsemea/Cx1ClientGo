@@ -248,8 +248,9 @@ func (c *Cx1Client) DeletePreset_v330(preset *Preset_v330) error {
 	return err
 }
 
+// This endpoint is expected to eventually be deprecated but the timeline is unclear
 func (c *Cx1Client) GetPresetQueries_v330() (SASTQueryCollection, error) {
-	c.depwarn("GetPresetQueries_v330", "Get(SAST|IAC)PresetQueries")
+	//c.depwarn("GetPresetQueries_v330", "Get(SAST|IAC)PresetQueries") // TODO: re-enable once deprecation timeline is known
 	queries := []SASTQuery{}
 
 	collection := SASTQueryCollection{}
