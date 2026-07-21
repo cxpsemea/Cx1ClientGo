@@ -485,12 +485,12 @@ func (c *Cx1Client) getAuditQueryTreeByLevelID(auditSession *AuditSession, level
 	var url string
 	var querytree []AuditQueryTree
 	switch level {
-	case AUDIT_QUERY.TENANT:
+	case AUDIT_QUERY.TENANT, AUDIT_QUERY.PRODUCT:
 		url = fmt.Sprintf("/query-editor/sessions/%v/queries", auditSession.ID)
 	case AUDIT_QUERY.PROJECT:
 		url = fmt.Sprintf("/query-editor/sessions/%v/queries?projectId=%v", auditSession.ID, levelId)
 	default:
-		return querytree, fmt.Errorf("invalid level %v, options are currently: %v or %v", level, AUDIT_QUERY.TENANT, AUDIT_QUERY.PROJECT)
+		return querytree, fmt.Errorf("invalid level %v, options are currently: %v, %v or %v", level, AUDIT_QUERY.PRODUCT, AUDIT_QUERY.TENANT, AUDIT_QUERY.PROJECT)
 	}
 
 	response, err := c.sendRequest(http.MethodGet, url, nil, nil)
