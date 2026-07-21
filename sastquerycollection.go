@@ -9,14 +9,22 @@ import (
 )
 
 func (c *Cx1Client) GetSASTQueryCollection() (SASTQueryCollection, error) {
-	//var qc SASTQueryCollection
-
-	var qc SASTQueryCollection
-
 	qc, err := c.GetSASTPresetQueries()
 	if err != nil {
 		return qc, err
 	}
+
+	// TODO: Clean up this workaround
+	// if !newPresetsEnabled, GetSASTPresetQueries returns GetPresetQueries_v330 which includes non-executable queries
+	// if we want the full collection but newPresetsEnabled()==true we need to explicitly call the old API to fill in the non-exec queries
+	if c.newPresetsEnabled() {
+		oqc, err := c.GetPresetQueries_v330()
+		if err != nil {
+			return oqc, err
+		}
+		qc.AddCollection(&oqc)
+	}
+
 	aq, err := c.GetQueriesByLevelID(c.QueryTypeTenant(), c.QueryTypeTenant())
 	if err != nil {
 		return qc, err

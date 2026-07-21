@@ -224,7 +224,9 @@ func (c *Cx1Client) GetIACPresetByID(id string) (Preset, error) {
 	return c.GetPresetByID("iac", id)
 }
 
-// this will return a list of queries that can be added to a preset, meaning only executable queries
+// This will return a list of queries that can be added to a preset, meaning only executable queries.
+// Note: for older versions of CheckmarxOne (before 3.60) the PRESET_MANAGER_ENABLED feature may be disabled -
+// in this case we use a fall-back API which gives all queries including non-executable ones
 func (c *Cx1Client) GetSASTPresetQueries() (SASTQueryCollection, error) {
 	collection := SASTQueryCollection{}
 	if c.newPresetsEnabled() {
