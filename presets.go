@@ -24,7 +24,7 @@ func (p Preset) String() string {
 }
 
 func (c *Cx1Client) newPresetsEnabled() bool {
-	if r, _ := c.version.CheckCxOne("3.61.0"); r >= 0 {
+	if r, _ := c.version.CheckCxOne("3.60.0"); r >= 0 {
 		return true
 	}
 	flag, _ := c.CheckFlag("NEW_PRESET_MANAGEMENT_ENABLED")
