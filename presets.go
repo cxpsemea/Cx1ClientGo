@@ -323,15 +323,10 @@ func (c *Cx1Client) getQueryFamilyContents(engine, family string) ([]AuditQueryT
 
 	qfamily := []AuditQueryTree{
 		{
-			IsLeaf: false,
-			Title:  family,
-			Key:    family,
-			Data: struct {
-				Level    string
-				Severity string
-				CWE      int64
-				Custom   bool
-			}{},
+			IsLeaf:   false,
+			Title:    family,
+			Key:      family,
+			Data:     AuditQueryTreeData{},
 			Children: families,
 		},
 	}

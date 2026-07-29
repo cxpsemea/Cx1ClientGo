@@ -311,19 +311,20 @@ func (query AuditQueryTree) ToIACQuery(levelTitle, platformTitle, groupTitle, pr
 	}
 
 	newquery := IACQuery{
-		QueryID:  query.Key,
-		Level:    qlevel,
-		LevelID:  qlevelId,
-		Severity: GetSeverity(GetSeverityID(query.Data.Severity)),
-		CWE:      fmt.Sprintf("%d", query.Data.CWE),
-		Platform: platformTitle,
-		Group:    groupTitle,
-		Category: "",
-		Key:      key,
-		Custom:   isCustom,
-		Name:     query.Title,
-		Path:     "",
-		Source:   "",
+		QueryID:        query.Key,
+		Level:          qlevel,
+		LevelID:        qlevelId,
+		Severity:       GetSeverity(GetSeverityID(query.Data.Severity)),
+		CWE:            fmt.Sprintf("%d", query.Data.CWE),
+		Platform:       platformTitle,
+		Group:          groupTitle,
+		Category:       "",
+		Key:            key,
+		Custom:         isCustom,
+		Name:           query.Title,
+		DescriptionURL: query.Data.URL,
+		Path:           "",
+		Source:         "",
 	}
 	return newquery
 }
