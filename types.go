@@ -414,16 +414,19 @@ type AuditSASTQueryMetadata struct {
 }
 
 type AuditQueryTree struct {
-	IsLeaf bool
-	Title  string
-	Key    string
-	Data   struct {
-		Level    string
-		Severity string
-		CWE      int64
-		Custom   bool
-	}
+	IsLeaf   bool
+	Title    string
+	Key      string
+	Data     AuditQueryTreeData
 	Children []AuditQueryTree
+}
+type AuditQueryTreeData struct {
+	Level              string
+	Severity           string
+	CWE                int64
+	QueryDescriptionID int64
+	Custom             bool
+	URL                string
 }
 
 type AuditPermissions struct {

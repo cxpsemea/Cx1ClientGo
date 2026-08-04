@@ -126,6 +126,21 @@ func (r ScanIACResult) CreateResultsPredicate(projectId, scanId string) IACResul
 	}
 }
 
+func (r ScanSASTResult) FirstNode() ScanSASTResultNodes {
+	if len(r.Data.Nodes) == 0 {
+		return ScanSASTResultNodes{}
+	}
+
+	return r.Data.Nodes[0]
+}
+func (r ScanSASTResult) LastNode() ScanSASTResultNodes {
+	if len(r.Data.Nodes) == 0 {
+		return ScanSASTResultNodes{}
+	}
+
+	return r.Data.Nodes[len(r.Data.Nodes)-1]
+}
+
 // results
 func (c *Cx1Client) AddSASTResultsPredicates(predicates []SASTResultsPredicates) error {
 	c.config.Logger.Debugf("Adding %d SAST results predicates", len(predicates))
