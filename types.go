@@ -1735,6 +1735,7 @@ type SCMRepository struct {
 	Scm                   struct {
 		TypeName string `json:"typeName"`
 	} `json:"scm"`
+	OrgID             int  `json:"orgId"`
 	ScaAutoPrEnabled  bool `json:"scaAutoPrEnabled"`
 	KicsAutoPrEnabled bool `json:"kicsAutoPrEnabled"`
 	SastAutoPrEnabled bool `json:"sastAutoPrEnabled"`
