@@ -766,10 +766,15 @@ type Project struct {
 	originalApplications []string               `json:"-"` // Cx1clientgo internal/restricted, do not change
 	Tags                 map[string]string      `json:"tags"`
 	RepoUrl              string                 `json:"repoUrl"`
+	RepoID               uint64                 `json:"repoId"`
+	SCMRepoID            string                 `json:"scmRepoId"`
+	ImportedProjectName  string                 `json:"imported_proj_name"`
 	MainBranch           string                 `json:"mainBranch"`
 	Origin               string                 `json:"origin"`
 	Criticality          uint                   `json:"criticality"`
 	Configuration        []ConfigurationSetting `json:"-"`
+	PrivatePackage       bool                   `json:"privatePackage"`
+	TenantID             string                 `json:"tenantId"`
 }
 
 type ProjectPatch struct {
