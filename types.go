@@ -1186,6 +1186,9 @@ type Scan struct {
 			UploadHandler struct {
 				UploadURL string `json:"upload_url"`
 			} `json:"UploadHandler"`
+			GitHandler struct {
+				RepoURL string `json:"repo_url"`
+			} `json:"GitHandler"`
 		} `json:"Handler"`
 	} `json:"metadata"`
 	Engines      []string `json:"engines"`
