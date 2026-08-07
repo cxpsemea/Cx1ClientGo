@@ -1182,6 +1182,14 @@ type Scan struct {
 	Metadata      struct {
 		Type    string              `json:"type"`
 		Configs []ScanConfiguration `json:"configs"`
+		Handler struct {
+			UploadHandler struct {
+				UploadURL string `json:"upload_url"`
+			} `json:"UploadHandler"`
+			GitHandler struct {
+				RepoURL string `json:"repo_url"`
+			} `json:"GitHandler"`
+		} `json:"Handler"`
 	} `json:"metadata"`
 	Engines      []string `json:"engines"`
 	SourceType   string   `json:"sourceType"`
