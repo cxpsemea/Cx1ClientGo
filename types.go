@@ -788,16 +788,17 @@ type ProjectPatch struct {
 
 type ProjectFilter struct {
 	BaseFilter
-	ProjectIDs []string `url:"ids,omitempty"`
-	Names      []string `url:"names,omitempty"`
-	Name       string   `url:"name,omitempty"`
-	NameRegex  string   `url:"name-regex,omitempty"`
-	Groups     []string `url:"groups,omitempty"`
-	Origins    []string `url:"origins,omitempty"`
-	TagsKeys   []string `url:"tags-keys,omitempty"`
-	TagsValues []string `url:"tags-values,omitempty"`
-	EmptyTags  *bool    `url:"empty-tags,omitempty"`
-	RepoURL    string   `url:"repo-url,omitempty"`
+	ProjectIDs       []string `url:"ids,omitempty"`
+	Names            []string `url:"names,omitempty"`
+	Name             string   `url:"name,omitempty"`
+	NameRegex        string   `url:"name-regex,omitempty"`
+	Groups           []string `url:"groups,omitempty"`
+	Origins          []string `url:"origins,omitempty"`
+	TagsKeys         []string `url:"tags-keys,omitempty"`
+	TagsValues       []string `url:"tags-values,omitempty"`
+	EmptyTags        *bool    `url:"empty-tags,omitempty"`
+	RepoURL          string   `url:"repo-url,omitempty"`
+	ImportedProjects *bool    `url:"imported-projects,omitempty"`
 }
 
 type ProjectAMFilter struct {
