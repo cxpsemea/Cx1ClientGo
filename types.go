@@ -1339,7 +1339,10 @@ type ScanContainersResultDetails struct {
 
 type ScanIACResult struct {
 	ScanResultBase
-	Data ScanIACResultData
+	Data                 ScanIACResultData
+	VulnerabilityDetails struct {
+		CweId int `json:"cweId,string"`
+	}
 }
 type ScanIACResultData struct {
 	QueryID       string
