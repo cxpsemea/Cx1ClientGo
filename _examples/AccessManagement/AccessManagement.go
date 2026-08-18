@@ -25,7 +25,7 @@ func main() {
 	logger.Infof("Starting")
 
 	httpClient := &http.Client{}
-	if true {
+	if false {
 		proxyURL, _ := url.Parse("http://127.0.0.1:8080")
 		transport := &http.Transport{}
 		transport.Proxy = http.ProxyURL(proxyURL)
