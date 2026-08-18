@@ -361,7 +361,7 @@ func (qc *SASTQueryCollection) AddQueries(queries *[]SASTQuery) {
 	}
 }
 
-func (qc *SASTQueryCollection) AddQueryTree(t *[]AuditQueryTree, appId, projectId string, setExecutable bool) {
+func (qc *SASTQueryCollection) AddQueryTree(t *[]AuditQueryTree, appId, projectId string) {
 	for _, lang := range *t {
 		for _, level := range lang.Children {
 			isCustom := true
@@ -411,7 +411,6 @@ func (qc *SASTQueryCollection) AddQueryTree(t *[]AuditQueryTree, appId, projectI
 						Language:           lang.Title,
 						Severity:           GetSeverity(GetSeverityID(query.Data.Severity)),
 						CweID:              query.Data.CWE,
-						IsExecutable:       setExecutable,
 						QueryDescriptionId: 0,
 						Custom:             isCustom,
 						EditorKey:          key,
@@ -538,7 +537,7 @@ func (qc SASTQueryCollection) GetQueryFamilies(executableOnly bool) []QueryFamil
 						query := &group.Queries[qid]
 						queryId := fmt.Sprintf("%d", query.QueryID)
 
-						if !slices.Contains(queryFamilies[id].QueryIDs, queryId) && (!executableOnly || query.IsExecutable) {
+						if !slices.Contains(queryFamilies[id].QueryIDs, queryId) && (!executableOnly || (query.IsExecutable != nil && *query.IsExecutable)) {
 							queryFamilies[id].QueryIDs = append(queryFamilies[id].QueryIDs, queryId)
 						}
 					}
@@ -556,7 +555,7 @@ func (qc SASTQueryCollection) GetQueryFamilies(executableOnly bool) []QueryFamil
 					query := &group.Queries[qid]
 					queryId := fmt.Sprintf("%d", query.QueryID)
 
-					if !slices.Contains(newFam.QueryIDs, queryId) && (!executableOnly || query.IsExecutable) {
+					if !slices.Contains(newFam.QueryIDs, queryId) && (!executableOnly || (query.IsExecutable != nil && *query.IsExecutable)) {
 						newFam.QueryIDs = append(newFam.QueryIDs, queryId)
 					}
 				}

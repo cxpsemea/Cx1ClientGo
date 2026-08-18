@@ -235,7 +235,7 @@ func (c *Cx1Client) GetSASTPresetQueries() (SASTQueryCollection, error) {
 			return collection, err
 		}
 
-		collection.AddQueryTree(&querytree, "", "", true)
+		collection.AddQueryTree(&querytree, "", "")
 		return collection, nil
 	} else {
 		return c.GetPresetQueries_v330()
@@ -306,7 +306,7 @@ func (c *Cx1Client) GetSASTQueryFamilyContents(family string) (SASTQueryCollecti
 		return collection, err
 	}
 
-	collection.AddQueryTree(&tree, "", "", false)
+	collection.AddQueryTree(&tree, "", "")
 
 	return collection, nil
 }
@@ -515,7 +515,7 @@ func (p Preset) GetSASTQueryCollection(queries SASTQueryCollection) SASTQueryCol
 	for _, fam := range p.QueryFamilies {
 		for _, qid := range fam.QueryIDs {
 			u, _ := strconv.ParseUint(qid, 0, 64)
-			if query := queries.GetQueryByLevelAndID(AUDIT_QUERY.PRODUCT, AUDIT_QUERY.PRODUCT, u); query != nil && query.IsExecutable {
+			if query := queries.GetQueryByLevelAndID(AUDIT_QUERY.PRODUCT, AUDIT_QUERY.PRODUCT, u); query != nil {
 				coll.AddQuery(*query)
 			}
 		}

@@ -66,7 +66,7 @@ func TestGetAuditSASTQueriesByLevelID(t *testing.T) {
 	}
 
 	var collection SASTQueryCollection
-	collection.AddQueryTree(&querytree, "", "", false)
+	collection.AddQueryTree(&querytree, "", "")
 
 	query := collection.GetQueryByLevelAndName("Cx", "Cx", "JavaScript", "JavaScript_High_Risk", "Client_DOM_XSS")
 	if query == nil {

@@ -437,6 +437,20 @@ func (c *Cx1Client) GetAuditIACQueryByID(auditSession *AuditSession, queryId str
 	return query, nil
 }
 
+func (c *Cx1Client) GetAllAuditSASTQueries(auditSession *AuditSession) (SASTQueryCollection, error) {
+	c.config.Logger.Debugf("Get all audit queries")
+
+	collection := SASTQueryCollection{}
+	querytree, err := c.getAuditQueryTreeByLevelID(auditSession, "")
+	if err != nil {
+		return collection, err
+	}
+
+	collection.AddQueryTree(&querytree, auditSession.ApplicationID, auditSession.ProjectID)
+
+	return collection, nil
+}
+
 /*
 Retrieves the list of queries available for this audit session. Level and LevelID options are:
 QueryTypeProduct(), QueryTypeProduct() : same value for both when retrieving product-default queries
@@ -446,15 +460,15 @@ QueryTypeProject(), project.ProjectID : when retrieving project-level queries (i
 The resulting array of queries should be merged into a QueryCollection object returned by the GetQueries function.
 */
 func (c *Cx1Client) GetAuditSASTQueriesByLevelID(auditSession *AuditSession, level, levelId string) (SASTQueryCollection, error) {
-	c.config.Logger.Debugf("Get all queries for %v %v", level, levelId)
+	c.config.Logger.Debugf("Get all audit queries for %v %v", level, levelId)
 
 	collection := SASTQueryCollection{}
-	querytree, err := c.getAuditQueryTreeByLevelID(auditSession, level, levelId)
+	querytree, err := c.getAuditQueryTreeByLevelID(auditSession, level)
 	if err != nil {
 		return collection, err
 	}
 
-	collection.AddQueryTree(&querytree, auditSession.ApplicationID, levelId, false)
+	collection.AddQueryTree(&querytree, auditSession.ApplicationID, auditSession.ProjectID)
 
 	return collection, nil
 }
@@ -471,26 +485,26 @@ func (c *Cx1Client) GetAuditIACQueriesByLevelID(auditSession *AuditSession, leve
 	c.config.Logger.Debugf("Get all queries for %v %v", level, levelId)
 
 	collection := IACQueryCollection{}
-	querytree, err := c.getAuditQueryTreeByLevelID(auditSession, level, levelId)
+	querytree, err := c.getAuditQueryTreeByLevelID(auditSession, level)
 	if err != nil {
 		return collection, err
 	}
 
-	collection.AddQueryTree(&querytree, auditSession.ApplicationID, levelId)
+	collection.AddQueryTree(&querytree, auditSession.ApplicationID, auditSession.ProjectID)
 
 	return collection, nil
 }
 
-func (c *Cx1Client) getAuditQueryTreeByLevelID(auditSession *AuditSession, level, levelId string) ([]AuditQueryTree, error) {
+func (c *Cx1Client) getAuditQueryTreeByLevelID(auditSession *AuditSession, level string) ([]AuditQueryTree, error) {
 	var url string
 	var querytree []AuditQueryTree
 	switch level {
-	case AUDIT_QUERY.TENANT, AUDIT_QUERY.PRODUCT:
-		url = fmt.Sprintf("/query-editor/sessions/%v/queries", auditSession.ID)
-	case AUDIT_QUERY.PROJECT:
-		url = fmt.Sprintf("/query-editor/sessions/%v/queries?projectId=%v", auditSession.ID, levelId)
+	case AUDIT_QUERY.TENANT, AUDIT_QUERY.PRODUCT, AUDIT_QUERY.APPLICATION, AUDIT_QUERY.PROJECT:
+		url = fmt.Sprintf("/query-editor/sessions/%s/queries?level=%s", auditSession.ID, strings.ToLower(level))
+	case "": // special case to get all queries, regardless of level
+		url = fmt.Sprintf("/query-editor/sessions/%s/queries", auditSession.ID)
 	default:
-		return querytree, fmt.Errorf("invalid level %v, options are currently: %v, %v or %v", level, AUDIT_QUERY.PRODUCT, AUDIT_QUERY.TENANT, AUDIT_QUERY.PROJECT)
+		return querytree, fmt.Errorf("invalid level %s, options are currently: %s, %s, %s or %s", level, AUDIT_QUERY.PRODUCT, AUDIT_QUERY.TENANT, AUDIT_QUERY.APPLICATION, AUDIT_QUERY.PROJECT)
 	}
 
 	response, err := c.sendRequest(http.MethodGet, url, nil, nil)
@@ -555,7 +569,6 @@ func (c *Cx1Client) CreateSASTQueryOverride(auditSession *AuditSession, level st
 
 	newQueryData := NewQuery{
 		CWE:         baseQuery.CweID,
-		Executable:  baseQuery.IsExecutable,
 		Description: baseQuery.QueryDescriptionId,
 		Language:    baseQuery.Language,
 		Group:       baseQuery.Group,
@@ -565,6 +578,12 @@ func (c *Cx1Client) CreateSASTQueryOverride(auditSession *AuditSession, level st
 		Name:        baseQuery.Name,
 		Level:       strings.ToLower(level), // seems to be in lowercase in the post
 		Path:        baseQuery.Path,
+	}
+
+	if baseQuery.IsExecutable == nil {
+		newQueryData.Executable = true
+	} else {
+		newQueryData.Executable = *baseQuery.IsExecutable
 	}
 
 	jsonBody, _ := json.Marshal(newQueryData)
@@ -720,7 +739,6 @@ func (c *Cx1Client) CreateNewSASTQuery(auditSession *AuditSession, query SASTQue
 		Language:    query.Language,
 		Group:       query.Group,
 		Severity:    query.Severity,
-		Executable:  query.IsExecutable,
 		CWE:         query.CweID,
 		Description: query.QueryDescriptionId,
 	}
@@ -729,6 +747,11 @@ func (c *Cx1Client) CreateNewSASTQuery(auditSession *AuditSession, query SASTQue
 	}
 	if newQueryData.Description < 0 {
 		newQueryData.Description = 0
+	}
+	if query.IsExecutable == nil {
+		return SASTQuery{}, []QueryRunFailure{}, fmt.Errorf("Attempt to create new query %s with undefined isExecutable flag", query.StringDetailed())
+	} else {
+		newQueryData.Executable = *query.IsExecutable
 	}
 
 	var queryFail []QueryRunFailure
@@ -834,6 +857,10 @@ func (c *Cx1Client) CreateNewIACQuery(auditSession *AuditSession, query IACQuery
 
 func (c *Cx1Client) updateSASTQueryMetadataByKey(auditSession *AuditSession, queryKey string, metadata AuditSASTQueryMetadata) error {
 	c.config.Logger.Debugf("Updating sast query metadata by key: %v", queryKey)
+
+	if metadata.IsExecutable == nil {
+		return fmt.Errorf("attempt to save query with key %s and undefined IsExecutable flag", queryKey)
+	}
 	jsonBody, err := json.Marshal(metadata)
 	if err != nil {
 		return err
