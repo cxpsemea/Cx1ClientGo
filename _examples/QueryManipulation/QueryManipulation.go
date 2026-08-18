@@ -357,6 +357,7 @@ func newSASTProjectOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Log
 
 func newSASTCorpQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc *Cx1ClientGo.SASTQueryCollection, session *Cx1ClientGo.AuditSession) *Cx1ClientGo.SASTQuery {
 	logger.Infof("Creating corp query under session %v", session.ID)
+	tb := true
 	NewQuery := Cx1ClientGo.SASTQuery{
 		Source:             "result = Find_Strings().FindByName(\"test\"); // new corp query",
 		Name:               "Test_String",
@@ -364,7 +365,7 @@ func newSASTCorpQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, q
 		Language:           "Java",
 		Severity:           "Low",
 		CweID:              123,
-		IsExecutable:       true,
+		IsExecutable:       &tb,
 		QueryDescriptionId: 123,
 	}
 
