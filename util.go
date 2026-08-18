@@ -80,3 +80,15 @@ func (ct *Cx1LongTime) UnmarshalJSON(b []byte) (err error) {
 	ct.Time, err = time.Parse(cx1TimeLayout, s)
 	return
 }
+
+const cx1CommentLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
+
+func (ct *Cx1CommentTime) UnmarshalJSON(b []byte) (err error) {
+	s := strings.Trim(string(b), "\"")
+	if s == "null" {
+		ct.Time = time.Time{}
+		return
+	}
+	ct.Time, err = time.Parse(cx1CommentLayout, s)
+	return
+}

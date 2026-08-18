@@ -78,6 +78,10 @@ func (c *Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (ui
 		ProjectID       string
 		ScanID          string
 		SourceFileName  string
+		AttackVectorID  string                       `json:"attackVectorID"`
+		IsAiGenerated   bool                         `json:"isAiGenerated"`
+		ChangedBy       string                       `json:"changedBy"`
+		ChangeDetails   *ScanSASTResultChangeDetails `json:"changeDetails"`
 	}
 
 	var results []ScanSASTResult
@@ -119,6 +123,7 @@ func (c *Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (ui
 			},
 			Data: ScanSASTResultData{
 				QueryID:      r.QueryID,
+				QueryIDStr:   r.QueryIDStr,
 				QueryName:    r.QueryName,
 				Group:        r.Group,
 				ResultHash:   r.ResultHash,
@@ -126,8 +131,12 @@ func (c *Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (ui
 				Nodes:        r.Nodes,
 			},
 			VulnerabilityDetails: ScanSASTResultDetails{
-				CweId:       r.CweID,
-				Compliances: r.Compliances,
+				CweId:          r.CweID,
+				Compliances:    r.Compliances,
+				AttackVectorID: r.AttackVectorID,
+				IsAiGenerated:  r.IsAiGenerated,
+				ChangedBy:      r.ChangedBy,
+				ChangeDetails:  r.ChangeDetails,
 			},
 		})
 	}
