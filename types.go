@@ -766,10 +766,15 @@ type Project struct {
 	originalApplications []string               `json:"-"` // Cx1clientgo internal/restricted, do not change
 	Tags                 map[string]string      `json:"tags"`
 	RepoUrl              string                 `json:"repoUrl"`
+	RepoID               uint64                 `json:"repoId"`
+	SCMRepoID            string                 `json:"scmRepoId"`
+	ImportedProjectName  string                 `json:"imported_proj_name"`
 	MainBranch           string                 `json:"mainBranch"`
 	Origin               string                 `json:"origin"`
 	Criticality          uint                   `json:"criticality"`
 	Configuration        []ConfigurationSetting `json:"-"`
+	PrivatePackage       bool                   `json:"privatePackage"`
+	TenantID             string                 `json:"tenantId"`
 }
 
 type ProjectPatch struct {
@@ -783,16 +788,17 @@ type ProjectPatch struct {
 
 type ProjectFilter struct {
 	BaseFilter
-	ProjectIDs []string `url:"ids,omitempty"`
-	Names      []string `url:"names,omitempty"`
-	Name       string   `url:"name,omitempty"`
-	NameRegex  string   `url:"name-regex,omitempty"`
-	Groups     []string `url:"groups,omitempty"`
-	Origins    []string `url:"origins,omitempty"`
-	TagsKeys   []string `url:"tags-keys,omitempty"`
-	TagsValues []string `url:"tags-values,omitempty"`
-	EmptyTags  *bool    `url:"empty-tags,omitempty"`
-	RepoURL    string   `url:"repo-url,omitempty"`
+	ProjectIDs       []string `url:"ids,omitempty"`
+	Names            []string `url:"names,omitempty"`
+	Name             string   `url:"name,omitempty"`
+	NameRegex        string   `url:"name-regex,omitempty"`
+	Groups           []string `url:"groups,omitempty"`
+	Origins          []string `url:"origins,omitempty"`
+	TagsKeys         []string `url:"tags-keys,omitempty"`
+	TagsValues       []string `url:"tags-values,omitempty"`
+	EmptyTags        *bool    `url:"empty-tags,omitempty"`
+	RepoURL          string   `url:"repo-url,omitempty"`
+	ImportedProjects *bool    `url:"imported-projects,omitempty"`
 }
 
 type ProjectAMFilter struct {
@@ -1333,7 +1339,10 @@ type ScanContainersResultDetails struct {
 
 type ScanIACResult struct {
 	ScanResultBase
-	Data ScanIACResultData
+	Data                 ScanIACResultData
+	VulnerabilityDetails struct {
+		CweId int `json:"cweId,string"`
+	}
 }
 type ScanIACResultData struct {
 	QueryID       string
@@ -1729,6 +1738,7 @@ type SCMRepository struct {
 	Scm                   struct {
 		TypeName string `json:"typeName"`
 	} `json:"scm"`
+	OrgID             int  `json:"orgId"`
 	ScaAutoPrEnabled  bool `json:"scaAutoPrEnabled"`
 	KicsAutoPrEnabled bool `json:"kicsAutoPrEnabled"`
 	SastAutoPrEnabled bool `json:"sastAutoPrEnabled"`
