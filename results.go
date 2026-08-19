@@ -171,6 +171,16 @@ func (c *Cx1Client) AddIACResultsPredicates(predicates []IACResultsPredicates) e
 func (c *Cx1Client) GetSASTResultsPredicatesByID(SimilarityID string, ProjectID, ScanID string) ([]SASTResultsPredicates, error) {
 	c.config.Logger.Debugf("Fetching SAST results predicates for project %v scan %v similarityId %v", ProjectID, ScanID, SimilarityID)
 
+	return c.GetSASTResultsPredicatesFiltered(SASTResultsPredicatesFilter{
+		SimilarityID: SimilarityID,
+		ProjectIDs:   []string{ProjectID},
+		ScanID:       &ScanID,
+	})
+}
+
+func (c *Cx1Client) GetSASTResultsPredicatesFiltered(filter SASTResultsPredicatesFilter) ([]SASTResultsPredicates, error) {
+	params, _ := query.Values(filter)
+
 	var Predicates struct {
 		PredicateHistoryPerProject []struct {
 			ProjectID    string
@@ -181,7 +191,7 @@ func (c *Cx1Client) GetSASTResultsPredicatesByID(SimilarityID string, ProjectID,
 
 		TotalCount uint
 	}
-	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/sast-results-predicates/%v?project-ids=%v&scan-id=%v", SimilarityID, ProjectID, ScanID), nil, nil)
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/sast-results-predicates/%v?%s", filter.SimilarityID, params.Encode()), nil, nil)
 	if err != nil {
 		return []SASTResultsPredicates{}, err
 	}
@@ -485,7 +495,11 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (uint64, Sc
 }
 
 func (b ResultsPredicatesBase) String() string {
-	return fmt.Sprintf("[%v] %v set severity %v, state %v, comment %v", b.CreatedAt, b.CreatedBy, b.Severity, b.State, b.Comment)
+	var createdAt interface{} = "unknown"
+	if b.CreatedAt != nil {
+		createdAt = *b.CreatedAt
+	}
+	return fmt.Sprintf("[%v] %v set severity %v, state %v, comment %v", createdAt, b.CreatedBy, b.Severity, b.State, b.Comment)
 }
 
 func (c *Cx1Client) GetCustomResultStates() ([]ResultState, error) {
@@ -590,16 +604,12 @@ func (c *Cx1Client) GetResultsChangeHistoryFiltered(filter ResultsChangeFilter) 
 
 	// response.TotalSimilarityIds contains something like: "presenting 10 of 29"
 	var count, total uint64
-	if filter.EntityType == "similarityID" {
-		count = 1
-		total = 1
-	} else {
-		_, err = fmt.Sscanf(response.TotalSimilarityIds, "presenting %d of %d", &count, &total)
-		if err != nil {
-			// If parsing fails, we might not have the total, but we can return what we have.
-			// The API might change its format.
-			c.config.Logger.Warnf("Could not parse TotalSimilarityIds string: '%s'", response.TotalSimilarityIds)
-		}
+
+	_, err = fmt.Sscanf(response.TotalSimilarityIds, "presenting %d of %d", &count, &total)
+	if err != nil {
+		// If parsing fails, we might not have the total, but we can return what we have.
+		// The API might change its format.
+		c.config.Logger.Warnf("Could not parse TotalSimilarityIds string: '%s'", response.TotalSimilarityIds)
 	}
 
 	return total, response.Results, nil

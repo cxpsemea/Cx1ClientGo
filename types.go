@@ -304,23 +304,25 @@ type Application struct {
 type ApplicationPatch struct {
 	Name        *string            `json:"name,omitempty"`
 	Description *string            `json:"description,omitempty"`
+	Type        *string            `json:"type,omitempty"`
 	Criticality *uint              `json:"criticality,omitempty"`
 	Tags        *map[string]string `json:"tags,omitempty"`
 }
 
 type ApplicationFilter struct {
 	BaseFilter
-	Name       string   `url:"name,omitempty"`
-	TagsKeys   []string `url:"tags-keys,omitempty"`
-	TagsValues []string `url:"tags-values,omitempty"`
+	Name           string   `url:"name,omitempty"`
+	TagsKeys       []string `url:"tags-keys,omitempty"`
+	TagsValues     []string `url:"tags-values,omitempty"`
+	ApplicationIDs []string `url:"application-ids,omitempty"` // max 200 IDs per spec
 }
 
 type ApplicationAMFilter struct {
 	BaseFilter
 	Action     string   `url:"action"`
 	Name       string   `url:"name"`
-	TagsKeys   []string `url:"tagsKeys"`
-	TagsValues []string `url:"tagsValues"`
+	TagsKeys   []string `url:"tags-keys"`
+	TagsValues []string `url:"tags-values"`
 }
 
 type ApplicationRule struct {
@@ -573,6 +575,10 @@ type Group struct {
 	ClientRoles     map[string][]string `json:"clientRoles"`
 	RealmRoles      []string            `json:"realmRoles"`
 	Filled          bool                `json:"-"`
+	// Access Management (/access-management/groups) response-only fields:
+	BriefName  string                 `json:"briefName,omitempty"`
+	Roles      []string               `json:"roles,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
 type GroupFilter struct {
@@ -661,7 +667,7 @@ type OIDCClientFilter struct {
 }
 type OIDCClientAMFilter struct {
 	BaseFilter
-	Search string `json:"search"`
+	Search string `url:"search,omitempty"`
 }
 
 // Access Management phase2
@@ -778,12 +784,15 @@ type Project struct {
 }
 
 type ProjectPatch struct {
-	Name        *string            `json:"name,omitempty"`
-	RepoUrl     *string            `json:"repoUrl,omitempty"`
-	MainBranch  *string            `json:"mainBranch,omitempty"`
-	Criticality *uint              `json:"criticality,omitempty"`
-	Tags        *map[string]string `json:"tags,omitempty"`
-	Groups      *[]string          `json:"groups,omitempty"`
+	Name           *string            `json:"name,omitempty"`
+	RepoUrl        *string            `json:"repoUrl,omitempty"`
+	MainBranch     *string            `json:"mainBranch,omitempty"`
+	Criticality    *uint              `json:"criticality,omitempty"`
+	Tags           *map[string]string `json:"tags,omitempty"`
+	Groups         *[]string          `json:"groups,omitempty"`
+	PrivatePackage *bool              `json:"privatePackage,omitempty"`
+	//SCMRepoID      *string            `json:"scmRepoId,omitempty"`
+	//RepoID         *uint64            `json:"repoId,omitempty"`
 }
 
 type ProjectFilter struct {
@@ -805,8 +814,8 @@ type ProjectAMFilter struct {
 	BaseFilter
 	Action     string   `url:"action"`
 	Name       string   `url:"name"`
-	TagsKeys   []string `url:"tagsKeys"`
-	TagsValues []string `url:"tagsValues"`
+	TagsKeys   []string `url:"tags-keys"`
+	TagsValues []string `url:"tags-values"`
 }
 
 type ProjectBranchFilter struct {
@@ -862,12 +871,15 @@ type ProjectScanSchedule struct {
 	ID            string            `json:"id"`
 	Name          string            `json:"name"`
 	ProjectID     string            `json:"projectID"`
+	ProjectName   string            `json:"project_name,omitempty"`
+	ProjectType   string            `json:"project_type,omitempty"` // scm or manual
 	NextStartTime time.Time         `json:"start_time"`
 	StartTime     string            `json:"-"`
-	CreatedAt     time.Time         `json:"create_at"`
-	UpdatedAt     time.Time         `json:"update_at"`
-	Frequency     string            `json:"frequency"`      // weekly or daily
-	Days          []string          `json:"days,omitempty"` // monday, tuesday ... iff weekly
+	CreatedAt     time.Time         `json:"created_at"`
+	UpdatedAt     time.Time         `json:"updated_at"`
+	TriggerTime   time.Time         `json:"trigger_time,omitempty"` // last trigger time
+	Frequency     string            `json:"frequency"`              // weekly or daily
+	Days          []string          `json:"days,omitempty"`         // monday, tuesday ... iff weekly
 	Active        bool              `json:"active"`
 	Engines       []string          `json:"engines"`
 	Branch        string            `json:"branch"`
@@ -876,7 +888,7 @@ type ProjectScanSchedule struct {
 
 type ProjectScanScheduleFilter struct {
 	BaseFilter
-	Search           string     `url:"string,omitempty"`
+	Search           string     `url:"search,omitempty"`
 	Name             string     `url:"name,omitempty"`
 	Active           *bool      `url:"active,omitempty"`
 	Frequency        []string   `url:"frequency,omitempty"`
@@ -1000,23 +1012,41 @@ type ResultsChangeFilter struct {
 type ResultsChangeHistory struct {
 	SimilarityID string             `json:"similarityId"`
 	Predicates   []ResultsChangelog `json:"predicates"`
+	TotalCount   uint               `json:"totalCount"`
 }
 type ResultsChangelog struct {
 	Change string    `json:"change"`
 	Date   time.Time `json:"date"`
 	User   string    `json:"user"`
+	Origin string    `json:"origin,omitempty"`
+}
+
+type Cx1CommentTime struct {
+	time.Time
 }
 
 type ResultsPredicatesBase struct {
-	PredicateID  string    `json:"ID,omitempty"`
-	SimilarityID string    `json:"similarityId"`
-	ProjectID    string    `json:"projectId"`
-	ScanID       string    `json:"scanId"`
-	State        string    `json:"state,omitempty"`
-	Comment      string    `json:"comment"`
-	Severity     string    `json:"severity,omitempty"`
-	CreatedBy    string    `json:"createdBy,omitempty"`
-	CreatedAt    time.Time `json:"createdAt,omitempty"`
+	PredicateID   string     `json:"ID,omitempty"`
+	SimilarityID  string     `json:"similarityId"`
+	ProjectID     string     `json:"projectId"`
+	ScanID        string     `json:"scanId"`
+	State         string     `json:"state,omitempty"`
+	Comment       string     `json:"comment"`
+	Severity      string     `json:"severity,omitempty"`
+	CustomStateID *uint64    `json:"customStateId,omitempty"`
+	CreatedBy     string     `json:"createdBy,omitempty"`
+	CreatedAt     *time.Time `json:"createdAt,omitempty"` // pointer so omitempty actually suppresses it when unset (encoding/json's omitempty has no effect on a zero-value time.Time)
+	CommentJSON   struct {
+		ID        string         `json:"id"`
+		Comment   string         `json:"content"`
+		CreatedAt Cx1CommentTime `json:"date"`
+		CreatedBy string         `json:"user"`
+		IsDeleted bool           `json:"isDeleted"`
+	} `json:"commentJSON,omitempty"`
+	ChangeOriginType uint64 `json:"changeOriginType,omitempty"`
+	ChangeOriginName string `json:"changeOriginName,omitempty"`
+	ChangedBy        string `json:"changedBy,omitempty"`
+	TriggeredBy      string `json:"triggeredBy,omitempty"`
 }
 
 type ResultState struct {
@@ -1046,7 +1076,7 @@ type Role struct {
 // Access Management Phase 2
 type AMRole struct {
 	ID                  string    `json:"id"`
-	TenantID            string    `json:"tenantId"`
+	TenantID            string    `json:"tenantID"`
 	Name                string    `json:"name"`
 	Description         string    `json:"description"`
 	SystemRole          bool      `json:"systemRole"`
@@ -1126,6 +1156,14 @@ type IACResultsPredicates struct {
 	ResultsPredicatesBase // actually the same structure but different endpoint
 }
 
+type SASTResultsPredicatesFilter struct {
+	SimilarityID       string   `url:"-"`
+	ProjectIDs         []string `url:"project-ids,omitempty"`
+	IncludeCommentJSON *bool    `url:"include-comment-json,omitempty"`
+	IncludeChangedBy   *bool    `url:"include-changed-by,omitempty"`
+	ScanID             *string  `url:"scan-id,omitempty"`
+}
+
 /*
 type KeyCloakClient struct {
 	ClientID string `json:"id"`
@@ -1174,18 +1212,22 @@ type SASTAggregateSummaryFilter struct {
 }
 
 type Scan struct {
-	ScanID        string              `json:"id"`
-	Status        string              `json:"status"`
-	StatusDetails []ScanStatusDetails `json:"statusDetails"`
-	Branch        string              `json:"branch"`
-	CreatedAt     time.Time           `json:"createdAt"`
-	UpdatedAt     time.Time           `json:"updatedAt"`
-	ProjectID     string              `json:"projectId"`
-	ProjectName   string              `json:"projectName"`
-	UserAgent     string              `json:"userAgent"`
-	Initiator     string              `json:"initiator"`
-	Tags          map[string]string   `json:"tags"`
-	Metadata      struct {
+	ScanID          string              `json:"id"`
+	Status          string              `json:"status"`
+	StatusDetails   []ScanStatusDetails `json:"statusDetails"`
+	PositionInQueue uint64              `json:"positionInQueue,omitempty"`
+	Branch          string              `json:"branch"`
+	CommitID        string              `json:"commitId,omitempty"`
+	CommitTag       string              `json:"commitTag,omitempty"`
+	UploadURL       string              `json:"uploadUrl,omitempty"`
+	CreatedAt       time.Time           `json:"createdAt"`
+	UpdatedAt       time.Time           `json:"updatedAt"`
+	ProjectID       string              `json:"projectId"`
+	ProjectName     string              `json:"projectName"`
+	UserAgent       string              `json:"userAgent"`
+	Initiator       string              `json:"initiator"`
+	Tags            map[string]string   `json:"tags"`
+	Metadata        struct {
 		Type    string              `json:"type"`
 		Configs []ScanConfiguration `json:"configs"`
 		Handler struct {
@@ -1204,13 +1246,22 @@ type Scan struct {
 
 type ScanFilter struct {
 	BaseFilter
-	ProjectID     string    `url:"project-id"`
+	ProjectID     string    `url:"project-id,omitempty"`
+	ProjectIDs    []string  `url:"project-ids,omitempty"`
+	ProjectNames  []string  `url:"project-names,omitempty"`
+	ScanIDs       []string  `url:"scan-ids,omitempty"`
+	Groups        []string  `url:"groups,omitempty"`
 	Sort          []string  `url:"sort,omitempty"` // Available values : -created_at, +created_at, -status, +status, +branch, -branch, +initiator, -initiator, +user_agent, -user_agent, +name, -name
 	TagKeys       []string  `url:"tags-keys,omitempty"`
 	TagValues     []string  `url:"tags-values,omitempty"`
 	Statuses      []string  `url:"statuses,omitempty"`
+	Branch        string    `url:"branch,omitempty"` // singular, legacy filter
 	Branches      []string  `url:"branches,omitempty"`
+	SourceTypes   []string  `url:"source-types,omitempty"`
 	SourceOrigins []string  `url:"source-origins,omitempty"` // "Github Action", "webapp" etc
+	Initiators    []string  `url:"initiators,omitempty"`
+	Field         string    `url:"field,omitempty"`
+	Search        string    `url:"search,omitempty"`
 	FromDate      time.Time `url:"from-date,omitempty"`
 	ToDate        time.Time `url:"to-date,omitempty"`
 }
@@ -1225,10 +1276,12 @@ type ScanConfigurationSet struct {
 }
 
 type ScanHandler struct {
-	RepoURL     string                 `json:"repoUrl"`
-	Branch      string                 `json:"branch"`
-	Commit      string                 `json:"commit"`
-	Credentials map[string]interface{} `json:"credentials"`
+	RepoURL        string                 `json:"repoUrl"`
+	Branch         string                 `json:"branch"`
+	Commit         string                 `json:"commit,omitempty"`
+	Tag            string                 `json:"tag,omitempty"`
+	SkipSubModules bool                   `json:"skipSubModules,omitempty"`
+	Credentials    map[string]interface{} `json:"credentials"`
 }
 
 type ScanMetadata struct {
@@ -1364,6 +1417,7 @@ type ScanSASTResult struct {
 }
 type ScanSASTResultData struct {
 	QueryID      uint64
+	QueryIDStr   string
 	QueryName    string
 	Group        string
 	ResultHash   string
@@ -1384,46 +1438,83 @@ type ScanSASTResultNodes struct {
 	TypeName    string
 	MethodLine  uint64
 	Definitions string
+	NodeHash    string `json:"nodeHash,omitempty"` // documented replacement for the deprecated nodeSystemID
 }
 type ScanSASTResultDetails struct {
-	CweId       int
-	Compliances []string
+	CweId          int
+	Compliances    []string
+	AttackVectorID string                       `json:"attackVectorID,omitempty"`
+	IsAiGenerated  bool                         `json:"isAiGenerated,omitempty"`
+	ChangedBy      string                       `json:"changedBy,omitempty"`
+	ChangeDetails  *ScanSASTResultChangeDetails `json:"changeDetails,omitempty"`
+}
+
+// ScanSASTResultChangeDetails describes why a result reappeared (engine/query/code change).
+type ScanSASTResultChangeDetails struct {
+	EngineVersionChanged       bool   `json:"engineVersionChanged"`
+	EngineVersionChangeDetails string `json:"engineVersionChangeDetails,omitempty"`
+	QueryChanged               bool   `json:"queryChanged"`
+	QueryChangeDetails         string `json:"queryChangeDetails,omitempty"`
+	CodeChanged                bool   `json:"codeChanged"`
+	CodeChangeDetails          string `json:"codeChangeDetails,omitempty"`
 }
 
 type ScanSASTResultsFilter struct {
 	BaseFilter
-	ScanID                 string   `url:"scan-id"`
-	Language               []string `url:"language,omitempty"`
-	Status                 []string `url:"status,omitempty"`   //NEW, RECURRENT
-	Severity               []string `url:"severity,omitempty"` //CRITICAL, HIGH, MEDIUM, LOW, INFO
-	SourceFile             string   `url:"source-file,omitempty"`
-	SourceFileOperation    string   `url:"source-file-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL, CONTAINS, NOT_CONTAINS, START_WITH
-	SourceNode             string   `url:"source-node,omitempty"`
-	SourceNodeOperation    string   `url:"source-node-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL, CONTAINS, NOT_CONTAINS, START_WITH
-	SourceLine             uint64   `url:"source-line,omitempty"`
-	SourceLineOperation    string   `url:"source-line-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL
-	SinkFile               string   `url:"sink-file,omitempty"`
-	SinkFileOperation      string   `url:"sink-file-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL, CONTAINS, NOT_CONTAINS, START_WITH
-	SinkNode               string   `url:"sink-node,omitempty"`
-	SinkNodeOperation      string   `url:"sink-node-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL, CONTAINS, NOT_CONTAINS, START_WITH
-	SinkLine               uint64   `url:"sink-line,omitempty"`
-	SinkLineOperation      string   `url:"sink-line-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL
-	NumberOfNodes          uint64   `url:"number-of-nodes,omitempty"`
-	NumberOfNodesOperation string   `url:"number-of-nodes-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL
-	Notes                  string   `url:"notes,omitempty"`
-	NotesOperation         string   `url:"notes-operation,omitempty"` // CONTAINS, STARTS_WITH
-	FirstFoundAt           string   `url:"first-found-at,omitempty"`
-	FirstFoundAtOperation  string   `url:"first-found-at-operation,omitempty"` // LESS_THAN, GREATER_THAN
-	QueryIDs               []uint64 `url:"query-ids,omitempty"`
-	PresetID               uint64   `url:"preset-id,omitempty"`
-	ResultIDs              []string `url:"result-id,omitempty"`
-	Categories             string   `url:"category,omitempty"` // comma-separated list
-	Search                 string   `url:"search,omitempty"`
-	IncludeNodes           *bool    `url:"include-nodes,omitempty"`
-	ApplyPredicates        *bool    `url:"apply-predicates,omitempty"`
-	Sort                   []string `url:"sort,omitempty"` // Default value : +status,+severity,-queryname
-	VisibleColumns         []string `url:"visible-columns,omitempty"`
-	State                  []string `url:"state,omitempty"`
+	ScanID                   string   `url:"scan-id"`
+	Language                 []string `url:"language,omitempty"`
+	Status                   []string `url:"status,omitempty"`   //NEW, RECURRENT
+	Severity                 []string `url:"severity,omitempty"` //CRITICAL, HIGH, MEDIUM, LOW, INFO
+	SourceFile               string   `url:"source-file,omitempty"`
+	SourceFileOperation      string   `url:"source-file-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL, CONTAINS, NOT_CONTAINS, START_WITH
+	SourceNode               string   `url:"source-node,omitempty"`
+	SourceNodeOperation      string   `url:"source-node-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL, CONTAINS, NOT_CONTAINS, START_WITH
+	SourceLine               uint64   `url:"source-line,omitempty"`
+	SourceLineOperation      string   `url:"source-line-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL
+	SinkFile                 string   `url:"sink-file,omitempty"`
+	SinkFileOperation        string   `url:"sink-file-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL, CONTAINS, NOT_CONTAINS, START_WITH
+	SinkNode                 string   `url:"sink-node,omitempty"`
+	SinkNodeOperation        string   `url:"sink-node-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL, CONTAINS, NOT_CONTAINS, START_WITH
+	SinkLine                 uint64   `url:"sink-line,omitempty"`
+	SinkLineOperation        string   `url:"sink-line-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL
+	NumberOfNodes            uint64   `url:"number-of-nodes,omitempty"`
+	NumberOfNodesOperation   string   `url:"number-of-nodes-operation,omitempty"` // LESS_THAN, GREATER_THAN, EQUAL, NOT_EQUAL
+	Notes                    string   `url:"notes,omitempty"`
+	NotesOperation           string   `url:"notes-operation,omitempty"` // CONTAINS, STARTS_WITH
+	FirstFoundAt             string   `url:"first-found-at,omitempty"`
+	FirstFoundAtOperation    string   `url:"first-found-at-operation,omitempty"` // LESS_THAN, GREATER_THAN
+	QueryIDs                 []uint64 `url:"query-ids,omitempty"`
+	PresetID                 uint64   `url:"preset-id,omitempty"`
+	ResultIDs                []string `url:"result-id,omitempty"`
+	Categories               string   `url:"category,omitempty"` // comma-separated list
+	Search                   string   `url:"search,omitempty"`
+	IncludeNodes             *bool    `url:"include-nodes,omitempty"`
+	ApplyPredicates          *bool    `url:"apply-predicates,omitempty"`
+	Sort                     []string `url:"sort,omitempty"` // Default value : +status,+severity,-queryname
+	VisibleColumns           []string `url:"visible-columns,omitempty"`
+	State                    []string `url:"state,omitempty"`
+	Group                    string   `url:"group,omitempty"`
+	GroupOperation           string   `url:"group-operation,omitempty"`
+	Compliance               []string `url:"compliance,omitempty"`
+	BflName                  string   `url:"bfl-name,omitempty"`
+	BflNameOperation         string   `url:"bfl-name-operation,omitempty"`
+	BflGroupSize             uint64   `url:"bfl-group-size,omitempty"`
+	BflGroupSizeOperation    string   `url:"bfl-group-size-operation,omitempty"`
+	CweID                    []uint64 `url:"cwe-id,omitempty"`
+	CweIDOperation           string   `url:"cwe-id-operation,omitempty"`
+	Query                    string   `url:"query,omitempty"`
+	QueryOperation           string   `url:"query-operation,omitempty"`
+	NodeIDs                  []string `url:"node-ids,omitempty"`
+	SimilarityIDFilter       []string `url:"similarity-id,omitempty"`
+	SimilarityIDOperation    string   `url:"similarity-id-operation,omitempty"`
+	AttackVectorID           []string `url:"attack-vector-id,omitempty"`
+	AttackVectorIDOperation  string   `url:"attack-vector-id-operation,omitempty"`
+	ConfidenceLevel          []string `url:"confidence-level,omitempty"`
+	ConfidenceLevelOperation string   `url:"confidence-level-operation,omitempty"`
+	ConfidenceScore          float64  `url:"confidence-score,omitempty"`
+	ConfidenceScoreOperation string   `url:"confidence-score-operation,omitempty"`
+	IsAiGenerated            *bool    `url:"is-ai-generated,omitempty"`
+	IsAiGeneratedOperation   string   `url:"is-ai-generated-operation,omitempty"`
 }
 
 type ScanSCAResult struct {
@@ -1766,6 +1857,12 @@ type User struct {
 	FilledGroups bool        `json:"-"` // indicates if the user object has had the Groups array filled.
 	Roles        []Role      `json:"-"` // only returned from /users/{id}/role-mappings. Use GetUserRoles to fill.
 	FilledRoles  bool        `json:"-"` // indicates if the user object has had the Roles array filled.
+	// Access Management (/access-management/users) response-only fields:
+	EmailVerified    bool     `json:"emailVerified,omitempty"`
+	RequiredActions  []string `json:"requiredActions,omitempty"`
+	CreatedTimestamp uint64   `json:"createdTimestamp,omitempty"`
+	AMGroupIDs       []string `json:"groups,omitempty"` // group IDs/names as returned by Access Management; distinct from Groups above
+	AMRoleIDs        []string `json:"roles,omitempty"`  // role IDs/names as returned by Access Management; distinct from Roles above
 }
 
 type UserFilter struct {

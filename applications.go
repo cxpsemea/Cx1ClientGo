@@ -15,8 +15,8 @@ var ApplicationTypes = struct {
 	Business string
 	Internal string
 }{
-	Business: "Business",
-	Internal: "Internal",
+	Business: "business",
+	Internal: "internal",
 }
 
 // Get the first count Applications
