@@ -206,7 +206,6 @@ func (c *Cx1Client) GetSASTResultsPredicatesFiltered(filter SASTResultsPredicate
 	}
 
 	return Predicates.PredicateHistoryPerProject[0].Predicates, err
-
 }
 
 func (c *Cx1Client) GetLastSASTResultsPredicateByID(SimilarityID string, ProjectID, ScanID string) (SASTResultsPredicates, error) {
