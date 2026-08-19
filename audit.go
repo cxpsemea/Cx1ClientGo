@@ -581,7 +581,7 @@ func (c *Cx1Client) CreateSASTQueryOverride(auditSession *AuditSession, level st
 	}
 
 	if baseQuery.IsExecutable == nil {
-		newQueryData.Executable = true
+		return newQuery, fmt.Errorf("Base query %s has undefined IsExecutable flag, ensure you call GetAuditSASTQuery* or GetAuditSASTQueryMetadata* before overriding or set the metadata manually first.", baseQuery.StringDetailed())
 	} else {
 		newQueryData.Executable = *baseQuery.IsExecutable
 	}
