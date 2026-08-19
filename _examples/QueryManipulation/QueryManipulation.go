@@ -1,9 +1,7 @@
 package main
 
 import (
-	"crypto/tls"
 	"net/http"
-	"net/url"
 	"os"
 
 	"github.com/cxpsemea/Cx1ClientGo"
@@ -27,14 +25,6 @@ func main() {
 	logger.Infof("Starting")
 
 	httpClient := &http.Client{}
-	if true {
-		proxyURL, _ := url.Parse("http://127.0.0.1:8080")
-		transport := &http.Transport{}
-		transport.Proxy = http.ProxyURL(proxyURL)
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		httpClient.Transport = transport
-		logger.Infof("Using proxy")
-	}
 	cx1client, err := Cx1ClientGo.NewClient(httpClient, logger)
 	if err != nil {
 		logger.Fatalf("Error creating client: %s", err)
@@ -357,6 +347,7 @@ func newSASTProjectOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Log
 
 func newSASTCorpQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc *Cx1ClientGo.SASTQueryCollection, session *Cx1ClientGo.AuditSession) *Cx1ClientGo.SASTQuery {
 	logger.Infof("Creating corp query under session %v", session.ID)
+	tb := true
 	NewQuery := Cx1ClientGo.SASTQuery{
 		Source:             "result = Find_Strings().FindByName(\"test\"); // new corp query",
 		Name:               "Test_String",
@@ -364,7 +355,7 @@ func newSASTCorpQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, q
 		Language:           "Java",
 		Severity:           "Low",
 		CweID:              123,
-		IsExecutable:       true,
+		IsExecutable:       &tb,
 		QueryDescriptionId: 123,
 	}
 

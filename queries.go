@@ -30,7 +30,7 @@ type AuditQuery_v312 struct {
 	Language           string `json:"lang"`
 	Severity           string
 	Cwe                int64
-	IsExecutable       bool
+	IsExecutable       *bool
 	CxDescriptionId    int64
 	QueryDescriptionId string
 	Key                string
@@ -217,7 +217,9 @@ func (q *SASTQuery) MergeQuery(nq SASTQuery) {
 	if q.Source == "" && nq.Source != "" {
 		q.Source = nq.Source
 	}
-	q.IsExecutable = nq.IsExecutable
+	if nq.IsExecutable != nil {
+		q.IsExecutable = nq.IsExecutable
+	}
 	if q.CweID == 0 && nq.CweID != 0 {
 		q.CweID = nq.CweID
 	}
@@ -334,8 +336,25 @@ func (q SASTQuery) GetMetadataDiffs(metadata AuditSASTQueryMetadata) []string {
 	}
 
 	if q.IsExecutable != metadata.IsExecutable {
-		diffs = append(diffs,
-			fmt.Sprintf("IsExecutable: %t != %t", q.IsExecutable, metadata.IsExecutable))
+		qexecStr := "undefined"
+		metaexecStr := "undefined"
+
+		if q.IsExecutable != nil {
+			if *q.IsExecutable {
+				qexecStr = "TRUE"
+			} else {
+				qexecStr = "FALSE"
+			}
+		}
+		if metadata.IsExecutable != nil {
+			if *metadata.IsExecutable {
+				metaexecStr = "TRUE"
+			} else {
+				metaexecStr = "FALSE"
+			}
+		}
+
+		diffs = append(diffs, fmt.Sprintf("IsExecutable: %s != %s", qexecStr, metaexecStr))
 	}
 
 	if q.QueryDescriptionId != metadata.CxDescriptionID {

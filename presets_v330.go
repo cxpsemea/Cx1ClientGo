@@ -265,7 +265,7 @@ func (c *Cx1Client) GetPresetQueries_v330() (SASTQueryCollection, error) {
 	}
 
 	for i := range queries {
-		queries[i].IsExecutable = true // all queries in the preset are executable
+		queries[i].IsExecutable = boolPtr(true) // all queries in the preset are executable
 
 		if queries[i].Custom {
 			queries[i].Level = c.QueryTypeTenant()
