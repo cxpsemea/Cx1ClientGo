@@ -22,7 +22,7 @@ type AuditQuery_v310 struct {
 	Language           string `json:"lang"`
 	Severity           string
 	Cwe                int64
-	IsExecutable       bool
+	IsExecutable       *bool
 	CxDescriptionId    int64
 	QueryDescriptionId string
 	Key                string

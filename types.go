@@ -399,14 +399,14 @@ type AuditSASTQuery struct {
 	Key      string `json:"id"`
 	Name     string
 	Level    string
-	LevelID  string
+	LevelID  string `json:"-"` // used internally by cx1clientgo
 	Path     string
 	Source   string
-	Metadata AuditSASTQueryMetadata
+	Metadata AuditSASTQueryMetadata // nil unless explicitly requested
 }
 type AuditSASTQueryMetadata struct {
 	Cwe             int64  `json:"cwe,omitempty"`
-	IsExecutable    bool   `json:"executable"`
+	IsExecutable    *bool  `json:"executable,omitempty"`
 	CxDescriptionID int64  `json:"description,omitempty"`
 	Language        string `json:"language"`
 	Group           string `json:"group"`
@@ -1110,7 +1110,7 @@ type SASTQuery struct {
 	Language           string `json:"language"`
 	Severity           string `json:"severity"`
 	CweID              int64  `json:"cweID"`
-	IsExecutable       bool   `json:"isExecutable"`
+	IsExecutable       *bool  `json:"isExecutable,omitempty"`
 	QueryDescriptionId int64  `json:"queryDescriptionId"`
 	Custom             bool   `json:"custom"`
 	EditorKey          string `json:"key"`
