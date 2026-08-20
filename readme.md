@@ -37,7 +37,7 @@ func main() {
 	}
 
 	// no err means that the client is initialized
-	logger.Infof( "Client initialized: " + cx1client.ToString() )
+	logger.Infof( "Client initialized: %s", cx1client.String() )
 }
 ```
 
