@@ -6,6 +6,15 @@ More details around the timeline will be shared as soon as they are available - 
 ## Module information
 This is a basic CheckmarxOne REST API client written in GoLang. 
 
+## Documentation for LLM-assisted development
+The [`_examples/`](_examples/) directory contains a set of docs generated
+specifically to let an LLM (or a human unfamiliar with this library) write
+correct scripts against Cx1ClientGo without guessing at API shape or
+object-creation order. Start at [`_examples/USAGE.md`](_examples/USAGE.md)
+- it routes to worked examples of individual API mechanics, end-to-end task
+recipes, and a description of how CheckmarxOne platform objects relate to
+and depend on each other.
+
 Basic usage:
 
 ```golang
@@ -72,14 +81,11 @@ func main() {
 	logger.Infof( "Starting" )
 	//logger.SetLevel( log.TraceLevel ) 
 
-	base_url := os.Args[1]
-	iam_url := os.Args[2]
-	tenant := os.Args[3]
-	api_key := os.Args[4]
-	project_name := os.Args[5]
-	group_name := os.Args[6]
-	project_repo := os.Args[7]
-	branch_name := os.Args[8]
+	api_key := os.Args[1]
+	project_name := os.Args[2]
+	group_name := os.Args[3]
+	project_repo := os.Args[4]
+	branch_name := os.Args[5]
 	
 	proxyURL, err := url.Parse( "http://127.0.0.1:8080" )
 	transport := &http.Transport{}
@@ -89,8 +95,8 @@ func main() {
 	httpClient := &http.Client{}
 	//httpClient.Transport = transport
 	
-	
-	cx1client, err := Cx1ClientGo.NewAPIKeyClient( httpClient, base_url, iam_url, tenant, api_key, logger )
+	// base_url, iam_url, and tenant are derived automatically from the API key's own JWT claims
+	cx1client, err := Cx1ClientGo.NewAPIKeyClient( httpClient, api_key, logger )
 	if err != nil {
 		log.Error( "Error creating client: " + err.Error() )
 		return 
@@ -213,7 +219,7 @@ func main() {
 ```
 
 Invocation for the more complicated example:
-go run . "https://eu.ast.checkmarx.net" "https://eu.iam.checkmarx.net" "tenant" "API Key" "Project Name" "Group Name" "https://my.github/project/repo" "branch"
+go run . "API Key" "Project Name" "Group Name" "https://my.github/project/repo" "branch"
 
 
 Note that the Cx1ClientGo library is not an official Checkmarx product and does not include any guarantees of support or future improvements. 

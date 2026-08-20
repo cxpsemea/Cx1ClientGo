@@ -14,6 +14,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `github.com/google/go-querystring` - Query string encoding
   - `golang.org/x/exp` - Experimental features
 
+## Writing Scripts That Use Cx1ClientGo
+
+If the task involves *consuming* Cx1ClientGo (writing a script/tool that
+calls this library), not modifying the library itself, read
+[`_examples/USAGE.md`](_examples/USAGE.md) first. It routes to concept
+demos, task recipes, and the platform object model — all written to
+prevent hallucinated API shape or object-creation order.
+
 ## Building and Testing
 
 ### Build Commands
