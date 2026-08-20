@@ -21,10 +21,10 @@ Basic usage:
 package main
 
 import (
+	"net/http"
+
 	"github.com/cxpsemea/Cx1ClientGo"
 	log "github.com/sirupsen/logrus"
-	"os"
-    "net/http"
 )
 
 func main() {
