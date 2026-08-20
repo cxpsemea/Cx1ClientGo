@@ -6,7 +6,7 @@ More details around the timeline will be shared as soon as they are available - 
 ## Module information
 This is a basic CheckmarxOne REST API client written in GoLang. 
 
-## Documentation for LLM-assisted development
+### Documentation for LLM-assisted development
 The [`_examples/`](_examples/) directory contains a set of docs generated
 specifically to let an LLM (or a human unfamiliar with this library) write
 correct scripts against Cx1ClientGo without guessing at API shape or
@@ -15,7 +15,7 @@ object-creation order. Start at [`_examples/USAGE.md`](_examples/USAGE.md)
 recipes, and a description of how CheckmarxOne platform objects relate to
 and depend on each other.
 
-Basic usage:
+### Basic usage
 
 ```golang
 package main
@@ -61,7 +61,7 @@ Usage of C:\..\cx1test.exe:
 ```
 
 
-More complete workflow example:
+### More complete workflow example
 
 ```golang
 package main
