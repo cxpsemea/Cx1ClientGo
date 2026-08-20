@@ -18,8 +18,8 @@ At a high level, objects fall into three groups:
 - **Organizational** objects (Applications, Projects) — containers that group
   work and that identity/access objects attach to.
 - **Scanning & findings** objects (Presets, Queries, Scans, Branches,
-  Results, Reports) — the actual security-testing pipeline that runs inside
-  a Project.
+  Results, Reports, Exports) — the actual security-testing pipeline that
+  runs inside a Project.
 
 ```mermaid
 flowchart TB
@@ -41,8 +41,10 @@ flowchart TB
     Scan --> Branch
     Scan --> Result
     Scan --> Report
+    Scan --> Export
 
     User --> AccessAssignment
+    OIDCClient --> AccessAssignment
     Project --> AccessAssignment
     Application --> AccessAssignment
 
@@ -72,7 +74,11 @@ Can optionally have a **parent Group**, forming a tree (e.g. a group can be
 nested under another group, and can later be moved to a different parent).
 Groups are referenced by Users (group membership), by OIDC Clients
 (client-role bindings), and by Access Assignments (as the entity being
-granted access).
+granted access). Both directions of the tree are meaningful in practice —
+building it (creating a child under a known parent) and walking it
+(listing a group's direct children, or its members) are equally common
+operations; see `RECIPES.md`'s provisioning and access-resolution recipes,
+which do exactly that.
 
 ### User
 References existing **Groups** (membership) and **Roles** (direct role
@@ -101,7 +107,11 @@ target it.
 ### Preset
 A named collection of **Queries** (SAST and/or IAC) that a Scan runs with.
 If a Preset references custom queries rather than built-in ones, those
-queries must already exist before the Preset can include them.
+queries must already exist before the Preset can include them. In
+practice, a Preset is usually just referenced by name when configuring a
+Scan or Project rather than fetched and inspected as its own object — the
+full Preset object (list/create/clone/edit) is only needed if a script's
+job is actually managing presets themselves, not just picking one.
 
 ### Query
 A single detection rule, scoped at one of three levels: **Project**,
@@ -124,7 +134,9 @@ this mechanism entirely and does not require a session.
 ### Scan
 Requires a **Project** to run against, and optionally a specific **Preset**
 (SAST and/or IAC) to override the project's default. A scan's source is
-either a repository + branch, or an uploaded archive. Archive-based scans
+either a repository + branch, or an uploaded archive — and, as a third
+option, a previously-exported SBOM can itself be uploaded as the source
+for a scan (see Export below) instead of source code. Archive-based scans
 have no inherent branch — if none is supplied, the platform records it as
 `n/a`. Callers can supply any string they like instead; a common
 convention (used by this test suite) is to record the literal value `zip`,
@@ -133,10 +145,21 @@ before scanning. A Scan is asynchronous: it must reach a terminal status
 (completed, partial, or failed) before anything downstream (Results,
 Reports) can be expected to reflect it.
 
+A Scan can enable several engines at once, independent of which engine(s)
+its Preset applies to: SAST, SCA, IaC (also called KICS), Containers, API
+Security, and the Enterprise Secrets micro-engine (referred to internally
+as "2ms") are all engines a Scan can be configured to run. Not every
+engine is equally exposed for configuration/editing by this client — SAST
+and IaC/KICS are the two with dedicated Query/Preset editing support — but
+any of them can be turned on for a given Scan.
+
 ### Branch
 Not an independently created object — it's an emergent property of a
 Project having at least one Scan recorded against that branch name. A
-Branch disappears once its last associated Scan is removed.
+Branch disappears once its last associated Scan is removed. Even though
+nothing creates a Branch directly, a Project's current set of known
+branches can still be discovered/listed directly rather than only
+inferred by walking Scan history yourself.
 
 ### Result
 A finding produced by a completed **Scan**, scoped to a **Project**. Each
@@ -150,7 +173,17 @@ An export of scan or project data. A scan-level report covers exactly one
 Project + Branch and requires that Project to have a completed Scan. A
 project-level report can aggregate multiple Projects at once (no branch
 needed) — but still requires each named Project to have completed scan
-data available.
+data available. A Project doesn't need an Application for either kind of
+report to be requested.
+
+### Export
+A separate, SCA-specific sibling of Report: rather than a findings report,
+an Export produces an SBOM (Software Bill of Materials) for a completed
+**Scan**, in one of a few standard formats. It has its own
+request/poll/download lifecycle, distinct from Report's. Unlike a Report,
+an Export's output isn't just an artifact to keep — it can be fed back in
+as the source for a brand new **Scan**, in place of a repository or an
+uploaded archive.
 
 ### OIDC Client
 A service-account-style identity, optionally bound to one or more
@@ -159,10 +192,13 @@ construct a restricted-permission identity distinct from the operator's own
 credentials.
 
 ### Access Assignment
-Grants a **Role** to an entity (**User** or **Group**) over a resource
-(**Project** or **Application**). Both the entity and the resource must
-already exist — an Access Assignment is pure glue between two other objects
-that were created independently.
+Grants a **Role** to an entity (**User**, **Group**, or **OIDC Client**)
+over a resource (**Project**, **Application**, or the tenant itself, for a
+tenant-wide grant). Both the entity and the resource must already exist —
+an Access Assignment is pure glue between two other objects that were
+created independently. Granting to an OIDC Client directly (rather than a
+User or a Group) is the normal way to scope a service-account-style
+identity down to only the access it actually needs.
 
 ### Import
 A bulk-creation shortcut: given an archive from an external source plus a
@@ -191,7 +227,7 @@ Dashboard/KPI data, read-only. No dependencies, no dependents.
 - **A Preset** needs any custom Queries it references to already exist.
 - **A Query override** at Application or Project scope needs the
   underlying query (built-in or previously created on the Tenant level) 
-  to exist. A Tenant query can override a Troduct query (or be entirely new), 
+  to exist. A Tenant query can override a Product query (or be entirely new), 
   an Application query overrides Tenant (or Product), and Project-level
   queries override Application-, Tenant-, or Product-level ones. 
 - **Editing a Query** via the current query-editor API needs an open audit
@@ -203,6 +239,8 @@ Dashboard/KPI data, read-only. No dependencies, no dependents.
 - **A Result** needs a Project with at least one completed Scan.
 - **A Report** needs the named Project(s) to have completed Scan data; a
   scan-level report additionally needs a specific Branch.
+- **An Export (SBOM)** needs a completed SCA **Scan**; unlike a Report, its
+  output can then become the source for starting a brand new Scan.
 - **An Access Assignment** needs both its entity (OIDC Client/User/Group) 
   and its resource (Project/Application/Tenant) to exist.
 - **An OIDC Client** used for integrations/service accounts needs its
