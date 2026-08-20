@@ -1236,6 +1236,7 @@ type Scan struct {
 			} `json:"UploadHandler"`
 			GitHandler struct {
 				RepoURL string `json:"repo_url"`
+				Branch  string `json:"branch"`
 			} `json:"GitHandler"`
 		} `json:"Handler"`
 	} `json:"metadata"`
