@@ -1,3 +1,4 @@
 .checkmarx*
 .claude
-.spec
+.internal
+.vscode
