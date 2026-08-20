@@ -67,13 +67,15 @@ More complete workflow example:
 package main
 
 import (
-	"github.com/cxpsemea/Cx1ClientGo"
-	log "github.com/sirupsen/logrus"
-	"os"
-	"time"
+	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/url"
-	"crypto/tls"
+	"os"
+	"time"
+
+	"github.com/cxpsemea/Cx1ClientGo"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -103,11 +105,11 @@ func main() {
 	}
 
 	// no err means that the client is initialized
-	logger.Infof( "Client initialized: " + cx1client.ToString() )
+	logger.Infof( "Client initialized: %s", cx1client.String() )
 	
 	group, err := cx1client.GetGroupByName( group_name )
 	if err != nil {
-		if err.Error() != "No matching group found" {
+		if err.Error() != fmt.Sprintf( "no group %v found", group_name ) {
 			logger.Infof( "Failed to retrieve group named %s: %v", group_name, err )
 			return
 		}
@@ -124,7 +126,7 @@ func main() {
 		logger.Infof( "Found group named %v with ID %v", group.Name, group.GroupID )
 	}
 	
-	projects, err := cx1client.GetProjectsByNameAndGroup( project_name, group.GroupID )
+	projects, err := cx1client.GetProjectsByNameAndGroupID( project_name, group.GroupID )
 	if err != nil {
 		logger.Errorf( "Failed to retrieve project named %s: %v", project_name, err )
 		return
@@ -133,7 +135,7 @@ func main() {
 	var project Cx1ClientGo.Project
 	if len(projects) == 0 {
 		logger.Infof( "No project named %s found under group %s - it will now be created", project_name, group_name )
-		project, err = cx1client.CreateProject( project_name, group.GroupID, map[string]string{ "CreatedBy" : "Cx1ClientGo" } )
+		project, err = cx1client.CreateProject( project_name, []string{ group.GroupID }, map[string]string{ "CreatedBy" : "Cx1ClientGo" } )
 		if err != nil {
 			logger.Errorf( "Failed to create project %s: %v", project_name, err )
 			return
@@ -166,7 +168,7 @@ func main() {
 		logger.Infof( " - %v", scan.Status )
 	}
 	
-	reportID, err := cx1client.RequestNewReportByID( scan.ScanID, project.ProjectID, branch_name, "pdf" )
+	reportID, err := cx1client.RequestNewReportByID( scan.ScanID, project.ProjectID, branch_name, "pdf", []string{"sast"}, []string{"ScanSummary", "ExecutiveSummary", "ScanResults"} )
 	if err != nil {
 		logger.Errorf( "Failed to trigger new report generation for scan ID %v, project ID %v: %s", scan.ScanID, project.ProjectID, err )
 		return
@@ -200,19 +202,17 @@ func main() {
 	}
 	logger.Infof( "Report Updated to report.pdf" )
 	
-	scanresults, err := cx1client.GetScanResultsByID( scan.ScanID )
-	if err != nil && len(scanresults) == 0 {
+	// GetScanResultsByID takes a limit on how many results to retrieve (0 fetches just the first page);
+	// use GetAllScanResultsByID to page through everything
+	scanresults, err := cx1client.GetAllScanResultsByID( scan.ScanID )
+	if err != nil {
 		logger.Errorf( "Failed to retrieve scan results: %s", err )
 		return
 	}
 	
-	if err != nil {
-		logger.Infof( "Results retrieved but error thrown: %s", err ) // can be "remote error: tls: user canceled" but still returns results
-	} else {
-		logger.Infof( "%d results retrieved", len(scanresults) )
-	}
+	logger.Infof( "%d SAST results retrieved", len(scanresults.SAST) )
 	
-	for _, result := range scanresults {
+	for _, result := range scanresults.SAST {
 		logger.Infof( "Finding with similarity ID: %v", result.SimilarityID )
 	}
 }
