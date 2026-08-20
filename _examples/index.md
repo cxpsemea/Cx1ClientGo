@@ -46,9 +46,9 @@ your script:
 
 | Constructor | Use when you have... |
 | --- | --- |
-| `NewClient` | CLI flags / env vars for tenant, base URL, and either an API key or OAuth client ID+secret (auto-detected) — see AccessManagement |
+| `NewClient` | CLI flags for tenant, base URL, and either an API key or OAuth client ID+secret (auto-detected) — see AccessManagement |
 | `NewOAuthClient` / `NewOAuthClientWithToken` | an OIDC client ID + secret directly (e.g. a service account created for the script) — see AccessManagement; the `WithToken` variant additionally accepts a still-valid access token to skip the first login round-trip |
-| `NewAPIKeyClient` / `NewAPIKeyClientWithToken` | a Cx1 API key (refresh token) instead of a client ID/secret — the common shape for CI/service-account credentials; note the top-level `README.md`'s own usage example predates the current signature (it passes URLs/tenant that `NewAPIKeyClient` no longer takes) — trust the doc comment in `cx1client.go` over that example |
+| `NewAPIKeyClient` / `NewAPIKeyClientWithToken` | a Cx1 API key (refresh token) instead of a client ID/secret — the common shape for CI/service-account credentials |
 | `NewTokenClient` | only a raw, already-issued access token (e.g. a zero-trust workflow that hands your script a short-lived token rather than a long-lived credential) |
 | `NewClientWithOptions` | full manual control over every field of `Cx1ClientConfiguration` — all the constructors above are thin wrappers around this one |
 

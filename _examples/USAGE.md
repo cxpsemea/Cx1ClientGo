@@ -47,7 +47,9 @@ if err != nil {
 
 `NewClient` reads connection details and credentials from CLI
 flags/environment variables (see
-[`AccessManagement`](AccessManagement/AccessManagement.go)). If your
-credential comes in a different shape — a raw API key, an existing
-access token, an OIDC client ID/secret — see the "Authentication
-options" table in [`index.md`](index.md) for the matching constructor.
+[`Cx1Client`](cx1client.go)). This constructor uses the standard
+flag library and pulls in pre-defined command-line arguments for
+different authentication options (apikey, client id+secret, token).
+This can be used to simplify client creation - any additional
+command-line arguments required by your application can be declared
+before calling NewClient which internally calls flag.Parse().
