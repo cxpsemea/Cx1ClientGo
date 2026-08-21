@@ -1329,11 +1329,11 @@ type ScanResultSet struct {
 type ScanResultsFilter struct {
 	BaseFilter
 	ScanID             string   `url:"scan-id"`
-	Severity           []string `url:"severity"`
-	State              []string `url:"state"`
-	Status             []string `url:"status"`
+	Severity           []string `url:"severity"`             // Available values : CRITICAL, HIGH, MEDIUM, LOW, INFO
+	State              []string `url:"state"`                // Available values : TO_VERIFY, NOT_EXPLOITABLE, PROPOSED_NOT_EXPLOITABLE, CONFIRMED, URGENT
+	Status             []string `url:"status"`               // Available values : Available values : NEW, RECURRENT, FIXED
 	ExcludeResultTypes []string `url:"exclude-result-types"` // Available values : DEV_AND_TEST, NONE
-	Sort               []string `url:"sort"`                 //Available values : -severity, +severity, -status, +status, -state, +state, -type, +type, -firstfoundat, +firstfoundat, -foundat, +foundat, -firstscanid, +firstscanid
+	Sort               []string `url:"sort"`                 // Available values : -severity, +severity, -status, +status, -state, +state, -type, +type, -firstfoundat, +firstfoundat, -foundat, +foundat, -firstscanid, +firstscanid
 }
 
 // generic data common to all
