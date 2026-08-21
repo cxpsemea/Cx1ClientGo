@@ -297,7 +297,7 @@ func (c *Cx1Client) GetScanSASTResultDeepLink(r *ScanSASTResult) string {
 	if r == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("%s/sast-results/%s/%s?resultId=%s", c.GetBaseURL(), r.ProjectID, r.ScanID, url.QueryEscape(r.ResultID))
+	return fmt.Sprintf("%s/sast-results/%s/%s?resultId=%s", c.GetBaseURL(), r.ProjectID, r.ScanID, url.QueryEscape(r.AlternateID))
 }
 
 // following this link allows the user to directly review this IAC finding in the UI
@@ -305,7 +305,7 @@ func (c *Cx1Client) GetScanIACResultDeepLink(r *ScanIACResult) string {
 	if r == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("%s/results/%s/%s/kics?result-id=%s", c.GetBaseURL(), r.ProjectID, r.ScanID, url.QueryEscape(r.ResultID))
+	return fmt.Sprintf("%s/results/%s/%s/kics?result-id=%s", c.GetBaseURL(), r.ScanID, r.ProjectID, url.QueryEscape(r.AlternateID))
 }
 
 // following this link allows the user to directly review this SCA finding in the UI
@@ -313,7 +313,7 @@ func (c *Cx1Client) GetScanSCAResultDeepLink(r *ScanSCAResult) string {
 	if r == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("%s/results/%s/%s/sca?internalPath=%s", c.GetBaseURL(), r.ProjectID, r.ScanID, url.QueryEscape(fmt.Sprintf("/packages/%s/packageDetailsGql", url.QueryEscape(r.Data.PackageIdentifier))))
+	return fmt.Sprintf("%s/results/%s/%s/sca?internalPath=%s", c.GetBaseURL(), r.ScanID, r.ProjectID, url.QueryEscape(fmt.Sprintf("/packages/%s/packageDetailsGql", url.QueryEscape(r.Data.PackageIdentifier))))
 }
 
 func (r ScanSCAResultData) GetType(packageDataType string) ScanSCAResultPackageData {
