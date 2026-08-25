@@ -120,6 +120,10 @@ func (c *Cx1Client) DeleteQueryByName_v310(level, levelID, language, group, quer
 		levelID = "Corp"
 	}
 
+	if levelID == "" {
+		return fmt.Errorf("invalid (empty) %s levelID provided", level)
+	}
+
 	_, err := c.sendRequest(http.MethodDelete, fmt.Sprintf("/cx-audit/queries/%v/%v.cs", levelID, path), nil, nil)
 	if err != nil {
 		// currently there's a bug where the response can be error 500 even if it succeeded.
