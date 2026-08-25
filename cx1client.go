@@ -150,15 +150,21 @@ func (c *Cx1Client) InitializeClient(quick bool) error {
 	}
 	c.version = &cxVersion
 
-	if check, _ := c.version.CheckCxOne("3.12.7"); check < 0 {
+	if check, _ := c.version.CheckCxOne("3.12.7"); check < 0 { // old version before 3.12.7
 		c.config.Logger.Tracef("Version %v < 3.12.7: AUDIT_QUERY.TENANT = Corp, AUDIT_QUERY.APPLICATION = Team", c.version.CxOne)
 		AUDIT_QUERY.TENANT = "Corp"
 		AUDIT_QUERY.APPLICATION = "Team"
 	}
 
-	if check, _ := c.version.CheckCxOne("3.30.45"); check < 0 {
+	if check, _ := c.version.CheckCxOne("3.30.45"); check < 0 { // old version before 3.30.45
 		c.config.Logger.Tracef("Version %v < 3.30.0: ScanSortCreatedDescending = +created_at", c.version.CxOne)
 		ScanSortCreatedDescending = "+created_at"
+	}
+
+	if check, _ := c.version.CheckCxOne("3.62.0"); check >= 0 { // new version 3.62+
+		c.config.Logger.Tracef("Version %v >= 3.62.0: audit_query_v310.TENANT = Corp, audit_query_v310.APPLICATION = Application", c.version.CxOne)
+		audit_query_v310.APPLICATION = "Application"
+		audit_query_v310.TENANT = "Tenant"
 	}
 
 	return nil

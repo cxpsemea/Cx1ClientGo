@@ -281,7 +281,17 @@ func (q SASTQuery) StringDetailed() string {
 	default:
 		scope = fmt.Sprintf("%v %v", q.Level, ShortenGUID(q.LevelID))
 	}
-	return fmt.Sprintf("%v: %v -> %v -> %v, %v risk [ID %v, Key %v]", scope, q.Language, q.Group, q.Name, q.Severity, ShortenGUID(strconv.FormatUint(q.QueryID, 10)), ShortenGUID(q.EditorKey))
+
+	exec := "undef"
+	if q.IsExecutable != nil {
+		if *q.IsExecutable {
+			exec = "true"
+		} else {
+			exec = "false"
+		}
+	}
+
+	return fmt.Sprintf("%v: %v -> %v -> %v, %v risk [ID %v, Key %v, Exec %s]", scope, q.Language, q.Group, q.Name, q.Severity, ShortenGUID(strconv.FormatUint(q.QueryID, 10)), ShortenGUID(q.EditorKey), exec)
 }
 
 func (q SASTQuery) String() string {
