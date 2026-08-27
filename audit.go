@@ -438,7 +438,7 @@ func (c *Cx1Client) GetAuditIACQueryByID(auditSession *AuditSession, queryId str
 }
 
 func (c *Cx1Client) GetAllAuditSASTQueries(auditSession *AuditSession) (SASTQueryCollection, error) {
-	c.config.Logger.Debugf("Get all audit queries")
+	c.config.Logger.Debugf("Get all SAST audit queries for session %s", auditSession.String())
 
 	collection := SASTQueryCollection{}
 	querytree, err := c.getAuditQueryTreeByLevelID(auditSession, "")
@@ -452,15 +452,17 @@ func (c *Cx1Client) GetAllAuditSASTQueries(auditSession *AuditSession) (SASTQuer
 }
 
 /*
-Retrieves the list of queries available for this audit session. Level and LevelID options are:
-QueryTypeProduct(), QueryTypeProduct() : same value for both when retrieving product-default queries
-QueryTypeTenant(), QueryTypeTenant() : same value for both when retrieving tenant-level queries
-QueryTypeProject(), project.ProjectID : when retrieving project-level queries (includes application-level queries if the project has an application associated)
+Retrieves the list of queries available for this audit session. Level options are:
+QueryTypeProduct(): retrieve product-default queries
+QueryTypeTenant(): retrieve tenant-level queries
+QueryTypeApplication(): retrieve application-level queries
+QueryTypeProject(): retrieve project-level queries
 
 The resulting array of queries should be merged into a QueryCollection object returned by the GetQueries function.
+Use GetAllAuditSASTQueries for the full collection including product-, tenant-, application-, and project-level queries.
 */
-func (c *Cx1Client) GetAuditSASTQueriesByLevelID(auditSession *AuditSession, level, levelId string) (SASTQueryCollection, error) {
-	c.config.Logger.Debugf("Get all audit queries for %v %v", level, levelId)
+func (c *Cx1Client) GetAuditSASTQueriesByLevelID(auditSession *AuditSession, level string) (SASTQueryCollection, error) {
+	c.config.Logger.Debugf("Get all audit queries for %v %v", level)
 
 	collection := SASTQueryCollection{}
 	querytree, err := c.getAuditQueryTreeByLevelID(auditSession, level)
@@ -473,16 +475,32 @@ func (c *Cx1Client) GetAuditSASTQueriesByLevelID(auditSession *AuditSession, lev
 	return collection, nil
 }
 
+func (c *Cx1Client) GetAllAuditIACQueries(auditSession *AuditSession) (IACQueryCollection, error) {
+	c.config.Logger.Debugf("Get all IAC audit queries for session %s", auditSession.String())
+
+	collection := IACQueryCollection{}
+	querytree, err := c.getAuditQueryTreeByLevelID(auditSession, "")
+	if err != nil {
+		return collection, err
+	}
+
+	collection.AddQueryTree(&querytree, auditSession.ApplicationID, auditSession.ProjectID)
+
+	return collection, nil
+}
+
 /*
-Retrieves the list of queries available for this audit session. Level and LevelID options are:
-QueryTypeProduct(), QueryTypeProduct() : same value for both when retrieving product-default queries
-QueryTypeTenant(), QueryTypeTenant() : same value for both when retrieving tenant-level queries
-QueryTypeProject(), project.ProjectID : when retrieving project-level queries (includes application-level queries if the project has an application associated)
+Retrieves the list of queries available for this audit session. Level options are:
+QueryTypeProduct(): retrieve product-default queries
+QueryTypeTenant(): retrieve tenant-level queries
+QueryTypeApplication(): retrieve application-level queries
+QueryTypeProject(): retrieve project-level queries
 
 The resulting array of queries should be merged into a QueryCollection object returned by the GetQueries function.
+Use GetAllAuditIACQueries for the full collection including product-, tenant-, application-, and project-level queries.
 */
-func (c *Cx1Client) GetAuditIACQueriesByLevelID(auditSession *AuditSession, level, levelId string) (IACQueryCollection, error) {
-	c.config.Logger.Debugf("Get all queries for %v %v", level, levelId)
+func (c *Cx1Client) GetAuditIACQueriesByLevel(auditSession *AuditSession, level string) (IACQueryCollection, error) {
+	c.config.Logger.Debugf("Get all %v queries for session ", level)
 
 	collection := IACQueryCollection{}
 	querytree, err := c.getAuditQueryTreeByLevelID(auditSession, level)
