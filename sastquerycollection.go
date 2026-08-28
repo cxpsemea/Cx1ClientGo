@@ -471,9 +471,9 @@ func (qc *SASTQueryCollection) UpdateFromSession(cx1client *Cx1Client, session *
 	var queries SASTQueryCollection
 	var err error
 	if session.ScanID != "" {
-		queries, err = cx1client.GetAuditSASTQueriesByLevelID(session, cx1client.QueryTypeProject(), session.ProjectID)
+		queries, err = cx1client.GetAuditSASTQueriesByLevelID(session, cx1client.QueryTypeProject())
 	} else {
-		queries, err = cx1client.GetAuditSASTQueriesByLevelID(session, cx1client.QueryTypeTenant(), cx1client.QueryTypeTenant())
+		queries, err = cx1client.GetAuditSASTQueriesByLevelID(session, cx1client.QueryTypeTenant())
 	}
 	qc.AddCollection(&queries)
 	return err
