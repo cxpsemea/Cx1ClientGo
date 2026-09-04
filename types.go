@@ -985,10 +985,10 @@ type QueryUpdateMetadata_v310 struct {
 type ReportRequest struct {
 	EntityType string   `json:"entityType,omitempty"`
 	IDs        []string `json:"ids,omitempty"`
-	Sections   []string `json:"sections,omitempty"`
-	Scanners   []string `json:"scanners,omitempty"`
-	Severities []string `json:"severities,omitempty"`
-	States     []string `json:"states,omitempty"`
+	Sections   []string `json:"sections,omitempty"`   // scan report: "scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details", "scs-vulnerabilities", project report: "projects-overview", "total-vulnerabilities-overview", "vulnerabilities-insights", "results-distribution", "scanned-files"
+	Scanners   []string `json:"scanners,omitempty"`   // "sast", "sca", "containers", "iac", "apisec", "microengines"
+	Severities []string `json:"severities,omitempty"` // "critical", "high", "medium", "low", "information"
+	States     []string `json:"states,omitempty"`     // ["urgent", "confirmed", "proposed-not-exploitable", "not-exploitable", "to-verify"
 	Statuses   []string `json:"statuses,omitempty"`
 	Emails     []string `json:"emails,omitempty"`
 	Tags       []string `json:"tags,omitempty"`

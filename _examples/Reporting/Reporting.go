@@ -65,14 +65,21 @@ func runMultiEngineScan(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger)
 	}
 	logger.Infof("Got project: %v", project.String())
 
-	scanConfig := Cx1ClientGo.ScanConfigurationSet{}
-	// AddScanEngine turns an engine on with its defaults; AddConfig (used elsewhere,
-	// e.g. QueryManipulation) additionally sets a specific key on that engine.
-	scanConfig.AddScanEngine("sast")
-	scanConfig.AddScanEngine("sca")
-	scanConfig.AddScanEngine("iac") // translated internally to "kics"
+	scanConfig := Cx1ClientGo.NewScanConfiguration().
+		WithAISC().
+		WithAPISEC().
+		WithContainers().
+		WithIAC().
+		WithSAST().
+		WithSASTConfig(Cx1ClientGo.ConfigurationSettings.SAST.Incremental, "true").
+		WithSCA().
+		WithSecrets()
 
-	scan, err := cx1client.ScanProjectGitByID(project.ProjectID, "https://github.com/GitHubSecurityLab/hackers-first-workshop", "main", scanConfig.Configurations, map[string]string{})
+	// scanConfig.AddConfig can be used to set engine parameters (eg: sast incremental)
+	// see root configurationsettings.go for options via the ConfigurationSettings struct
+
+	logger.Infof("Triggering a scan")
+	scan, err := cx1client.ScanProjectGitByID(project.ProjectID, "https://github.com/cxpsemea/cx1-all-in-one-scan", "main", scanConfig.Configurations, map[string]string{})
 	if err != nil {
 		return project, scan, fmt.Errorf("failed to start scan: %s", err)
 	}
@@ -89,13 +96,22 @@ func runMultiEngineScan(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger)
 
 // Reports are asynchronous, same shape as MigrationImport's import polling: request,
 // poll for a terminal status, then download. Unlike an import, a report request also
-// needs to pick a report type (v1: "ui"/"pdf"/"csv"/etc. file formats via
+// needs to pick a report type (v1: "pdf"/"csv"/etc. file formats via
 // RequestNewReportByID; v2: a structured ReportRequest via RequestNewReportByIDsv2 or
 // its scan/project convenience wrappers) and which engines/sections to include.
 func generateReports(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, project Cx1ClientGo.Project, scan Cx1ClientGo.Scan) {
-	engines := []string{"sast", "sca", "kics"}
+	engines := []string{
+		Cx1ClientGo.ConfigurationSettings.Engines.AISupplyChain,
+		Cx1ClientGo.ConfigurationSettings.Engines.APISecurity,
+		Cx1ClientGo.ConfigurationSettings.Engines.Containers,
+		Cx1ClientGo.ConfigurationSettings.Engines.IAC,
+		Cx1ClientGo.ConfigurationSettings.Engines.SAST,
+		Cx1ClientGo.ConfigurationSettings.Engines.SCA,
+		Cx1ClientGo.ConfigurationSettings.Engines.Secrets,
+	}
 
 	// v1 API: scan-level report, tied to one specific scan + branch.
+	logger.Infof("Generating a v1 scan report in PDF format")
 	reportID, err := cx1client.RequestNewReportByID(scan.ScanID, project.ProjectID, scan.Branch, "pdf", engines, []string{"ScanSummary", "ExecutiveSummary", "ScanResults"})
 	if err != nil {
 		logger.Errorf("Failed to request v1 scan report: %s", err)
@@ -105,6 +121,7 @@ func generateReports(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 
 	// v2 API: also scan-level, but with a richer set of sections/severities/states
 	// baked in by RequestNewReportByScanIDv2 - see reports.go for the exact defaults.
+	logger.Infof("Generating a v2 scan report in PDF format")
 	reportID, err = cx1client.RequestNewReportByScanIDv2(scan.ScanID, engines, []string{}, []string{}, "pdf")
 	if err != nil {
 		logger.Errorf("Failed to request v2 scan report: %s", err)
@@ -116,6 +133,7 @@ func generateReports(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	// all and can aggregate multiple project IDs into a single report - here we pass
 	// just the one project, which is also why this example didn't need an
 	// Application: project-level reports don't require one either.
+	logger.Infof("Generating a v2 project report in PDF format")
 	reportID, err = cx1client.RequestNewReportByProjectIDv2([]string{project.ProjectID}, engines, []string{}, []string{}, "pdf")
 	if err != nil {
 		logger.Errorf("Failed to request v2 project report: %s", err)
