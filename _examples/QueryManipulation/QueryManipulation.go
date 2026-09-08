@@ -16,7 +16,7 @@ result := {}
 
 func main() {
 	logger := logrus.New()
-	logger.SetLevel(logrus.DebugLevel)
+	logger.SetLevel(logrus.InfoLevel)
 	myformatter := &easy.Formatter{}
 	myformatter.TimestampFormat = "2006-01-02 15:04:05.000"
 	myformatter.LogFormat = "[%lvl%][%time%] %msg%\n"
@@ -69,7 +69,7 @@ func main() {
 	}
 
 	makeSASTQueries(cx1client, logger, project, lastscan)
-	//makeIACQueries(cx1client, logger, project, lastscan)
+	makeIACQueries(cx1client, logger, project, lastscan)
 
 }
 
@@ -94,7 +94,7 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 		logger.Fatalf("Error getting the query collection: %s", err)
 	}
 
-	aq, err := cx1client.GetAuditSASTQueriesByLevelID(&session, cx1client.QueryTypeProject(), project.ProjectID)
+	aq, err := cx1client.GetAllAuditSASTQueries(&session)
 	if err != nil {
 		logger.Fatalf("Error getting queries: %s", err)
 	}
@@ -112,7 +112,7 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 		}
 	}
 
-	/*corpOverride := newSASTCorpOverride(cx1client, logger, &qc, &session)
+	corpOverride := newSASTCorpOverride(cx1client, logger, &qc, &session)
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
 		logger.Errorf("Audit session may have expired: %s", err)
 	}
@@ -122,7 +122,7 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
 		logger.Errorf("Audit session may have expired: %s", err)
 	}
-	defer DeleteSASTQuery(cx1client, logger, &session, appOverride)*/
+	defer DeleteSASTQuery(cx1client, logger, &session, appOverride)
 
 	projOverride := newSASTProjectOverride(cx1client, logger, &qc, &session)
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
@@ -130,11 +130,11 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	}
 	defer DeleteSASTQuery(cx1client, logger, &session, projOverride)
 
-	/*corpQuery := newSASTCorpQuery(cx1client, logger, &qc, &session)
+	corpQuery := newSASTCorpQuery(cx1client, logger, &qc, &session)
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
 		logger.Errorf("Audit session may have expired: %s", err)
 	}
-	defer DeleteSASTQuery(cx1client, logger, &session, corpQuery)*/
+	defer DeleteSASTQuery(cx1client, logger, &session, corpQuery)
 
 	logger.Infof("Retrieving an updated list of queries")
 	qc, err = cx1client.GetSASTQueryCollection()
@@ -150,9 +150,9 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	qc.AddCollection(&aq)
 
 	cqc = qc.GetCustomQueryCollection()
-	/*if corpQuery != nil {
+	if corpQuery != nil {
 		cqc.UpdateNewQuery(corpQuery) // fill in the missing QueryID for this new query
-	}*/
+	}
 
 	logger.Infof("The following custom (not Cx-level) queries exist for project Id %v", project.ProjectID)
 

@@ -6,16 +6,25 @@ More details around the timeline will be shared as soon as they are available - 
 ## Module information
 This is a basic CheckmarxOne REST API client written in GoLang. 
 
-Basic usage:
+### Documentation for LLM-assisted development
+The [`_examples/`](_examples/) directory contains a set of docs generated
+specifically to let an LLM (or a human unfamiliar with this library) write
+correct scripts against Cx1ClientGo without guessing at API shape or
+object-creation order. Start at [`_examples/USAGE.md`](_examples/USAGE.md)
+- it routes to worked examples of individual API mechanics, end-to-end task
+recipes, and a description of how CheckmarxOne platform objects relate to
+and depend on each other.
+
+### Basic usage
 
 ```golang
 package main
 
 import (
+	"net/http"
+
 	"github.com/cxpsemea/Cx1ClientGo"
 	log "github.com/sirupsen/logrus"
-	"os"
-    "net/http"
 )
 
 func main() {
@@ -28,7 +37,7 @@ func main() {
 	}
 
 	// no err means that the client is initialized
-	logger.Infof( "Client initialized: " + cx1client.ToString() )
+	logger.Infof( "Client initialized: %s", cx1client.String() )
 }
 ```
 
@@ -52,19 +61,21 @@ Usage of C:\..\cx1test.exe:
 ```
 
 
-More complete workflow example:
+### More complete workflow example
 
 ```golang
 package main
 
 import (
-	"github.com/cxpsemea/Cx1ClientGo"
-	log "github.com/sirupsen/logrus"
-	"os"
-	"time"
+	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/url"
-	"crypto/tls"
+	"os"
+	"time"
+
+	"github.com/cxpsemea/Cx1ClientGo"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -72,14 +83,11 @@ func main() {
 	logger.Infof( "Starting" )
 	//logger.SetLevel( log.TraceLevel ) 
 
-	base_url := os.Args[1]
-	iam_url := os.Args[2]
-	tenant := os.Args[3]
-	api_key := os.Args[4]
-	project_name := os.Args[5]
-	group_name := os.Args[6]
-	project_repo := os.Args[7]
-	branch_name := os.Args[8]
+	api_key := os.Args[1]
+	project_name := os.Args[2]
+	group_name := os.Args[3]
+	project_repo := os.Args[4]
+	branch_name := os.Args[5]
 	
 	proxyURL, err := url.Parse( "http://127.0.0.1:8080" )
 	transport := &http.Transport{}
@@ -89,19 +97,19 @@ func main() {
 	httpClient := &http.Client{}
 	//httpClient.Transport = transport
 	
-	
-	cx1client, err := Cx1ClientGo.NewAPIKeyClient( httpClient, base_url, iam_url, tenant, api_key, logger )
+	// base_url, iam_url, and tenant are derived automatically from the API key's own JWT claims
+	cx1client, err := Cx1ClientGo.NewAPIKeyClient( httpClient, api_key, logger )
 	if err != nil {
 		log.Error( "Error creating client: " + err.Error() )
 		return 
 	}
 
 	// no err means that the client is initialized
-	logger.Infof( "Client initialized: " + cx1client.ToString() )
+	logger.Infof( "Client initialized: %s", cx1client.String() )
 	
 	group, err := cx1client.GetGroupByName( group_name )
 	if err != nil {
-		if err.Error() != "No matching group found" {
+		if err.Error() != fmt.Sprintf( "no group %v found", group_name ) {
 			logger.Infof( "Failed to retrieve group named %s: %v", group_name, err )
 			return
 		}
@@ -118,7 +126,7 @@ func main() {
 		logger.Infof( "Found group named %v with ID %v", group.Name, group.GroupID )
 	}
 	
-	projects, err := cx1client.GetProjectsByNameAndGroup( project_name, group.GroupID )
+	projects, err := cx1client.GetProjectsByNameAndGroupID( project_name, group.GroupID )
 	if err != nil {
 		logger.Errorf( "Failed to retrieve project named %s: %v", project_name, err )
 		return
@@ -127,7 +135,7 @@ func main() {
 	var project Cx1ClientGo.Project
 	if len(projects) == 0 {
 		logger.Infof( "No project named %s found under group %s - it will now be created", project_name, group_name )
-		project, err = cx1client.CreateProject( project_name, group.GroupID, map[string]string{ "CreatedBy" : "Cx1ClientGo" } )
+		project, err = cx1client.CreateProject( project_name, []string{ group.GroupID }, map[string]string{ "CreatedBy" : "Cx1ClientGo" } )
 		if err != nil {
 			logger.Errorf( "Failed to create project %s: %v", project_name, err )
 			return
@@ -160,7 +168,7 @@ func main() {
 		logger.Infof( " - %v", scan.Status )
 	}
 	
-	reportID, err := cx1client.RequestNewReportByID( scan.ScanID, project.ProjectID, branch_name, "pdf" )
+	reportID, err := cx1client.RequestNewReportByID( scan.ScanID, project.ProjectID, branch_name, "pdf", []string{"sast"}, []string{"ScanSummary", "ExecutiveSummary", "ScanResults"} )
 	if err != nil {
 		logger.Errorf( "Failed to trigger new report generation for scan ID %v, project ID %v: %s", scan.ScanID, project.ProjectID, err )
 		return
@@ -194,26 +202,24 @@ func main() {
 	}
 	logger.Infof( "Report Updated to report.pdf" )
 	
-	scanresults, err := cx1client.GetScanResultsByID( scan.ScanID )
-	if err != nil && len(scanresults) == 0 {
+	// GetScanResultsByID takes a limit on how many results to retrieve (0 fetches just the first page);
+	// use GetAllScanResultsByID to page through everything
+	scanresults, err := cx1client.GetAllScanResultsByID( scan.ScanID )
+	if err != nil {
 		logger.Errorf( "Failed to retrieve scan results: %s", err )
 		return
 	}
 	
-	if err != nil {
-		logger.Infof( "Results retrieved but error thrown: %s", err ) // can be "remote error: tls: user canceled" but still returns results
-	} else {
-		logger.Infof( "%d results retrieved", len(scanresults) )
-	}
+	logger.Infof( "%d SAST results retrieved", len(scanresults.SAST) )
 	
-	for _, result := range scanresults {
+	for _, result := range scanresults.SAST {
 		logger.Infof( "Finding with similarity ID: %v", result.SimilarityID )
 	}
 }
 ```
 
 Invocation for the more complicated example:
-go run . "https://eu.ast.checkmarx.net" "https://eu.iam.checkmarx.net" "tenant" "API Key" "Project Name" "Group Name" "https://my.github/project/repo" "branch"
+go run . "API Key" "Project Name" "Group Name" "https://my.github/project/repo" "branch"
 
 
 Note that the Cx1ClientGo library is not an official Checkmarx product and does not include any guarantees of support or future improvements. 
