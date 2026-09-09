@@ -985,10 +985,10 @@ type QueryUpdateMetadata_v310 struct {
 type ReportRequest struct {
 	EntityType string   `json:"entityType,omitempty"`
 	IDs        []string `json:"ids,omitempty"`
-	Sections   []string `json:"sections,omitempty"`
-	Scanners   []string `json:"scanners,omitempty"`
-	Severities []string `json:"severities,omitempty"`
-	States     []string `json:"states,omitempty"`
+	Sections   []string `json:"sections,omitempty"`   // scan report: "scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details", "scs-vulnerabilities", project report: "projects-overview", "total-vulnerabilities-overview", "vulnerabilities-insights", "results-distribution", "scanned-files"
+	Scanners   []string `json:"scanners,omitempty"`   // "sast", "sca", "containers", "iac", "apisec", "microengines"
+	Severities []string `json:"severities,omitempty"` // "critical", "high", "medium", "low", "information"
+	States     []string `json:"states,omitempty"`     // ["urgent", "confirmed", "proposed-not-exploitable", "not-exploitable", "to-verify"
 	Statuses   []string `json:"statuses,omitempty"`
 	Emails     []string `json:"emails,omitempty"`
 	Tags       []string `json:"tags,omitempty"`
@@ -1236,6 +1236,7 @@ type Scan struct {
 			} `json:"UploadHandler"`
 			GitHandler struct {
 				RepoURL string `json:"repo_url"`
+				Branch  string `json:"branch"`
 			} `json:"GitHandler"`
 		} `json:"Handler"`
 	} `json:"metadata"`
@@ -1328,11 +1329,11 @@ type ScanResultSet struct {
 type ScanResultsFilter struct {
 	BaseFilter
 	ScanID             string   `url:"scan-id"`
-	Severity           []string `url:"severity"`
-	State              []string `url:"state"`
-	Status             []string `url:"status"`
+	Severity           []string `url:"severity"`             // Available values : CRITICAL, HIGH, MEDIUM, LOW, INFO
+	State              []string `url:"state"`                // Available values : TO_VERIFY, NOT_EXPLOITABLE, PROPOSED_NOT_EXPLOITABLE, CONFIRMED, URGENT
+	Status             []string `url:"status"`               // Available values : Available values : NEW, RECURRENT, FIXED
 	ExcludeResultTypes []string `url:"exclude-result-types"` // Available values : DEV_AND_TEST, NONE
-	Sort               []string `url:"sort"`                 //Available values : -severity, +severity, -status, +status, -state, +state, -type, +type, -firstfoundat, +firstfoundat, -foundat, +foundat, -firstscanid, +firstscanid
+	Sort               []string `url:"sort"`                 // Available values : -severity, +severity, -status, +status, -state, +state, -type, +type, -firstfoundat, +firstfoundat, -foundat, +foundat, -firstscanid, +firstscanid
 }
 
 // generic data common to all

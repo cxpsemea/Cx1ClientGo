@@ -9,9 +9,34 @@ import (
 	"time"
 )
 
-// Reports
-// Added the 'sections' variable, originally: "ScanSummary", "ExecutiveSummary", "ScanResults",
+var ReportV2Engines = []string{"SAST", "SCA", "KICS", "Microengines", "Containers", "Apisec"}
+var ReportV2Sections = []string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details", "scs-vulnerabilities"}
+
+// Request a v1 report - this may eventually be deprecated
+// Engine options: "SAST","SCA","KICS","Microengines","Containers","Apisec"
+// Report type is pdf or json
 func (c *Cx1Client) RequestNewReportByID(scanID, projectID, branch, reportType string, engines, sections []string) (string, error) {
+	selectedEngines := []string{}
+	for _, e := range engines {
+		if strings.EqualFold("iac", e) {
+			e = "KICS"
+		}
+		match := false
+		for _, a := range ReportV2Engines {
+			if strings.EqualFold(e, a) {
+				selectedEngines = append(selectedEngines, a)
+				match = true
+				break
+			}
+		}
+		if !match {
+			c.config.Logger.Warnf("Request to generate report with invalid engine: %s", e)
+		}
+	}
+	if len(selectedEngines) == 0 {
+		return "", fmt.Errorf("no valid engine selected for report generation")
+	}
+
 	jsonData := map[string]interface{}{
 		"fileFormat": reportType,
 		"reportType": "ui",
@@ -21,7 +46,7 @@ func (c *Cx1Client) RequestNewReportByID(scanID, projectID, branch, reportType s
 			"projectId":  projectID,
 			"branchName": branch,
 			"sections":   sections,
-			"scanners":   engines,
+			"scanners":   selectedEngines,
 			"host":       "",
 		},
 	}
@@ -44,6 +69,8 @@ func (c *Cx1Client) RequestNewReportByID(scanID, projectID, branch, reportType s
 	return reportResponse.ReportId, err
 }
 
+// Request an all-section report for this scan ID
+// This is a convenience function, use RequestNewReportByIDsv2 to customize
 func (c *Cx1Client) RequestNewReportByScanIDv2(scanID string, scanners, emails, tags []string, format string) (string, error) {
 	severities := []string{"high", "medium"}
 	if flag, _ := c.CheckFlag("CVSS_V3_ENABLED"); flag {
@@ -52,7 +79,7 @@ func (c *Cx1Client) RequestNewReportByScanIDv2(scanID string, scanners, emails, 
 	return c.RequestNewReportByIDsv2(ReportRequest{
 		EntityType: "scan",
 		IDs:        []string{scanID},
-		Sections:   []string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details"},
+		Sections:   []string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details", "scs-vulnerabilities"},
 		Scanners:   scanners,
 		Severities: severities,
 		States:     []string{"to-verify", "confirmed", "urgent"},
@@ -71,7 +98,7 @@ func (c *Cx1Client) RequestNewReportByProjectIDv2(projectIDs, scanners, emails, 
 	return c.RequestNewReportByIDsv2(ReportRequest{
 		EntityType: "project",
 		IDs:        projectIDs,
-		Sections:   []string{"projects-overview", "total-vulnerabilities-overview", "vulnerabilities-insights"},
+		Sections:   []string{"projects-overview", "total-vulnerabilities-overview", "vulnerabilities-insights", "results-distribution", "scanned-files"},
 		Scanners:   scanners,
 		Severities: severities,
 		States:     []string{"to-verify", "confirmed", "urgent"},
@@ -82,8 +109,30 @@ func (c *Cx1Client) RequestNewReportByProjectIDv2(projectIDs, scanners, emails, 
 	})
 }
 
-// function used by RequestNewReportByIDv2
+// Request a v2 report directly using the ReportRequest structure
+// This is used by the other RequestNewReport*v2 functions
 func (c *Cx1Client) RequestNewReportByIDsv2(request ReportRequest) (string, error) {
+	selectedEngines := []string{}
+	for _, e := range request.Scanners {
+		if strings.EqualFold(e, "iac") {
+			e = "kics"
+		}
+		match := false
+		for _, a := range ReportV2Engines {
+			if strings.EqualFold(e, a) {
+				selectedEngines = append(selectedEngines, strings.ToLower(a))
+				match = true
+				break
+			}
+		}
+		if !match {
+			c.config.Logger.Warnf("Request to generate report with invalid engine: %s", e)
+		}
+	}
+	if len(selectedEngines) == 0 {
+		return "", fmt.Errorf("no valid engine selected for report generation")
+	}
+
 	jsonData := map[string]interface{}{
 		"reportName": fmt.Sprintf("improved-%v-report", request.EntityType),
 		"sections":   request.Sections,

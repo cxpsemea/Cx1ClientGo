@@ -1,3 +1,24 @@
+// QueryManipulation demonstrates the SAST and IAC query-audit object model - Web-Audit
+// Sessions, query collections, and creating/editing/running custom queries at each
+// override level:
+//   - get or create a test Project inside a test Application, and make sure it has at
+//     least one completed scan to audit (reusing the latest one, or running a new one)
+//   - open a Web-Audit session against that scan/project (GetAuditSessionByID) - all
+//     query editing happens through this session, and it must be kept alive
+//     (AuditSessionKeepAlive) between long-running operations or it will expire
+//   - fetch the query collection and list existing custom (non-Cx-level) queries
+//   - create a query override at each of the three levels queries can live at - Tenant
+//     ("corp"), Application, and Project - each overriding the same base query, plus
+//     one brand-new Tenant-level query
+//   - edit an override's source and metadata (severity) after creating it
+//   - run a query (first with a deliberately broken source to see the error shape,
+//     then with valid source) and fetch the results/vulnerabilities it produced
+//   - delete every override/query created, then close the audit session
+//
+// The whole sequence is done twice: once for SAST (makeSASTQueries) and once for IAC
+// (makeIACQueries). The two halves are structurally identical - SAST additionally
+// demonstrates running a query and inspecting its results, which the IAC audit API
+// does not expose in the same way.
 package main
 
 import (
@@ -16,7 +37,7 @@ result := {}
 
 func main() {
 	logger := logrus.New()
-	logger.SetLevel(logrus.DebugLevel)
+	logger.SetLevel(logrus.InfoLevel)
 	myformatter := &easy.Formatter{}
 	myformatter.TimestampFormat = "2006-01-02 15:04:05.000"
 	myformatter.LogFormat = "[%lvl%][%time%] %msg%\n"
@@ -32,11 +53,13 @@ func main() {
 
 	logger.Infof("Retrieving or creating test-project inside application test-application")
 
+	// Get-or-create the Application-scoped Project this example audits.
 	project, _, err := cx1client.GetOrCreateProjectInApplicationByName("test-project", "test-application")
 	if err != nil {
 		logger.Fatalf("Error getting or creating project 'test-project' under application 'test-application': %s", err)
 	}
 
+	// A Web-Audit session needs a completed scan to attach to - reuse the latest one if any exists.
 	logger.Infof("Retrieving last successful scan for %v", project.String())
 	lastscans, err := cx1client.GetLastScansByStatusAndID(project.ProjectID, 1, []string{"Completed"})
 	var lastscan Cx1ClientGo.Scan
@@ -49,13 +72,14 @@ func main() {
 		} else {
 			logger.Warnf("No successfully completed scans have been run for this project")
 		}
+		// No usable prior scan - trigger and wait for a fresh one instead.
 		logger.Infof("Running a new scan")
 
 		scanConfigSet := Cx1ClientGo.ScanConfigurationSet{}
 		scanConfigSet.AddConfig("sast", "", "")
 		scanConfigSet.AddConfig("kics", "", "")
 
-		lastscan, err = cx1client.ScanProjectGitByID(project.ProjectID, "https://github.com/michaelkubiaczyk/ssba", "master", scanConfigSet.Configurations, map[string]string{})
+		lastscan, err = cx1client.ScanProjectGitByID(project.ProjectID, "https://github.com/cx-michael-kubiaczyk/ssba", "master", scanConfigSet.Configurations, map[string]string{})
 		if err != nil {
 			logger.Fatalf("Failed to run a new scan: %s", err)
 		}
@@ -69,18 +93,23 @@ func main() {
 	}
 
 	makeSASTQueries(cx1client, logger, project, lastscan)
-	//makeIACQueries(cx1client, logger, project, lastscan)
+	makeIACQueries(cx1client, logger, project, lastscan)
 
 }
 
+// makeSASTQueries runs the full SAST half of the sequence described at the top of
+// this file: open an audit session, list existing custom queries, create overrides
+// at every level plus a brand-new query, then run one of them and inspect results.
 func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, project Cx1ClientGo.Project, lastscan Cx1ClientGo.Scan) {
 	logger.Infof("Starting Web-Audit session for last successful scan %v", lastscan.String())
 
+	// All query editing/running goes through this session; it's tied to one project+scan.
 	session, err := cx1client.GetAuditSessionByID("sast", project.ProjectID, lastscan.ScanID)
 	if err != nil {
 		logger.Fatalf("Error getting an audit session: %s", err)
 	}
 
+	// Always release the session when done, regardless of what happens below.
 	defer func() {
 		logger.Infof("Terminating audit session %v", session.ID)
 		err = cx1client.DeleteAuditSession(&session)
@@ -89,12 +118,14 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 		}
 	}()
 
+	// The base query collection (Cx-provided queries) merged with this session's
+	// audit-specific queries (overrides visible only within the session).
 	qc, err := cx1client.GetSASTQueryCollection()
 	if err != nil {
 		logger.Fatalf("Error getting the query collection: %s", err)
 	}
 
-	aq, err := cx1client.GetAuditSASTQueriesByLevelID(&session, cx1client.QueryTypeProject(), project.ProjectID)
+	aq, err := cx1client.GetAllAuditSASTQueries(&session)
 	if err != nil {
 		logger.Fatalf("Error getting queries: %s", err)
 	}
@@ -112,7 +143,11 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 		}
 	}
 
-	/*corpOverride := newSASTCorpOverride(cx1client, logger, &qc, &session)
+	// Create one override per level (Tenant/"corp", Application, Project) of the same
+	// base query, plus a brand-new Tenant-level query below. AuditSessionKeepAlive is
+	// called between each because the session can expire during these longer edits;
+	// each creation is paired with a deferred delete to leave the tenant clean.
+	corpOverride := newSASTCorpOverride(cx1client, logger, &qc, &session)
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
 		logger.Errorf("Audit session may have expired: %s", err)
 	}
@@ -122,7 +157,7 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
 		logger.Errorf("Audit session may have expired: %s", err)
 	}
-	defer DeleteSASTQuery(cx1client, logger, &session, appOverride)*/
+	defer DeleteSASTQuery(cx1client, logger, &session, appOverride)
 
 	projOverride := newSASTProjectOverride(cx1client, logger, &qc, &session)
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
@@ -130,19 +165,21 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	}
 	defer DeleteSASTQuery(cx1client, logger, &session, projOverride)
 
-	/*corpQuery := newSASTCorpQuery(cx1client, logger, &qc, &session)
+	corpQuery := newSASTCorpQuery(cx1client, logger, &qc, &session)
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
 		logger.Errorf("Audit session may have expired: %s", err)
 	}
-	defer DeleteSASTQuery(cx1client, logger, &session, corpQuery)*/
+	defer DeleteSASTQuery(cx1client, logger, &session, corpQuery)
 
+	// Re-fetch the collection so the newly created queries (including their
+	// server-assigned QueryIDs) show up in listings.
 	logger.Infof("Retrieving an updated list of queries")
 	qc, err = cx1client.GetSASTQueryCollection()
 	if err != nil {
 		logger.Errorf("Error getting the query collection: %s", err)
 	}
 
-	aq, err = cx1client.GetAuditSASTQueriesByLevelID(&session, cx1client.QueryTypeProject(), project.ProjectID)
+	aq, err = cx1client.GetAuditSASTQueriesByLevel(&session, cx1client.QueryTypeProject())
 	if err != nil {
 		logger.Errorf("Error getting queries: %s", err)
 	}
@@ -150,9 +187,9 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	qc.AddCollection(&aq)
 
 	cqc = qc.GetCustomQueryCollection()
-	/*if corpQuery != nil {
+	if corpQuery != nil {
 		cqc.UpdateNewQuery(corpQuery) // fill in the missing QueryID for this new query
-	}*/
+	}
 
 	logger.Infof("The following custom (not Cx-level) queries exist for project Id %v", project.ProjectID)
 
@@ -167,6 +204,10 @@ func makeSASTQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pr
 	doQueryEdits(cx1client, logger, &session, projOverride)
 }
 
+// doQueryEdits shows the run -> inspect cycle for a SAST query override: first with
+// deliberately broken source (to see what a compile failure looks like via
+// FailedQueries), then with valid source, walking the Results down to individual
+// vulnerabilities.
 func doQueryEdits(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, session *Cx1ClientGo.AuditSession, override *Cx1ClientGo.SASTQuery) {
 	logger.Infof("Running query with invalid override")
 	result, err := cx1client.RunSASTQuery(session, override, "herpaderp")
@@ -178,6 +219,7 @@ func doQueryEdits(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, sessi
 		logger.Infof("Query error: %+v", r)
 	}
 
+	// Overwrite the override's source with something valid and re-run it.
 	logger.Infof("Running query with valid override - will return all strings results instead")
 	result, err = cx1client.RunSASTQuery(session, override, "result = Find_Strings();")
 	if err != nil {
@@ -205,6 +247,12 @@ func doQueryEdits(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, sessi
 	}
 }
 
+// newSASTCorpOverride creates (or reuses) a Tenant-level ("corp") override of a
+// built-in query: find the base query, check whether an override already exists at
+// this level, create one if not, then edit its source and severity. The three
+// newSAST*Override functions below all follow this same create -> edit source ->
+// edit metadata shape, differing only in the override level
+// (QueryTypeTenant/Application/Project).
 func newSASTCorpOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc *Cx1ClientGo.SASTQueryCollection, session *Cx1ClientGo.AuditSession) *Cx1ClientGo.SASTQuery {
 	logger.Infof("Creating corp override under session %v", session.ID)
 	baseQuery := qc.GetQueryByName("Java", "Java_Spring", "Spring_Missing_Expect_CT_Header")
@@ -255,6 +303,8 @@ func newSASTCorpOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger
 	return &newCorpOverride
 }
 
+// newSASTApplicationOverride is the same create -> edit source -> edit metadata
+// sequence as newSASTCorpOverride, but at the Application level.
 func newSASTApplicationOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc *Cx1ClientGo.SASTQueryCollection, session *Cx1ClientGo.AuditSession) *Cx1ClientGo.SASTQuery {
 	logger.Infof("Creating application-level override under session %v", session.ID)
 	baseQuery := qc.GetQueryByName("Java", "Java_Spring", "Spring_Missing_Expect_CT_Header")
@@ -301,6 +351,8 @@ func newSASTApplicationOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus
 	return &newApplicationOverride
 }
 
+// newSASTProjectOverride is the same create -> edit source -> edit metadata
+// sequence as newSASTCorpOverride, but at the Project level.
 func newSASTProjectOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc *Cx1ClientGo.SASTQueryCollection, session *Cx1ClientGo.AuditSession) *Cx1ClientGo.SASTQuery {
 	logger.Infof("Creating project override under session %v", session.ID)
 	baseQuery := qc.GetQueryByName("Java", "Java_Spring", "Spring_Missing_Expect_CT_Header")
@@ -345,6 +397,9 @@ func newSASTProjectOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Log
 	return &newProjectOverride
 }
 
+// newSASTCorpQuery creates a brand-new Tenant-level query from scratch (as opposed
+// to overriding an existing one, like the newSAST*Override functions above) by
+// constructing a full SASTQuery struct and passing it to CreateNewSASTQuery.
 func newSASTCorpQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc *Cx1ClientGo.SASTQueryCollection, session *Cx1ClientGo.AuditSession) *Cx1ClientGo.SASTQuery {
 	logger.Infof("Creating corp query under session %v", session.ID)
 	tb := true
@@ -373,6 +428,8 @@ func newSASTCorpQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, q
 	return &newCorpQuery
 }
 
+// DeleteSASTQuery removes a single override/query by its EditorKey - deferred once
+// per created query/override in makeSASTQueries above so the tenant ends up clean.
 func DeleteSASTQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, session *Cx1ClientGo.AuditSession, query *Cx1ClientGo.SASTQuery) {
 	if query != nil {
 		logger.Infof("Deleting custom query: %v", query.StringDetailed())
@@ -383,6 +440,10 @@ func DeleteSASTQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, se
 	}
 }
 
+// makeIACQueries mirrors makeSASTQueries for the IAC/KICS engine: open an audit
+// session, list existing custom queries, create overrides at every level plus a
+// brand-new query. It does not run a query afterwards - the IAC audit API doesn't
+// expose a run/results cycle the way SAST's RunSASTQuery does.
 func makeIACQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, project Cx1ClientGo.Project, lastscan Cx1ClientGo.Scan) {
 
 	qc, err := cx1client.GetIACQueryCollection()
@@ -410,7 +471,7 @@ func makeIACQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pro
 		}
 	}()
 
-	aq, err := cx1client.GetAuditIACQueriesByLevelID(&session, cx1client.QueryTypeProject(), project.ProjectID)
+	aq, err := cx1client.GetAuditIACQueriesByLevel(&session, cx1client.QueryTypeProject())
 	if err != nil {
 		logger.Fatalf("Error getting queries: %s", err)
 	}
@@ -420,6 +481,7 @@ func makeIACQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pro
 	logger.Infof("The following custom (not Cx-level) queries exist for project Id %v", project.ProjectID)
 	qc.GetCustomQueryCollection().Print(logger)
 
+	// Same per-level override + brand-new query pattern as the SAST half above.
 	corpOverride := newIACCorpOverride(cx1client, logger, &qc, &session)
 	if err = cx1client.AuditSessionKeepAlive(&session); err != nil {
 		logger.Errorf("Audit session may have expired: %s", err)
@@ -444,13 +506,14 @@ func makeIACQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pro
 	}
 	defer DeleteIACQuery(cx1client, logger, &session, corpQuery)
 
+	// Re-fetch the collection so the newly created queries show up in listings.
 	logger.Infof("Retrieving an updated list of queries")
 	qc, err = cx1client.GetIACQueryCollection()
 	if err != nil {
 		logger.Errorf("Error getting the query collection: %s", err)
 	}
 
-	aq, err = cx1client.GetAuditIACQueriesByLevelID(&session, cx1client.QueryTypeProject(), project.ProjectID)
+	aq, err = cx1client.GetAuditIACQueriesByLevel(&session, cx1client.QueryTypeProject())
 	if err != nil {
 		logger.Errorf("Error getting queries: %s", err)
 	}
@@ -467,6 +530,11 @@ func makeIACQueries(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, pro
 	qc.GetCustomQueryCollection().Print(logger)
 }
 
+// newIACCorpOverride is the IAC equivalent of newSASTCorpOverride: find the base
+// query, check for an existing Tenant-level override (by Key instead of QueryID -
+// IAC queries are keyed differently from SAST ones), create one if needed, then edit
+// its source and severity. The three newIAC*Override functions below all follow this
+// same shape, differing only in the override level.
 func newIACCorpOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc *Cx1ClientGo.IACQueryCollection, session *Cx1ClientGo.AuditSession) *Cx1ClientGo.IACQuery {
 	logger.Infof("Creating corp override under session %v", session.ID)
 	baseQuery := qc.GetQueryByName("Dockerfile", "common", "Apt Get Install Lists Were Not Deleted")
@@ -519,6 +587,8 @@ func newIACCorpOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger,
 	return &newCorpOverride
 }
 
+// newIACApplicationOverride is the same create -> edit source -> edit metadata
+// sequence as newIACCorpOverride, but at the Application level.
 func newIACApplicationOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc *Cx1ClientGo.IACQueryCollection, session *Cx1ClientGo.AuditSession) *Cx1ClientGo.IACQuery {
 	logger.Infof("Creating application override under session %v", session.ID)
 	baseQuery := qc.GetQueryByName("Dockerfile", "common", "Apt Get Install Lists Were Not Deleted")
@@ -571,6 +641,8 @@ func newIACApplicationOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.
 	return &newAppOverride
 }
 
+// newIACProjectOverride is the same create -> edit source -> edit metadata sequence
+// as newIACCorpOverride, but at the Project level.
 func newIACProjectOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc *Cx1ClientGo.IACQueryCollection, session *Cx1ClientGo.AuditSession) *Cx1ClientGo.IACQuery {
 	logger.Infof("Creating project override under session %v", session.ID)
 	baseQuery := qc.GetQueryByName("Dockerfile", "common", "Apt Get Install Lists Were Not Deleted")
@@ -623,6 +695,9 @@ func newIACProjectOverride(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logg
 	return &newProjectOverride
 }
 
+// newIACCorpQuery creates a brand-new Tenant-level query from scratch (as opposed to
+// overriding an existing one, like the newIAC*Override functions above) by
+// constructing a full IACQuery struct and passing it to CreateNewIACQuery.
 func newIACCorpQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc *Cx1ClientGo.IACQueryCollection, session *Cx1ClientGo.AuditSession) *Cx1ClientGo.IACQuery {
 	logger.Infof("Creating corp query under session %v", session.ID)
 	NewQuery := Cx1ClientGo.IACQuery{
@@ -653,6 +728,8 @@ func newIACCorpQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, qc
 	return &newCorpQuery
 }
 
+// DeleteIACQuery removes a single override/query by its QueryID - deferred once per
+// created query/override in makeIACQueries above so the tenant ends up clean.
 func DeleteIACQuery(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger, session *Cx1ClientGo.AuditSession, query *Cx1ClientGo.IACQuery) {
 	if query != nil {
 		logger.Infof("Deleting custom query: %v", query.StringDetailed())
