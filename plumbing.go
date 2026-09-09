@@ -182,6 +182,17 @@ func (c *Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, e
 		return nil, fmt.Errorf("nil response")
 	}
 
+	if response.StatusCode == http.StatusUnauthorized {
+		response, err = c.handleUnauthorized(request, response, bodyBytes)
+		if err != nil {
+			c.config.Logger.Tracef("Failed to recover from HTTP 401: %s", err)
+			return response, err
+		}
+		if response == nil {
+			return nil, fmt.Errorf("nil response")
+		}
+	}
+
 	if response.StatusCode >= 400 {
 		resBody, _ := io.ReadAll(response.Body)
 		//c.recordRequestDetailsInErrorCase(bodyBytes, resBody)
@@ -214,6 +225,32 @@ func (c *Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, e
 		}
 	}
 	return response, nil
+}
+
+// handleUnauthorized reacts to an HTTP 401 by forcing a fresh access token and retrying
+// the request exactly once. This is needed because refreshAccessToken normally only
+// refreshes when the client's own locally-tracked expiry says the token is about to
+// expire - it has no way to know the server just rejected the token for some other
+// reason (server-side revocation, clock skew, a concurrent refresh elsewhere, etc.).
+// Without forcing a refresh here, a retry would just resend the identical stale token
+// and get another 401, every time.
+func (c *Cx1Client) handleUnauthorized(request *http.Request, response *http.Response, bodyBytes []byte) (*http.Response, error) {
+	c.config.Auth.AccessToken = "" // force refreshAccessToken to actually fetch a new token instead of trusting the local expiry
+	if err := c.refreshAccessToken(); err != nil {
+		return response, fmt.Errorf("received HTTP 401 and failed to refresh access token: %w", err)
+	}
+	c.config.Logger.Tracef("Received HTTP 401, retrying once with a refreshed access token")
+
+	if response.Body != nil {
+		response.Body.Close()
+	}
+
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", c.config.Auth.AccessToken))
+	if bodyBytes != nil {
+		request.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+	}
+
+	return c.config.HttpClient.Do(request)
 }
 
 func (c *Cx1Client) handleRetries(request *http.Request, response *http.Response, err error) (*http.Response, error) {
