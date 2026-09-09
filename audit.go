@@ -451,6 +451,13 @@ func (c *Cx1Client) GetAllAuditSASTQueries(auditSession *AuditSession) (SASTQuer
 	return collection, nil
 }
 
+// deprecated: This function no longer uses the Level ID, it is stored within the audit session.
+// Please use GetAuditSASTQueriesByLevel instead.
+func (c *Cx1Client) GetAuditSASTQueriesByLevelID(auditSession *AuditSession, level string) (SASTQueryCollection, error) {
+	c.depwarn("GetAuditSASTQueriesByLevelID", "GetAuditSASTQueriesByLevel")
+	return c.GetAuditSASTQueriesByLevel(auditSession, level)
+}
+
 /*
 Retrieves the list of queries available for this audit session. Level options are:
 QueryTypeProduct(): retrieve product-default queries
@@ -461,7 +468,7 @@ QueryTypeProject(): retrieve project-level queries
 The resulting array of queries should be merged into a QueryCollection object returned by the GetQueries function.
 Use GetAllAuditSASTQueries for the full collection including product-, tenant-, application-, and project-level queries.
 */
-func (c *Cx1Client) GetAuditSASTQueriesByLevelID(auditSession *AuditSession, level string) (SASTQueryCollection, error) {
+func (c *Cx1Client) GetAuditSASTQueriesByLevel(auditSession *AuditSession, level string) (SASTQueryCollection, error) {
 	c.config.Logger.Debugf("Get all audit queries for %v %v", level)
 
 	collection := SASTQueryCollection{}

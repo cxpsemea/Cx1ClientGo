@@ -1,16 +1,3 @@
-package main
-
-import (
-	"fmt"
-	"net/http"
-	"os"
-	"strings"
-
-	"github.com/cxpsemea/Cx1ClientGo"
-	"github.com/sirupsen/logrus"
-	easy "github.com/t-tomalak/logrus-easy-formatter"
-)
-
 // Reporting demonstrates the Report/Export object type, which none of the other
 // concept demos touch:
 //   - creating a Project that lives directly under the tenant, with no Application
@@ -27,6 +14,20 @@ import (
 // the Enterprise Secrets micro-engine). This example enables a representative subset;
 // see configurationsettings.go for the per-engine configuration keys this library
 // knows how to set individually.
+
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/cxpsemea/Cx1ClientGo"
+	"github.com/sirupsen/logrus"
+	easy "github.com/t-tomalak/logrus-easy-formatter"
+)
+
 func main() {
 	logger := logrus.New()
 	logger.SetLevel(logrus.InfoLevel)
@@ -75,7 +76,7 @@ func runMultiEngineScan(cx1client *Cx1ClientGo.Cx1Client, logger *logrus.Logger)
 		WithSCA().
 		WithSecrets()
 
-	// scanConfig.AddConfig can be used to set engine parameters (eg: sast incremental)
+	// scanConfig.AddConfig can also be used to set engine parameters (eg: sast incremental)
 	// see root configurationsettings.go for options via the ConfigurationSettings struct
 
 	logger.Infof("Triggering a scan")
