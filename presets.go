@@ -71,7 +71,7 @@ func (c *Cx1Client) GetPresets(engine string, count uint64) ([]Preset, error) {
 		Presets    []Preset `json:"presets"`
 	}
 
-	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/preset-manager/%v/presets?limit=%d&include_details=true", engine, count), nil, nil)
+	response, err := c.sendRequest(http.MethodGet, fmt.Sprintf("/preset-manager/%v/presets?limit=%d&include_details=true&fields=id&fields=name&fields=custom", engine, count), nil, nil)
 	if err != nil {
 		return preset_response.Presets, err
 	}
