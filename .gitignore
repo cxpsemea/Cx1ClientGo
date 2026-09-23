@@ -3,3 +3,5 @@
 .internal
 .vscode
 .spec
+.bat
+.sh
