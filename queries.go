@@ -483,9 +483,14 @@ func (q *SASTQuery) GetDependencies(qc *SASTQueryCollection) (OpenCalls, BaseCal
 					}
 				}
 			}
-			callstr := matches[1] + "." + matches[2]
-			if !slices.Contains(ProductCalls, callstr) {
-				ProductCalls = append(ProductCalls, callstr)
+
+			if qq := qc.GetQueryByName("Common", matches[1], matches[2]); qq != nil {
+				OpenCalls = append(OpenCalls, qq)
+			} else {
+				callstr := matches[1] + "." + matches[2]
+				if !slices.Contains(ProductCalls, callstr) {
+					ProductCalls = append(ProductCalls, callstr)
+				}
 			}
 		}
 	}
@@ -498,6 +503,12 @@ func (q *SASTQuery) GetDependencies(qc *SASTQueryCollection) (OpenCalls, BaseCal
 			qq = qc.GetQueryByName(q.Language, q.Group, matches[1])
 			if qq == nil {
 				qq = qc.GetQueryByName(q.Language, "General", matches[1])
+			}
+			if qq == nil {
+				qq = qc.GetQueryByName("Common", q.Group, matches[1])
+			}
+			if qq == nil {
+				qq = qc.GetQueryByName("Common", "General", matches[1])
 			}
 
 			if qq != nil {
