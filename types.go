@@ -122,6 +122,10 @@ type ClientVars struct {
 	ScanPollingDelaySeconds                   int
 	ProjectApplicationLinkPollingMaxSeconds   int
 	ProjectApplicationLinkPollingDelaySeconds int
+	AIRemediationPollingMaxSeconds            int
+	AIRemediationPollingDelaySeconds          int
+	AIRemediationDetailsPollingMaxSeconds     int
+	AIRemediationDetailsPollingDelaySeconds   int
 }
 
 // Related to pagination and filtering
@@ -191,8 +195,8 @@ type AccessibleResource struct {
 }
 
 type AIRemediationRequestBucket struct {
-	ScannerType string   `json:"scannerType"`
-	ResultIDs   []string `json:"resultIDs"`
+	Engine    string   `json:"scannerType"` // sast, iac, sca
+	ResultIDs []string `json:"resultIDs"`
 }
 
 // Response to the final GET /remediation/remediation-details/{scanID}/{resultHash} request
@@ -208,6 +212,7 @@ type AIRemediationResult struct {
 	AutoPr        AIRemediationAutoPR `json:"autoPr"`
 	Data          AIRemediationData   `json:"data"`
 	RemediationID string              `json:"remediationID"`
+	JobStatus     string              `json:"jobStatus"` // set to "IN_PROGRESS" when the details endpoint has not yet caught up with a completed remediation job
 }
 
 type AIRemediationAutoPR struct {

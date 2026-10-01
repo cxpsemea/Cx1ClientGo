@@ -116,6 +116,10 @@ func (c *Cx1ClientConfiguration) GetDefaultClientVars() ClientVars {
 		ScanPollingDelaySeconds:                   30,
 		ProjectApplicationLinkPollingMaxSeconds:   300,
 		ProjectApplicationLinkPollingDelaySeconds: 15,
+		AIRemediationPollingMaxSeconds:            600, // 10 min
+		AIRemediationPollingDelaySeconds:          30,
+		AIRemediationDetailsPollingMaxSeconds:     60,
+		AIRemediationDetailsPollingDelaySeconds:   15,
 	}
 }
 
