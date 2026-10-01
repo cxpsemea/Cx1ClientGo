@@ -190,6 +190,71 @@ type AccessibleResource struct {
 	Roles        []string `json:"roles"`
 }
 
+type AIRemediationRequestBucket struct {
+	ScannerType string   `json:"scannerType"`
+	ResultIDs   []string `json:"resultIDs"`
+}
+
+// Response to the final GET /remediation/remediation-details/{scanID}/{resultHash} request
+type AIRemediationDetails struct {
+	ScanID  string                `json:"scanID"`
+	Results []AIRemediationResult `json:"results"`
+}
+
+type AIRemediationResult struct {
+	ResultID      string              `json:"resultID"`
+	CreatedAt     string              `json:"createdAt"`
+	FinishedAt    string              `json:"finishedAt"`
+	AutoPr        AIRemediationAutoPR `json:"autoPr"`
+	Data          AIRemediationData   `json:"data"`
+	RemediationID string              `json:"remediationID"`
+}
+
+type AIRemediationAutoPR struct {
+	Status   string  `json:"status"`
+	Url      *string `json:"url"`
+	ErrorMsg string  `json:"error_msg"`
+	FileUrl  *string `json:"file_url"`
+}
+
+type AIRemediationData struct {
+	Error        *string                   `json:"error"`
+	Summary      string                    `json:"summary"`
+	Analysis     AIRemediationAnalysis     `json:"analysis"`
+	PRTitle      string                    `json:"pr_title"`
+	FileChanges  []AIRemediationFileChange `json:"file_changes"`
+	TestCreation AIRemediationTestCreation `json:"test_creation"`
+}
+
+type AIRemediationAnalysis struct {
+	What string `json:"what"`
+	Why  string `json:"why"`
+	How  string `json:"how"`
+}
+
+type AIRemediationFileChange struct {
+	FilePath string `json:"file_path"`
+	Analysis string `json:"analysis"`
+	Diff     string `json:"diff"`
+}
+
+type AIRemediationTestCreation struct {
+	Error             *string                 `json:"error"`
+	Summary           string                  `json:"summary"`
+	Analysis          string                  `json:"analysis"`
+	TestFiles         []AIRemediationTestFile `json:"test_files"`
+	TotalTestsCreated int                     `json:"total_tests_created"`
+	CoverageAreas     []string                `json:"coverage_areas"`
+}
+
+type AIRemediationTestFile struct {
+	FilePath            string `json:"file_path"`
+	FileContent         string `json:"file_content"`
+	TestType            string `json:"test_type"`
+	CoverageDescription string `json:"coverage_description"`
+	FrameworkUsed       string `json:"framework_used"`
+}
+
 type AnalyticsTime struct {
 	time.Time
 }
