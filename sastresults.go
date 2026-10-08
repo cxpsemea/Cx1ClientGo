@@ -106,6 +106,7 @@ func (c *Cx1Client) GetScanSASTResultsFiltered(filter ScanSASTResultsFilter) (ui
 		results = append(results, ScanSASTResult{
 			ScanResultBase: ScanResultBase{
 				Type:            "sast",
+				AlternateID:     r.ResultHash,
 				ResultID:        r.ResultHash,
 				SimilarityID:    fmt.Sprintf("%d", r.SimilarityID),
 				Status:          r.Status,
