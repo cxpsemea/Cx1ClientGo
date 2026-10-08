@@ -21,7 +21,7 @@ type aiRemediationStatus struct {
 // Triggers AI remediation for one specific engine result
 // An error is returned if the request fails or the server does not respond with status "accepted".
 func (c *Cx1Client) RequestAIRemediation(scanId, projectId, engine, alternateId string) (string, error) {
-	buckets := []AIRemediationRequestBucket{
+	buckets := []AIRequestBucket{
 		{
 			Engine:       engine,
 			AlternateIDs: []string{alternateId},
@@ -31,11 +31,11 @@ func (c *Cx1Client) RequestAIRemediation(scanId, projectId, engine, alternateId 
 	return c.RequestAIRemediations(scanId, projectId, buckets)
 }
 
-func (c *Cx1Client) RequestAIRemediations(scanId, projectId string, engineResults []AIRemediationRequestBucket) (string, error) {
+func (c *Cx1Client) RequestAIRemediations(scanId, projectId string, engineResults []AIRequestBucket) (string, error) {
 	type AIRemediationRequest struct {
-		ScanID    string                       `json:"scanID"`
-		ProjectID string                       `json:"projectID"`
-		Buckets   []AIRemediationRequestBucket `json:"buckets"`
+		ScanID    string            `json:"scanID"`
+		ProjectID string            `json:"projectID"`
+		Buckets   []AIRequestBucket `json:"buckets"`
 	}
 
 	request := AIRemediationRequest{
@@ -128,7 +128,7 @@ func (c *Cx1Client) pollAIRemediationStatusOnce(scanID, engine, resultID string)
 // Poll an AI remediation job periodically until it finishes, or the default timeout is reached.
 // The default timeout can be accessed via Get/SetClientVars
 func (c *Cx1Client) PollAIRemediationStatus(scanID, engine, resultID string) (string, error) {
-	return c.PollAIRemediationStatusWithTimeout(scanID, engine, resultID, c.config.Polling.AIRemediationPollingDelaySeconds, c.config.Polling.AIRemediationPollingMaxSeconds)
+	return c.PollAIRemediationStatusWithTimeout(scanID, engine, resultID, c.config.Polling.AIPollingDelaySeconds, c.config.Polling.AIPollingMaxSeconds)
 }
 
 // Poll an AI remediation job periodically until it finishes, or the specified timeout is reached.
@@ -161,8 +161,8 @@ func (c *Cx1Client) PollAIRemediationStatusWithTimeout(scanID, engine, resultID 
 // polling variables (AIRemediationDetailsPollingMaxSeconds/AIRemediationDetailsPollingDelaySeconds) -
 // this delay is considered a platform quirk rather than a normal, user-controllable polling process.
 func (c *Cx1Client) GetAIRemediationDetails(scanID, resultID string) (AIRemediationDetails, error) {
-	delaySeconds := c.config.Polling.AIRemediationDetailsPollingDelaySeconds
-	maxSeconds := c.config.Polling.AIRemediationDetailsPollingMaxSeconds
+	delaySeconds := c.config.Polling.AIDetailsPollingDelaySeconds
+	maxSeconds := c.config.Polling.AIDetailsPollingMaxSeconds
 
 	pollingCounter := 0
 	for {
@@ -233,7 +233,7 @@ func (c *Cx1Client) GetAILicenseInfo() (AILicenseInfo, error) {
 // Triggers AI triage for one specific engine result
 // An error is returned if the request fails or the server does not respond with status "accepted".
 func (c *Cx1Client) RequestAITriage(scanId, engine, alternateId string) (string, error) {
-	buckets := []AIRemediationRequestBucket{
+	buckets := []AIRequestBucket{
 		{
 			Engine:       engine,
 			AlternateIDs: []string{alternateId},
@@ -243,10 +243,10 @@ func (c *Cx1Client) RequestAITriage(scanId, engine, alternateId string) (string,
 	return c.RequestAITriages(scanId, buckets)
 }
 
-func (c *Cx1Client) RequestAITriages(scanId string, engineResults []AIRemediationRequestBucket) (string, error) {
+func (c *Cx1Client) RequestAITriages(scanId string, engineResults []AIRequestBucket) (string, error) {
 	type AITriageRequest struct {
-		ScanID  string                       `json:"scanID"`
-		Buckets []AIRemediationRequestBucket `json:"buckets"`
+		ScanID  string            `json:"scanID"`
+		Buckets []AIRequestBucket `json:"buckets"`
 	}
 
 	request := AITriageRequest{
@@ -348,7 +348,7 @@ func (c *Cx1Client) pollAITriageStatusOnce(projectId, engine, similarityId strin
 // The default timeout can be accessed via Get/SetClientVars - it shares its polling variables
 // with PollAIRemediationStatus.
 func (c *Cx1Client) PollAITriageStatus(projectId, engine, similarityId string) (string, error) {
-	return c.PollAITriageStatusWithTimeout(projectId, engine, similarityId, c.config.Polling.AIRemediationPollingDelaySeconds, c.config.Polling.AIRemediationPollingMaxSeconds)
+	return c.PollAITriageStatusWithTimeout(projectId, engine, similarityId, c.config.Polling.AIPollingDelaySeconds, c.config.Polling.AIPollingMaxSeconds)
 }
 
 // Poll an AI triage job periodically until it finishes, or the specified timeout is reached.
@@ -380,8 +380,8 @@ func (c *Cx1Client) PollAITriageStatusWithTimeout(projectId, engine, similarityI
 // reporting a job as finished and this endpoint returning the full result data, so this retries
 // internally using the same fixed, non-configurable polling variables as GetAIRemediationDetails.
 func (c *Cx1Client) GetAITriageDetails(projectId, similarityId string) (AITriageDetails, error) {
-	delaySeconds := c.config.Polling.AIRemediationDetailsPollingDelaySeconds
-	maxSeconds := c.config.Polling.AIRemediationDetailsPollingMaxSeconds
+	delaySeconds := c.config.Polling.AIDetailsPollingDelaySeconds
+	maxSeconds := c.config.Polling.AIDetailsPollingMaxSeconds
 
 	pollingCounter := 0
 	for {

@@ -122,10 +122,10 @@ type ClientVars struct {
 	ScanPollingDelaySeconds                   int
 	ProjectApplicationLinkPollingMaxSeconds   int
 	ProjectApplicationLinkPollingDelaySeconds int
-	AIRemediationPollingMaxSeconds            int
-	AIRemediationPollingDelaySeconds          int
-	AIRemediationDetailsPollingMaxSeconds     int
-	AIRemediationDetailsPollingDelaySeconds   int
+	AIPollingMaxSeconds                       int
+	AIPollingDelaySeconds                     int
+	AIDetailsPollingMaxSeconds                int
+	AIDetailsPollingDelaySeconds              int
 }
 
 // Related to pagination and filtering
@@ -194,7 +194,7 @@ type AccessibleResource struct {
 	Roles        []string `json:"roles"`
 }
 
-type AIRemediationRequestBucket struct {
+type AIRequestBucket struct {
 	Engine       string   `json:"scannerType"` // sast, iac, sca
 	AlternateIDs []string `json:"resultIDs"`   // same value as ScanResultBase.AlternateID
 }
