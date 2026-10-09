@@ -122,6 +122,10 @@ type ClientVars struct {
 	ScanPollingDelaySeconds                   int
 	ProjectApplicationLinkPollingMaxSeconds   int
 	ProjectApplicationLinkPollingDelaySeconds int
+	AIPollingMaxSeconds                       int
+	AIPollingDelaySeconds                     int
+	AIDetailsPollingMaxSeconds                int
+	AIDetailsPollingDelaySeconds              int
 }
 
 // Related to pagination and filtering
@@ -188,6 +192,156 @@ type AccessibleResource struct {
 	ResourceType string   `json:"resourceType"`
 	ResourceName string   `json:"resourceName"`
 	Roles        []string `json:"roles"`
+}
+
+type AIRequestBucket struct {
+	Engine       string   `json:"scannerType"` // sast, iac, sca
+	AlternateIDs []string `json:"resultIDs"`   // same value as ScanResultBase.AlternateID
+}
+
+// Response to the final GET /remediation/remediation-details/{scanID}/{resultHash} request
+type AIRemediationDetails struct {
+	ScanID  string                `json:"scanID"`
+	Results []AIRemediationResult `json:"results"`
+}
+
+type AIRemediationResult struct {
+	ResultID      string              `json:"resultID"`
+	CreatedAt     string              `json:"createdAt"`
+	FinishedAt    string              `json:"finishedAt"`
+	AutoPr        AIRemediationAutoPR `json:"autoPr"`
+	Data          AIRemediationData   `json:"data"`
+	RemediationID string              `json:"remediationID"`
+	JobStatus     string              `json:"jobStatus"` // set to "IN_PROGRESS" when the details endpoint has not yet caught up with a completed remediation job
+}
+
+type AIRemediationAutoPR struct {
+	Status   string  `json:"status"`
+	Url      *string `json:"url"`
+	ErrorMsg string  `json:"error_msg"`
+	FileUrl  *string `json:"file_url"`
+}
+
+type AIRemediationData struct {
+	Error        *string                   `json:"error"`
+	Summary      string                    `json:"summary"`
+	Analysis     AIRemediationAnalysis     `json:"analysis"`
+	PRTitle      string                    `json:"pr_title"`
+	FileChanges  []AIRemediationFileChange `json:"file_changes"`
+	TestCreation AIRemediationTestCreation `json:"test_creation"`
+}
+
+type AIRemediationAnalysis struct {
+	What string `json:"what"`
+	Why  string `json:"why"`
+	How  string `json:"how"`
+}
+
+type AIRemediationFileChange struct {
+	FilePath string `json:"file_path"`
+	Analysis string `json:"analysis"`
+	Diff     string `json:"diff"`
+}
+
+type AIRemediationTestCreation struct {
+	Error             *string                 `json:"error"`
+	Summary           string                  `json:"summary"`
+	Analysis          string                  `json:"analysis"`
+	TestFiles         []AIRemediationTestFile `json:"test_files"`
+	TotalTestsCreated int                     `json:"total_tests_created"`
+	CoverageAreas     []string                `json:"coverage_areas"`
+}
+
+type AIRemediationTestFile struct {
+	FilePath            string `json:"file_path"`
+	FileContent         string `json:"file_content"`
+	TestType            string `json:"test_type"`
+	CoverageDescription string `json:"coverage_description"`
+	FrameworkUsed       string `json:"framework_used"`
+}
+
+// Response to GET /credits/info
+type AICreditsInfo struct {
+	Available        string               `json:"available"`
+	Total            string               `json:"total"`
+	Used             string               `json:"used"`
+	ActionsAvailable int                  `json:"actionsAvailable"`
+	ActionsPerformed int                  `json:"actionsPerformed"`
+	Enforcement      AICreditsEnforcement `json:"enforcement"`
+}
+
+type AICreditsEnforcement struct {
+	State               string `json:"state"`
+	ConsumptionPct      int    `json:"consumptionPct"`
+	WarningThresholdPct int    `json:"warningThresholdPct"`
+	CutoffThresholdPct  int    `json:"cutoffThresholdPct"`
+}
+
+// Response to GET /credits/license/status
+type AILicenseInfo struct {
+	State                   string    `json:"state"`
+	StartDate               time.Time `json:"startDate"`
+	EndDate                 time.Time `json:"endDate"`
+	TrialStartDate          time.Time `json:"trialStartDate"`
+	TrialEndDate            time.Time `json:"trialEndDate"`
+	TrialInitialCreditGrant int       `json:"trialInitialCreditGrant"`
+}
+
+// Response to the final GET /ai-triage/triage/{projectId}/{similarityId} request
+type AITriageDetails struct {
+	ResultID             string                 `json:"resultID"`
+	Scanner              string                 `json:"scanner"`
+	TriageStatus         string                 `json:"triageStatus"`
+	ReachabilityStatus   string                 `json:"reachabilityStatus"`
+	ExploitabilityStatus string                 `json:"exploitabilityStatus"`
+	AttackabilityStatus  string                 `json:"attackabilityStatus"`
+	Summary              string                 `json:"summary"`
+	TriagedAt            string                 `json:"triagedAt"`
+	Analysis             AITriageAnalysis       `json:"analysis"`
+	Metadata             AITriageMetadata       `json:"metadata"`
+	ReasoningTrace       AITriageReasoningTrace `json:"reasoningTrace"`
+	MockOrigin           bool                   `json:"mockOrigin"`
+	SimilarityID         string                 `json:"groupId"`
+	ProjectID            string                 `json:"projectId"`
+	SourceProjectID      string                 `json:"sourceProjectId"`
+	JobStatus            string                 `json:"jobStatus"` // mirrors AIRemediationResult.JobStatus - set to "IN_PROGRESS" when the details endpoint has not yet caught up with a completed triage job
+}
+
+type AITriageAnalysis struct {
+	Confidence     AITriageConfidence `json:"confidence"`
+	Reachability   AITriageAssessment `json:"reachability"`
+	Exploitability AITriageAssessment `json:"exploitability"`
+	UsageLocations []string           `json:"usage_locations"`
+}
+
+type AITriageConfidence struct {
+	Score       float64 `json:"score"`
+	Explanation string  `json:"explanation"`
+}
+
+type AITriageAssessment struct {
+	Status    string `json:"status"`
+	Reasoning string `json:"reasoning"`
+}
+
+type AITriageMetadata struct {
+	Component      *string `json:"component"`
+	Version        *string `json:"version"`
+	DependencyType string  `json:"dependency_type"`
+}
+
+type AITriageReasoningTrace struct {
+	VerificationSteps []AITriageVerificationStep `json:"verification_steps"`
+	RepositoryInfo    interface{}                `json:"repository_info"`
+}
+
+type AITriageVerificationStep struct {
+	Task           string   `json:"task"`
+	Category       string   `json:"category"`
+	Status         string   `json:"status"`
+	Thoughts       []string `json:"thoughts"`
+	Conclusion     string   `json:"conclusion"`
+	UsageLocations []string `json:"usage_locations"`
 }
 
 type AnalyticsTime struct {
@@ -1030,9 +1184,9 @@ type ResultsPredicatesBase struct {
 	SimilarityID  string     `json:"similarityId"`
 	ProjectID     string     `json:"projectId"`
 	ScanID        string     `json:"scanId"`
-	State         string     `json:"state,omitempty"`
+	State         string     `json:"state,omitempty"` // TO_VERIFY, NOT_EXPLOITABLE, PROPOSED_NOT_EXPLOITABLE, CONFIRMED, URGENT
 	Comment       string     `json:"comment"`
-	Severity      string     `json:"severity,omitempty"`
+	Severity      string     `json:"severity,omitempty"` // CRITICAL, HIGH, MEDIUM, LOW, INFO
 	CustomStateID *uint64    `json:"customStateId,omitempty"`
 	CreatedBy     string     `json:"createdBy,omitempty"`
 	CreatedAt     *time.Time `json:"createdAt,omitempty"` // pointer so omitempty actually suppresses it when unset (encoding/json's omitempty has no effect on a zero-value time.Time)
@@ -1339,12 +1493,12 @@ type ScanResultsFilter struct {
 // generic data common to all
 type ScanResultBase struct {
 	Type            string
-	ResultID        string `json:"id"`
-	SimilarityID    string `json:"similarityId"`
-	AlternateID     string `json:"alternateId"`
-	Status          string
-	State           string
-	Severity        string
+	ResultID        string    `json:"id"`
+	SimilarityID    string    `json:"similarityId"`
+	AlternateID     string    `json:"alternateId"`
+	Status          string    //NEW, RECURRENT
+	State           string    // TO_VERIFY, NOT_EXPLOITABLE, PROPOSED_NOT_EXPLOITABLE, CONFIRMED, URGENT
+	Severity        string    //CRITICAL, HIGH, MEDIUM, LOW, INFO
 	ConfidenceLevel int       `json:"confidenceLevel"`
 	CreatedAt       time.Time `json:"created"`
 	FirstFoundAt    time.Time
