@@ -295,16 +295,16 @@ type aiTriageStatus struct {
 // Opens the ssegateway status stream for a single result's triage job and reads
 // messages from it until the job reports it is no longer running or the stream ends.
 // Returns the last status message received and whether the job was seen to finish.
-func (c *Cx1Client) pollAITriageStatusOnce(projectId, engine, similarityId string) (string, bool, error) {
+func (c *Cx1Client) pollAITriageStatusOnce(projectId, engine, groupId string) (string, bool, error) {
 	var status aiTriageStatus
 
-	// groupId in the query string is the finding's similarityId
+	// groupId is the finding's similarityId for SAST, or a composite "alternateId#-#packageId#-#projectId" for SCA
 	endpoint := fmt.Sprintf("/ssegateway/triage-status?engine=%v&groupId=%v&projectId=%v",
-		url.QueryEscape(engine), url.QueryEscape(similarityId), url.QueryEscape(projectId))
+		url.QueryEscape(engine), url.QueryEscape(groupId), url.QueryEscape(projectId))
 
 	response, err := c.sendRequestRawCx1(http.MethodGet, endpoint, nil, nil)
 	if err != nil {
-		return status.CurrentPhase, false, fmt.Errorf("failed to open AI triage status stream for project %v, result %v: %s", projectId, similarityId, err)
+		return status.CurrentPhase, false, fmt.Errorf("failed to open AI triage status stream for project %v, result %v: %s", projectId, groupId, err)
 	}
 	defer response.Body.Close()
 
@@ -330,7 +330,7 @@ func (c *Cx1Client) pollAITriageStatusOnce(projectId, engine, similarityId strin
 		}
 
 		c.config.Logger.Tracef("AI triage status for project %v, result %v: phase=%v percentage=%v jobRunning=%v",
-			projectId, similarityId, status.CurrentPhase, status.Percentage, status.JobRunning)
+			projectId, groupId, status.CurrentPhase, status.Percentage, status.JobRunning)
 
 		if !status.JobRunning {
 			return status.CurrentPhase, true, nil
@@ -338,28 +338,57 @@ func (c *Cx1Client) pollAITriageStatusOnce(projectId, engine, similarityId strin
 	}
 
 	if err := scanner.Err(); err != nil {
-		return status.CurrentPhase, false, fmt.Errorf("error reading AI triage status stream for project %v, result %v: %s", projectId, similarityId, err)
+		return status.CurrentPhase, false, fmt.Errorf("error reading AI triage status stream for project %v, result %v: %s", projectId, groupId, err)
 	}
 
 	return status.CurrentPhase, false, nil
 }
 
-// Poll an AI triage job periodically until it finishes, or the default timeout is reached.
+// Poll an AI triage job for a SAST (or other non-SCA) result periodically until it finishes, or the default timeout is reached.
 // The default timeout can be accessed via Get/SetClientVars - it shares its polling variables
-// with PollAIRemediationStatus.
-func (c *Cx1Client) PollAITriageStatus(projectId, engine, similarityId string) (string, error) {
-	return c.PollAITriageStatusWithTimeout(projectId, engine, similarityId, c.config.Polling.AIPollingDelaySeconds, c.config.Polling.AIPollingMaxSeconds)
+// with PollAIRemediationStatus. For SCA results use PollSCAAITriageStatus.
+func (c *Cx1Client) PollSASTAITriageStatus(projectId, engine, similarityId string) (string, error) {
+	return c.PollSASTAITriageStatusWithTimeout(projectId, engine, similarityId, c.config.Polling.AIPollingDelaySeconds, c.config.Polling.AIPollingMaxSeconds)
 }
 
-// Poll an AI triage job periodically until it finishes, or the specified timeout is reached.
+// Poll an AI triage job for a SAST (or other non-SCA) result until it finishes, or the specified timeout is reached.
+func (c *Cx1Client) PollSASTAITriageStatusWithTimeout(projectId, engine, similarityId string, delaySeconds, maxSeconds int) (string, error) {
+	return c.pollAITriageStatusGroup(projectId, engine, similarityId, delaySeconds, maxSeconds)
+}
+
+// Deprecated: use PollSASTAITriageStatus (or PollSCAAITriageStatus for SCA findings).
+func (c *Cx1Client) PollAITriageStatus(projectId, engine, similarityId string) (string, error) {
+	c.config.Logger.Warnf("PollAITriageStatus is deprecated, use PollSASTAITriageStatus or PollSCAAITriageStatus")
+	return c.PollSASTAITriageStatus(projectId, engine, similarityId)
+}
+
+// Deprecated: use PollSASTAITriageStatusWithTimeout (or PollSCAAITriageStatusWithTimeout for SCA findings).
+func (c *Cx1Client) PollAITriageStatusWithTimeout(projectId, engine, similarityId string, delaySeconds, maxSeconds int) (string, error) {
+	c.config.Logger.Warnf("PollAITriageStatusWithTimeout is deprecated, use PollSASTAITriageStatusWithTimeout or PollSCAAITriageStatusWithTimeout")
+	return c.PollSASTAITriageStatusWithTimeout(projectId, engine, similarityId, delaySeconds, maxSeconds)
+}
+
+// Poll an AI triage job for an SCA result periodically until it finishes, or the default timeout is reached.
+// alternateId is the result's AlternateID (eg. the CVE) and packageId is ScanSCAResult.Data.PackageIdentifier.
+func (c *Cx1Client) PollSCAAITriageStatus(projectId, alternateId, packageId string) (string, error) {
+	return c.PollSCAAITriageStatusWithTimeout(projectId, alternateId, packageId, c.config.Polling.AIPollingDelaySeconds, c.config.Polling.AIPollingMaxSeconds)
+}
+
+// Poll an AI triage job for an SCA result until it finishes, or the specified timeout is reached.
+func (c *Cx1Client) PollSCAAITriageStatusWithTimeout(projectId, alternateId, packageId string, delaySeconds, maxSeconds int) (string, error) {
+	// SCA triage jobs are identified by a composite groupId rather than the similarityId
+	groupId := strings.Join([]string{alternateId, packageId, projectId}, "#-#")
+	return c.pollAITriageStatusGroup(projectId, ConfigurationSettings.Engines.SCA, groupId, delaySeconds, maxSeconds)
+}
+
 // Each attempt opens the ssegateway status stream and reads from it until the job finishes or the
 // stream ends; if the stream ends before the job finishes, it is reopened after delaySeconds.
-func (c *Cx1Client) PollAITriageStatusWithTimeout(projectId, engine, similarityId string, delaySeconds, maxSeconds int) (string, error) {
-	c.config.Logger.Infof("Polling AI triage status for project %v, result %v", projectId, similarityId)
+func (c *Cx1Client) pollAITriageStatusGroup(projectId, engine, groupId string, delaySeconds, maxSeconds int) (string, error) {
+	c.config.Logger.Infof("Polling AI triage status for project %v, result %v", projectId, groupId)
 
 	pollingCounter := 0
 	for {
-		phase, finished, err := c.pollAITriageStatusOnce(projectId, engine, similarityId)
+		phase, finished, err := c.pollAITriageStatusOnce(projectId, engine, groupId)
 		if err != nil {
 			return phase, err
 		}
@@ -368,7 +397,7 @@ func (c *Cx1Client) PollAITriageStatusWithTimeout(projectId, engine, similarityI
 		}
 
 		if maxSeconds != 0 && pollingCounter >= maxSeconds {
-			return phase, fmt.Errorf("AI triage status polling for project %v, result %v reached %d seconds, aborting - use cx1client.get/setclientvars to change", projectId, similarityId, pollingCounter)
+			return phase, fmt.Errorf("AI triage status polling for project %v, result %v reached %d seconds, aborting - use cx1client.get/setclientvars to change", projectId, groupId, pollingCounter)
 		}
 		time.Sleep(time.Duration(delaySeconds) * time.Second)
 		pollingCounter += delaySeconds
