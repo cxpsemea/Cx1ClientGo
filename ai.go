@@ -379,7 +379,15 @@ func (c *Cx1Client) PollAITriageStatusWithTimeout(projectId, engine, similarityI
 // As with GetAIRemediationDetails, there can be a short delay between the status-polling endpoint
 // reporting a job as finished and this endpoint returning the full result data, so this retries
 // internally using the same fixed, non-configurable polling variables as GetAIRemediationDetails.
+//
+// Deprecated: use GetSASTAITriage (or GetSCAAITriage for SCA findings).
 func (c *Cx1Client) GetAITriageDetails(projectId, similarityId string) (AITriageDetails, error) {
+	c.config.Logger.Warnf("GetAITriageDetails is deprecated, use GetSASTAITriage or GetSCAAITriage")
+	return c.GetSASTAITriage(projectId, similarityId)
+}
+
+// Fetches the completed AI triage details for one SAST (or other REST-based engine) result.
+func (c *Cx1Client) GetSASTAITriage(projectId, similarityId string) (AITriageDetails, error) {
 	delaySeconds := c.config.Polling.AIDetailsPollingDelaySeconds
 	maxSeconds := c.config.Polling.AIDetailsPollingMaxSeconds
 
@@ -414,4 +422,62 @@ func (c *Cx1Client) getAITriageDetails(projectId, similarityId string) (AITriage
 
 	err = json.Unmarshal(data, &details)
 	return details, err
+}
+
+// Fetches the AI triage details for one SCA result. Unlike SAST, this is a GraphQL query against the
+// SCA service. riskId is the result's SimilarityID (eg. the CVE) and packageId is
+// ScanSCAResult.Data.PackageIdentifier. No polling is performed - if the triage is not yet complete,
+// the returned details will be empty.
+func (c *Cx1Client) GetSCAAITriage(scanId, projectId, riskId, packageId string) (SCAAITriageDetails, error) {
+	var details SCAAITriageDetails
+
+	const query = `query ($scanId: UUID!, $riskId: String!, $packageId: String!, $projectId: UUID!) { aiTriageReasoning (scanId: $scanId, riskId: $riskId, packageId: $packageId, projectId: $projectId) { completed{summary,triagedAt,analysis{reachability{status,reasoning},exploitability{status,reasoning}},reasoningTrace{reachability{task,resultSteps{stepType,content}},exploitability{task,resultSteps{stepType,content}}}} } }`
+
+	request := map[string]interface{}{
+		"query": query,
+		"variables": map[string]string{
+			"scanId":    scanId,
+			"riskId":    riskId,
+			"packageId": packageId,
+			"projectId": projectId,
+		},
+	}
+
+	jsonBody, err := json.Marshal(request)
+	if err != nil {
+		return details, err
+	}
+
+	data, err := c.sendRequest(http.MethodPost, "/sca/graphql/graphql", bytes.NewReader(jsonBody), nil)
+	if err != nil {
+		return details, fmt.Errorf("failed to get SCA AI triage details for scan %v, risk %v, package %v: %s", scanId, riskId, packageId, err)
+	}
+
+	var response struct {
+		Data struct {
+			AITriageReasoning struct {
+				Completed *SCAAITriageDetails `json:"completed"`
+			} `json:"aiTriageReasoning"`
+		} `json:"data"`
+		Errors []struct {
+			Message string `json:"message"`
+		} `json:"errors"`
+	}
+
+	if err = json.Unmarshal(data, &response); err != nil {
+		return details, err
+	}
+
+	if len(response.Errors) > 0 {
+		msgs := make([]string, len(response.Errors))
+		for i, e := range response.Errors {
+			msgs[i] = e.Message
+		}
+		return details, fmt.Errorf("SCA AI triage query for scan %v, risk %v, package %v returned errors: %s", scanId, riskId, packageId, strings.Join(msgs, "; "))
+	}
+
+	if response.Data.AITriageReasoning.Completed != nil {
+		details = *response.Data.AITriageReasoning.Completed
+	}
+	return details, nil
 }
