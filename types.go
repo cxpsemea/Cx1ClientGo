@@ -344,6 +344,35 @@ type AITriageVerificationStep struct {
 	UsageLocations []string `json:"usage_locations"`
 }
 
+// Response to the SCA GraphQL aiTriageReasoning query (the "completed" object)
+type SCAAITriageDetails struct {
+	Summary        string                    `json:"summary"`
+	TriagedAt      string                    `json:"triagedAt"`
+	Analysis       SCAAITriageAnalysis       `json:"analysis"`
+	ReasoningTrace SCAAITriageReasoningTrace `json:"reasoningTrace"`
+}
+
+type SCAAITriageAnalysis struct {
+	Reachability   AITriageAssessment `json:"reachability"`
+	Exploitability AITriageAssessment `json:"exploitability"`
+}
+
+type SCAAITriageReasoningTrace struct {
+	Reachability   []SCAAITriageTask `json:"reachability"`
+	Exploitability []SCAAITriageTask `json:"exploitability"`
+}
+
+type SCAAITriageTask struct {
+	Task        string            `json:"task"`
+	ResultSteps []SCAAITriageStep `json:"resultSteps"`
+}
+
+// StepType is one of "question", "thought", "final_answer"
+type SCAAITriageStep struct {
+	StepType string `json:"stepType"`
+	Content  string `json:"content"`
+}
+
 type AnalyticsTime struct {
 	time.Time
 }
