@@ -346,14 +346,14 @@ func (c *Cx1Client) pollAITriageStatusOnce(projectId, engine, groupId string) (s
 	return status.CurrentPhase, false, nil
 }
 
-// Poll an AI triage job for a SAST (or other non-SCA) result periodically until it finishes, or the default timeout is reached.
+// Poll an AI triage job for a SAST result periodically until it finishes, or the default timeout is reached.
 // The default timeout can be accessed via Get/SetClientVars - it shares its polling variables
 // with PollAIRemediationStatus. For SCA results use PollSCAAITriageStatus.
 func (c *Cx1Client) PollSASTAITriageStatus(projectId, similarityId string) (string, error) {
 	return c.PollSASTAITriageStatusWithTimeout(projectId, similarityId, c.config.Polling.AIPollingDelaySeconds, c.config.Polling.AIPollingMaxSeconds)
 }
 
-// Poll an AI triage job for a SAST (or other non-SCA) result until it finishes, or the specified timeout is reached.
+// Poll an AI triage job for a SAST result until it finishes, or the specified timeout is reached.
 func (c *Cx1Client) PollSASTAITriageStatusWithTimeout(projectId, similarityId string, delaySeconds, maxSeconds int) (string, error) {
 	return c.pollAITriageStatusGroup(projectId, "sast", similarityId, delaySeconds, maxSeconds)
 }
