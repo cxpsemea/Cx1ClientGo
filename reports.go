@@ -78,8 +78,10 @@ func (c *Cx1Client) RequestNewReportByScanIDv2(scanID string, scanners, emails, 
 	}
 	sections := []string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details"}
 
-	if _, engineAllowed := c.IsEngineAllowed("2ms"); engineAllowed {
-		sections = append(sections, "scs-vulnerabilities")
+	for _, e := range scanners {
+		if strings.ToLower(e) == "microengines" {
+			sections = append(sections, "scs-vulnerabilities")
+		}
 	}
 
 	return c.RequestNewReportByIDsv2(ReportRequest{
