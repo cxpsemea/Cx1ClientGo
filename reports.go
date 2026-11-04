@@ -76,10 +76,18 @@ func (c *Cx1Client) RequestNewReportByScanIDv2(scanID string, scanners, emails, 
 	if flag, _ := c.CheckFlag("CVSS_V3_ENABLED"); flag {
 		severities = append(severities, "critical")
 	}
+	sections := []string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details"}
+
+	for _, e := range scanners {
+		if strings.ToLower(e) == "microengines" {
+			sections = append(sections, "scs-vulnerabilities")
+		}
+	}
+
 	return c.RequestNewReportByIDsv2(ReportRequest{
 		EntityType: "scan",
 		IDs:        []string{scanID},
-		Sections:   []string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details", "scs-vulnerabilities"},
+		Sections:   sections,
 		Scanners:   scanners,
 		Severities: severities,
 		States:     []string{"to-verify", "confirmed", "urgent"},
