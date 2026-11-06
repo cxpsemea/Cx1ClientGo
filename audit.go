@@ -133,6 +133,15 @@ func (c *Cx1Client) auditCreateSessionByID(engine, projectId, scanId string) (Au
 		}
 	}
 
+	v, err := c.GetVersion()
+	if err == nil {
+		if flag, err := v.CheckCxOne("3.69.0"); err == nil {
+			if flag >= 0 && engine == "iac" {
+				engine = "KICS"
+			}
+		}
+	}
+
 	body := map[string]interface{}{
 		"projectId": projectId,
 		"scanId":    scanId,
