@@ -884,7 +884,7 @@ func (c *Cx1Client) UploadBytes(fileContents *[]byte) (string, error) {
 }
 
 func (s Scan) String() string {
-	return fmt.Sprintf("[%v] %v", ShortenGUID(s.ScanID), s.ProjectName)
+	return fmt.Sprintf("[%s] %s scanned %s", ShortenGUID(s.ScanID), s.ProjectName, s.CreatedAt.String())
 }
 
 func (s ScanStatusSummary) String() string {
