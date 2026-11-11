@@ -1507,6 +1507,9 @@ type ScanResultSet struct {
 	SCAContainer []ScanSCAContainerResult
 	IAC          []ScanIACResult
 	Containers   []ScanContainersResult
+	Scorecard    []ScanScorecardResult
+	Secrets      []ScanSecretsResult
+	Unknown      []ScanUnknownResult // results of a type not (yet) supported by this library
 }
 
 type ScanResultsFilter struct {
@@ -1539,6 +1542,52 @@ type ScanResultBase struct {
 	ProjectID      string
 	ScanID         string
 	SourceFileName string
+}
+
+// Result of a type not yet supported by this library. The common fields are available
+// via ScanResultBase (type, severity, state, etc), and the engine-specific contents
+// are left as generic JSON-decoded data (typically map[string]any) for the caller to interpret.
+type ScanUnknownResult struct {
+	ScanResultBase
+	Data                 any
+	VulnerabilityDetails any
+}
+
+// "sscs-scorecard" results
+type ScanScorecardResult struct {
+	ScanResultBase
+	Data ScanScorecardResultData
+}
+
+type ScanScorecardResultData struct {
+	Line            int    `json:"line"`
+	Filename        string `json:"filename"`
+	RuleID          string `json:"ruleId"`
+	RuleName        string `json:"ruleName"`
+	SlsaStep        string `json:"slsaStep"`
+	RuleDescription string `json:"ruleDescription"`
+	Remediation     string `json:"remediation"`
+	RemediationLink string `json:"remediationLink"`
+}
+
+// "sscs-secret-detection" results
+type ScanSecretsResult struct {
+	ScanResultBase
+	Data ScanSecretsResultData
+}
+
+type ScanSecretsResultData struct {
+	Line                  int    `json:"line"`
+	Filename              string `json:"filename"`
+	RuleID                string `json:"ruleId"`
+	RuleName              string `json:"ruleName"`
+	Snippet               string `json:"snippet"`
+	SlsaStep              string `json:"slsaStep"`
+	RuleDescription       string `json:"ruleDescription"`
+	Remediation           string `json:"remediation"`
+	RemediationAdditional string `json:"remediationAdditional"`
+	Validity              string `json:"validity"`
+	IsInSource            bool   `json:"isInSource"`
 }
 
 type ScanContainersResult struct {
