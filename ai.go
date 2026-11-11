@@ -1,6 +1,7 @@
 package Cx1ClientGo
 
 import (
+	"context"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -77,13 +78,13 @@ func (c *Cx1Client) RequestAIRemediations(scanId, projectId string, engineResult
 // Opens the ssegateway status stream for a single result's remediation job and reads
 // messages from it until the job reports it is no longer running or the stream ends.
 // Returns the last status message received and whether the job was seen to finish.
-func (c *Cx1Client) pollAIRemediationStatusOnce(scanID, engine, resultID string) (string, bool, error) {
+func (c *Cx1Client) pollAIRemediationStatusOnce(ctx context.Context, scanID, engine, resultID string) (string, bool, error) {
 	var status aiRemediationStatus
 
 	endpoint := fmt.Sprintf("/ssegateway/remediation-status?engine=%v&scanId=%v&resultHash=%v",
 		url.QueryEscape(engine), url.QueryEscape(scanID), url.QueryEscape(resultID))
 
-	response, err := c.sendRequestRawCx1(http.MethodGet, endpoint, nil, nil)
+	response, err := c.sendRequestRawCx1Context(ctx, http.MethodGet, endpoint, nil, nil)
 	if err != nil {
 		return status.CurrentPhase, false, fmt.Errorf("failed to open AI remediation status stream for scan %v, result %v: %s", scanID, resultID, err)
 	}
@@ -125,6 +126,42 @@ func (c *Cx1Client) pollAIRemediationStatusOnce(scanID, engine, resultID string)
 	return status.CurrentPhase, false, nil
 }
 
+// pollAIStatus repeatedly runs a single status-stream read until the job finishes or the deadline passes.
+// maxSeconds is an overall deadline for the whole poll, enforced through a context so that it also
+// interrupts a stream that stays open (or silent) and never reports the job as finished.
+// maxSeconds == 0 means no deadline. If the stream ends before the job finishes, it is reopened after delaySeconds.
+func (c *Cx1Client) pollAIStatus(description string, delaySeconds, maxSeconds int, once func(ctx context.Context) (string, bool, error)) (string, error) {
+	ctx := context.Background()
+	if maxSeconds > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(maxSeconds)*time.Second)
+		defer cancel()
+	}
+	timeoutErr := func(phase string) (string, error) {
+		return phase, fmt.Errorf("%s reached %d seconds, aborting - use cx1client.get/setclientvars to change: %w", description, maxSeconds, context.DeadlineExceeded)
+	}
+
+	for {
+		phase, finished, err := once(ctx)
+		if err == nil && finished {
+			return phase, nil
+		}
+		if ctx.Err() != nil {
+			return timeoutErr(phase)
+		}
+		if err != nil {
+			return phase, err
+		}
+
+		c.config.Logger.Debugf("Polling")
+		select {
+		case <-ctx.Done():
+			return timeoutErr(phase)
+		case <-time.After(time.Duration(delaySeconds) * time.Second):
+		}
+	}
+}
+
 // Poll an AI remediation job periodically until it finishes, or the default timeout is reached.
 // The default timeout can be accessed via Get/SetClientVars
 func (c *Cx1Client) PollAIRemediationStatus(scanID, engine, resultID string) (string, error) {
@@ -136,23 +173,10 @@ func (c *Cx1Client) PollAIRemediationStatus(scanID, engine, resultID string) (st
 // stream ends; if the stream ends before the job finishes, it is reopened after delaySeconds.
 func (c *Cx1Client) PollAIRemediationStatusWithTimeout(scanID, engine, resultID string, delaySeconds, maxSeconds int) (string, error) {
 	c.config.Logger.Debugf("Polling AI remediation status for scan %v, result %v", scanID, resultID)
-	pollingCounter := 0
-	for {
-		phase, finished, err := c.pollAIRemediationStatusOnce(scanID, engine, resultID)
-		if err != nil {
-			return phase, err
-		}
-		if finished {
-			return phase, nil
-		}
-
-		if maxSeconds != 0 && pollingCounter >= maxSeconds {
-			return phase, fmt.Errorf("AI remediation status polling for scan %v, result %v reached %d seconds, aborting - use cx1client.get/setclientvars to change", scanID, resultID, pollingCounter)
-		}
-		c.config.Logger.Debugf("Polling")
-		time.Sleep(time.Duration(delaySeconds) * time.Second)
-		pollingCounter += delaySeconds
-	}
+	return c.pollAIStatus(fmt.Sprintf("AI remediation status polling for scan %v, result %v", scanID, resultID), delaySeconds, maxSeconds,
+		func(ctx context.Context) (string, bool, error) {
+			return c.pollAIRemediationStatusOnce(ctx, scanID, engine, resultID)
+		})
 }
 
 // Fetches the completed AI remediation details (analysis, suggested diffs, generated tests) for one result.
@@ -297,14 +321,14 @@ type aiTriageStatus struct {
 // Opens the ssegateway status stream for a single result's triage job and reads
 // messages from it until the job reports it is no longer running or the stream ends.
 // Returns the last status message received and whether the job was seen to finish.
-func (c *Cx1Client) pollAITriageStatusOnce(projectId, engine, groupId string) (string, bool, error) {
+func (c *Cx1Client) pollAITriageStatusOnce(ctx context.Context, projectId, engine, groupId string) (string, bool, error) {
 	var status aiTriageStatus
 
 	// groupId is the finding's similarityId for SAST, or a composite "alternateId#-#packageId#-#projectId" for SCA
 	endpoint := fmt.Sprintf("/ssegateway/triage-status?engine=%v&groupId=%v&projectId=%v",
 		url.QueryEscape(engine), url.QueryEscape(groupId), url.QueryEscape(projectId))
 
-	response, err := c.sendRequestRawCx1(http.MethodGet, endpoint, nil, nil)
+	response, err := c.sendRequestRawCx1Context(ctx, http.MethodGet, endpoint, nil, nil)
 	if err != nil {
 		return status.CurrentPhase, false, fmt.Errorf("failed to open AI triage status stream for project %v, result %v: %s", projectId, groupId, err)
 	}
@@ -375,24 +399,10 @@ func (c *Cx1Client) PollSCAAITriageStatusWithTimeout(projectId, resultId, packag
 // stream ends; if the stream ends before the job finishes, it is reopened after delaySeconds.
 func (c *Cx1Client) pollAITriageStatusGroup(projectId, engine, groupId string, delaySeconds, maxSeconds int) (string, error) {
 	c.config.Logger.Debugf("Polling AI triage status for project %v, result %v", projectId, groupId)
-
-	pollingCounter := 0
-	for {
-		phase, finished, err := c.pollAITriageStatusOnce(projectId, engine, groupId)
-		if err != nil {
-			return phase, err
-		}
-		if finished {
-			return phase, nil
-		}
-
-		if maxSeconds != 0 && pollingCounter >= maxSeconds {
-			return phase, fmt.Errorf("AI triage status polling for project %v, result %v reached %d seconds, aborting - use cx1client.get/setclientvars to change", projectId, groupId, pollingCounter)
-		}
-		c.config.Logger.Debugf("Polling")
-		time.Sleep(time.Duration(delaySeconds) * time.Second)
-		pollingCounter += delaySeconds
-	}
+	return c.pollAIStatus(fmt.Sprintf("AI triage status polling for project %v, result %v", projectId, groupId), delaySeconds, maxSeconds,
+		func(ctx context.Context) (string, bool, error) {
+			return c.pollAITriageStatusOnce(ctx, projectId, engine, groupId)
+		})
 }
 
 // Fetches the completed AI triage details (analysis, reasoning trace) for one result.
