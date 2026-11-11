@@ -292,6 +292,17 @@ func (r ScanContainersResult) String() string {
 	return fmt.Sprintf("%v %v / %v #%v (%v)", r.Data.PackageName, r.Data.PackageVersion, r.Data.ImageName, r.Data.ImageTag, r.SimilarityID)
 }
 
+func (r ScanScorecardResult) String() string {
+	return fmt.Sprintf("%v - %v (%v)", r.Data.RuleName, r.Data.Filename, r.SimilarityID)
+}
+func (r ScanSecretsResult) String() string {
+	return fmt.Sprintf("%v - %v:%d (%v)", r.Data.RuleName, r.Data.Filename, r.Data.Line, r.SimilarityID)
+}
+
+func (r ScanUnknownResult) String() string {
+	return fmt.Sprintf("%v - %v (%v)", r.Type, r.Severity, r.SimilarityID)
+}
+
 // following this link allows the user to directly review this SAST finding in the UI
 func (c *Cx1Client) GetScanSASTResultDeepLink(r *ScanSASTResult) string {
 	if r == nil {
@@ -362,11 +373,11 @@ func (c *Cx1Client) GetScanSASTResultSummary(results *ScanResultSet) ScanResultS
 }
 
 func (s ScanResultSet) String() string {
-	return fmt.Sprintf("Result set with %d SAST, %d SCA, %d SCAContainer, %d IAC, and %d Containers results", len(s.SAST), len(s.SCA), len(s.SCAContainer), len(s.IAC), len(s.Containers))
+	return fmt.Sprintf("Result set with %d SAST, %d SCA, %d SCAContainer, %d IAC, %d Containers, %d Scorecard, %d Secrets, and %d Unknown results", len(s.SAST), len(s.SCA), len(s.SCAContainer), len(s.IAC), len(s.Containers), len(s.Scorecard), len(s.Secrets), len(s.Unknown))
 }
 
 func (s ScanResultSet) Count() uint64 {
-	return uint64(len(s.SAST) + len(s.SCA) + len(s.SCAContainer) + len(s.IAC) + len(s.Containers))
+	return uint64(len(s.SAST) + len(s.SCA) + len(s.SCAContainer) + len(s.IAC) + len(s.Containers) + len(s.Scorecard) + len(s.Secrets) + len(s.Unknown))
 }
 
 func (s *ScanResultSet) Append(results *ScanResultSet) {
@@ -384,6 +395,15 @@ func (s *ScanResultSet) Append(results *ScanResultSet) {
 	}
 	if len(results.Containers) > 0 {
 		s.Containers = append(s.Containers, results.Containers...)
+	}
+	if len(results.Scorecard) > 0 {
+		s.Scorecard = append(s.Scorecard, results.Scorecard...)
+	}
+	if len(results.Secrets) > 0 {
+		s.Secrets = append(s.Secrets, results.Secrets...)
+	}
+	if len(results.Unknown) > 0 {
+		s.Unknown = append(s.Unknown, results.Unknown...)
 	}
 }
 
@@ -446,14 +466,16 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (string, ui
 	}
 
 	for _, r := range resultResponse.Results {
-		//c.config.Logger.Infof("Result %v: %v", r["similarityId"].(string), r["type"].(string))
+		// checked assertions: a result missing these fields must not cause a panic
+		resultType, _ := r["type"].(string)
+		similarityID, _ := r["similarityId"].(string)
 		jsonResult, _ := json.Marshal(r)
-		switch r["type"].(string) {
+		switch resultType {
 		case "sast":
 			var SASTResult ScanSASTResult
 			err := json.Unmarshal(jsonResult, &SASTResult)
 			if err != nil {
-				c.config.Logger.Warnf("Failed to unmarshal result %v to SAST type: %s", r["similarityId"].(string), err)
+				c.config.Logger.Warnf("Failed to unmarshal result %v to SAST type: %s", similarityID, err)
 			} else {
 				if SASTResult.ScanID == "" {
 					SASTResult.ScanID = scanId
@@ -467,7 +489,7 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (string, ui
 			var SCAResult ScanSCAResult
 			err := json.Unmarshal(jsonResult, &SCAResult)
 			if err != nil {
-				c.config.Logger.Warnf("Failed to unmarshal result %v to SCA type: %s", r["similarityId"].(string), err)
+				c.config.Logger.Warnf("Failed to unmarshal result %v to SCA type: %s", similarityID, err)
 			} else {
 				if SCAResult.ScanID == "" {
 					SCAResult.ScanID = scanId
@@ -481,7 +503,7 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (string, ui
 			var IACResult ScanIACResult
 			err := json.Unmarshal(jsonResult, &IACResult)
 			if err != nil {
-				c.config.Logger.Warnf("Failed to unmarshal result %v to IAC type: %s", r["similarityId"].(string), err)
+				c.config.Logger.Warnf("Failed to unmarshal result %v to IAC type: %s", similarityID, err)
 			} else {
 				if IACResult.ScanID == "" {
 					IACResult.ScanID = scanId
@@ -495,7 +517,7 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (string, ui
 			var SCACResult ScanSCAContainerResult
 			err := json.Unmarshal(jsonResult, &SCACResult)
 			if err != nil {
-				c.config.Logger.Warnf("Failed to unmarshal result %v to SCAContainer type: %s", r["similarityId"].(string), err)
+				c.config.Logger.Warnf("Failed to unmarshal result %v to SCAContainer type: %s", similarityID, err)
 			} else {
 				if SCACResult.ScanID == "" {
 					SCACResult.ScanID = scanId
@@ -509,7 +531,7 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (string, ui
 			var ContainerResult ScanContainersResult
 			err := json.Unmarshal(jsonResult, &ContainerResult)
 			if err != nil {
-				c.config.Logger.Warnf("Failed to unmarshal result %v to Containers type: %s", r["similarityId"].(string), err)
+				c.config.Logger.Warnf("Failed to unmarshal result %v to Containers type: %s", similarityID, err)
 			} else {
 				if ContainerResult.ScanID == "" {
 					ContainerResult.ScanID = scanId
@@ -519,8 +541,49 @@ func (c *Cx1Client) parseScanResults(scanId string, response []byte) (string, ui
 				}
 				ResultSet.Containers = append(ResultSet.Containers, ContainerResult)
 			}
+		case "sscs-scorecard":
+			var ScorecardResult ScanScorecardResult
+			err := json.Unmarshal(jsonResult, &ScorecardResult)
+			if err != nil {
+				c.config.Logger.Warnf("Failed to unmarshal result %v to Scorecard type: %s", similarityID, err)
+			} else {
+				if ScorecardResult.ScanID == "" {
+					ScorecardResult.ScanID = scanId
+				}
+				if ScorecardResult.ProjectID == "" {
+					ScorecardResult.ProjectID = scan.ProjectID
+				}
+				ResultSet.Scorecard = append(ResultSet.Scorecard, ScorecardResult)
+			}
+		case "sscs-secret-detection":
+			var SecretsResult ScanSecretsResult
+			err := json.Unmarshal(jsonResult, &SecretsResult)
+			if err != nil {
+				c.config.Logger.Warnf("Failed to unmarshal result %v to Secrets type: %s", similarityID, err)
+			} else {
+				if SecretsResult.ScanID == "" {
+					SecretsResult.ScanID = scanId
+				}
+				if SecretsResult.ProjectID == "" {
+					SecretsResult.ProjectID = scan.ProjectID
+				}
+				ResultSet.Secrets = append(ResultSet.Secrets, SecretsResult)
+			}
 		default:
-			c.config.Logger.Warnf("Unable to unmarshal result %v of unknown type %v", r["similarityId"].(string), r["type"].(string))
+			c.config.Logger.Warnf("Result %v is of unsupported type %v, adding to Unknown results", similarityID, resultType)
+			var UnknownResult ScanUnknownResult
+			err := json.Unmarshal(jsonResult, &UnknownResult)
+			if err != nil {
+				c.config.Logger.Warnf("Failed to unmarshal result %v to Unknown type: %s", similarityID, err)
+			} else {
+				if UnknownResult.ScanID == "" {
+					UnknownResult.ScanID = scanId
+				}
+				if UnknownResult.ProjectID == "" {
+					UnknownResult.ProjectID = scan.ProjectID
+				}
+				ResultSet.Unknown = append(ResultSet.Unknown, UnknownResult)
+			}
 		}
 	}
 
