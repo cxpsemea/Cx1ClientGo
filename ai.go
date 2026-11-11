@@ -324,7 +324,7 @@ type aiTriageStatus struct {
 func (c *Cx1Client) pollAITriageStatusOnce(ctx context.Context, projectId, engine, groupId string) (string, bool, error) {
 	var status aiTriageStatus
 
-	// groupId is the finding's similarityId for SAST, or a composite "alternateId#-#packageId#-#projectId" for SCA
+	// groupId is the finding's SimilarityID for SAST, or a composite "similarityId#-#packageId#-#projectId" for SCA
 	endpoint := fmt.Sprintf("/ssegateway/triage-status?engine=%v&groupId=%v&projectId=%v",
 		url.QueryEscape(engine), url.QueryEscape(groupId), url.QueryEscape(projectId))
 
@@ -383,15 +383,19 @@ func (c *Cx1Client) PollSASTAITriageStatusWithTimeout(projectId, similarityId st
 }
 
 // Poll an AI triage job for an SCA result periodically until it finishes, or the default timeout is reached.
-// alternateId is the result's ResultID (eg. the CVE) and packageId is ScanSCAResult.Data.PackageIdentifier.
-func (c *Cx1Client) PollSCAAITriageStatus(projectId, resultId, packageId string) (string, error) {
-	return c.PollSCAAITriageStatusWithTimeout(projectId, resultId, packageId, c.config.Polling.AIPollingDelaySeconds, c.config.Polling.AIPollingMaxSeconds)
+// similarityId is the result's SimilarityID (ScanSCAResult.SimilarityID) and packageId is
+// ScanSCAResult.Data.PackageIdentifier. Both are required, as is the same pair for GetSCAAITriage.
+func (c *Cx1Client) PollSCAAITriageStatus(projectId, similarityId, packageId string) (string, error) {
+	return c.PollSCAAITriageStatusWithTimeout(projectId, similarityId, packageId, c.config.Polling.AIPollingDelaySeconds, c.config.Polling.AIPollingMaxSeconds)
 }
 
 // Poll an AI triage job for an SCA result until it finishes, or the specified timeout is reached.
-func (c *Cx1Client) PollSCAAITriageStatusWithTimeout(projectId, resultId, packageId string, delaySeconds, maxSeconds int) (string, error) {
-	// SCA triage jobs are identified by a composite groupId rather than the resultId
-	groupId := strings.Join([]string{resultId, packageId, projectId}, "#-#")
+func (c *Cx1Client) PollSCAAITriageStatusWithTimeout(projectId, similarityId, packageId string, delaySeconds, maxSeconds int) (string, error) {
+	if similarityId == "" || packageId == "" {
+		return "", fmt.Errorf("SCA AI triage status polling requires both the result's SimilarityID and PackageIdentifier (got similarityId %q, packageId %q)", similarityId, packageId)
+	}
+	// SCA triage jobs are identified by a composite groupId rather than the similarityId alone
+	groupId := strings.Join([]string{similarityId, packageId, projectId}, "#-#")
 	return c.pollAITriageStatusGroup(projectId, "sca", groupId, delaySeconds, maxSeconds)
 }
 
@@ -448,11 +452,16 @@ func (c *Cx1Client) getAITriageDetails(projectId, similarityId string) (AITriage
 }
 
 // Fetches the AI triage details for one SCA result. Unlike SAST, this is a GraphQL query against the
-// SCA service. riskId is the result's SimilarityID (eg. the CVE) and packageId is
+// SCA service. similarityId is the result's SimilarityID (ScanSCAResult.SimilarityID, sent to the service as riskId) and packageId is
 // ScanSCAResult.Data.PackageIdentifier. No polling is performed - if the triage is not yet complete,
 // the returned details will be empty.
-func (c *Cx1Client) GetSCAAITriage(scanId, projectId, riskId, packageId string) (SCAAITriageDetails, error) {
+func (c *Cx1Client) GetSCAAITriage(scanId, projectId, similarityId, packageId string) (SCAAITriageDetails, error) {
 	var details SCAAITriageDetails
+	riskId := similarityId // the service calls the SimilarityID "riskId"
+
+	if similarityId == "" || packageId == "" {
+		return details, fmt.Errorf("SCA AI triage details require both the result's SimilarityID and PackageIdentifier (got similarityId %q, packageId %q)", similarityId, packageId)
+	}
 
 	const query = `query ($scanId: UUID!, $riskId: String!, $packageId: String!, $projectId: UUID!) { aiTriageReasoning (scanId: $scanId, riskId: $riskId, packageId: $packageId, projectId: $projectId) { completed{summary,triagedAt,analysis{reachability{status,reasoning},exploitability{status,reasoning}},reasoningTrace{reachability{task,resultSteps{stepType,content}},exploitability{task,resultSteps{stepType,content}}}} } }`
 

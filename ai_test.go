@@ -121,3 +121,25 @@ func TestPollAITriage_ZeroMeansNoDeadline(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// SCA triage needs both SimilarityID and PackageIdentifier; an empty one would otherwise poll a non-existent job until timeout.
+func TestSCAAITriage_RequiresSimilarityIDAndPackageID(t *testing.T) {
+	var calls int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(srv.URL, 0, 0)
+	for _, args := range [][2]string{{"", "pkg"}, {"sim", ""}, {"", ""}} {
+		if _, err := c.PollSCAAITriageStatusWithTimeout("proj", args[0], args[1], 1, 1); err == nil {
+			t.Errorf("poll with similarityId=%q packageId=%q: expected error", args[0], args[1])
+		}
+		if _, err := c.GetSCAAITriage("scan", "proj", args[0], args[1]); err == nil {
+			t.Errorf("get with similarityId=%q packageId=%q: expected error", args[0], args[1])
+		}
+	}
+	if n := atomic.LoadInt32(&calls); n != 0 {
+		t.Errorf("no requests should be sent for invalid input, got %d", n)
+	}
+}

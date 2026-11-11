@@ -4,17 +4,27 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 )
 
 // Reads command-line flags to create a Cx1Client
 // Useful when writing stand-alone CLI tools
+//
+// Credentials and endpoints can also be supplied through environment variables, the same ones the
+// Checkmarx One CLI (AST CLI) reads. A value given on the command line takes precedence.
+// Prefer these over flags for secrets, as command-line arguments are visible to other processes
+// (ps, /proc/<pid>/cmdline) and in CI logs:
+//
+//	-apikey -> CX_APIKEY    -client -> CX_CLIENT_ID    -secret -> CX_CLIENT_SECRET
+//	-cx1 -> CX_BASE_URI     -iam -> CX_BASE_AUTH_URI   -tenant -> CX_TENANT
 func NewClient(client *http.Client, logger Logger) (*Cx1Client, error) {
-	APIKey := flag.String("apikey", "", "CheckmarxOne API Key (if not using client id/secret)")
-	ClientID := flag.String("client", "", "CheckmarxOne Client ID (if not using API Key)")
-	ClientSecret := flag.String("secret", "", "CheckmarxOne Client Secret (if not using API Key)")
-	Cx1URL := flag.String("cx1", "", "Optional: CheckmarxOne platform URL, if not defined in the test config.yaml")
-	IAMURL := flag.String("iam", "", "Optional: CheckmarxOne IAM URL, if not defined in the test config.yaml")
-	Tenant := flag.String("tenant", "", "Optional: CheckmarxOne tenant, if not defined in the test config.yaml")
+	APIKey := flag.String("apikey", "", "CheckmarxOne API Key (if not using client id/secret). Can also be set with the CX_APIKEY environment variable")
+	ClientID := flag.String("client", "", "CheckmarxOne Client ID (if not using API Key). Can also be set with the CX_CLIENT_ID environment variable")
+	ClientSecret := flag.String("secret", "", "CheckmarxOne Client Secret (if not using API Key). Can also be set with the CX_CLIENT_SECRET environment variable")
+	Cx1URL := flag.String("cx1", "", "Optional: CheckmarxOne platform URL, if not defined in the test config.yaml. Can also be set with the CX_BASE_URI environment variable")
+	IAMURL := flag.String("iam", "", "Optional: CheckmarxOne IAM URL, if not defined in the test config.yaml. Can also be set with the CX_BASE_AUTH_URI environment variable")
+	Tenant := flag.String("tenant", "", "Optional: CheckmarxOne tenant, if not defined in the test config.yaml. Can also be set with the CX_TENANT environment variable")
 	Token := flag.String("token", "", "Optional: A valid access_token. If this value is provided, others will be ignored - the client will lose access when the token expires")
 	UserAgent := flag.String("useragent", "Cx1ClientGo", "Optional: A custom user-agent string for all requests to Cx1")
 	flag.Parse()
@@ -24,19 +34,27 @@ func NewClient(client *http.Client, logger Logger) (*Cx1Client, error) {
 		Logger:      logger,
 		HTTPHeaders: http.Header{},
 		Auth: Cx1ClientAuth{
-			APIKey:       *APIKey,
-			ClientID:     *ClientID,
-			ClientSecret: *ClientSecret,
+			APIKey:       valueOrEnv(*APIKey, "CX_APIKEY"),
+			ClientID:     valueOrEnv(*ClientID, "CX_CLIENT_ID"),
+			ClientSecret: valueOrEnv(*ClientSecret, "CX_CLIENT_SECRET"),
 			AccessToken:  *Token,
 		},
-		Cx1Url: *Cx1URL,
-		IAMUrl: *IAMURL,
-		Tenant: *Tenant,
+		Cx1Url: valueOrEnv(*Cx1URL, "CX_BASE_URI"),
+		IAMUrl: valueOrEnv(*IAMURL, "CX_BASE_AUTH_URI"),
+		Tenant: valueOrEnv(*Tenant, "CX_TENANT"),
 	}
 
 	config.HTTPHeaders.Add("User-Agent", *UserAgent)
 
 	return NewClientWithOptions(config)
+}
+
+// valueOrEnv returns the flag value if it was provided, otherwise the (trimmed) value of the environment variable.
+func valueOrEnv(value, envName string) string {
+	if value != "" {
+		return value
+	}
+	return strings.TrimSpace(os.Getenv(envName))
 }
 
 // Create a new Cx1Client using OAuth Client ID & Client Secret
