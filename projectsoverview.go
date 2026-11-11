@@ -82,7 +82,7 @@ func (c *Cx1Client) GetProjectOverviewCountFiltered(filter ProjectOverviewFilter
 }
 
 func (o ProjectOverview) String() string {
-	src := o.SourceType
+	src := o.Origin
 	if src == "" {
 		src = "Empty"
 	}
@@ -96,10 +96,10 @@ func (o ProjectOverview) String() string {
 
 	application := "Tenant-level"
 	if len(o.ApplicationIDs) == 1 {
-		application = fmt.Sprintf("app: [%v] %v", ShortenGUID(o.ApplicationIDs[0].Id), o.ApplicationIDs[0].Name)
+		application = fmt.Sprintf("in app: [%v] %v", ShortenGUID(o.ApplicationIDs[0].Id), o.ApplicationIDs[0].Name)
 	} else if len(o.ApplicationIDs) > 1 {
-		application = fmt.Sprintf("%d apps", len(o.ApplicationIDs))
+		application = fmt.Sprintf("in %d apps", len(o.ApplicationIDs))
 	}
 
-	return fmt.Sprintf("%v project [%v] %v (%v) - %v", src, ShortenGUID(o.ProjectID), o.Name, application, last_scan)
+	return fmt.Sprintf("Project [%s] %s (%s) - %s (%s)", ShortenGUID(o.ProjectID), o.Name, application, last_scan, src)
 }
