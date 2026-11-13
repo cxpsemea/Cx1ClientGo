@@ -2,6 +2,7 @@ package Cx1ClientGo
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -143,12 +145,19 @@ func (c *Cx1Client) sendRequestInternal(method, url string, body io.Reader, head
 }
 
 func (c *Cx1Client) sendRequestRaw(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
+	return c.sendRequestRawContext(context.Background(), method, url, body, header)
+}
+
+// sendRequestRawContext is sendRequestRaw with a context: cancelling it aborts the request,
+// including reading the body of a streaming response, and any retry waits.
+func (c *Cx1Client) sendRequestRawContext(ctx context.Context, method, url string, body io.Reader, header http.Header) (*http.Response, error) {
 	c.config.Logger.Tracef("Sending %v request to URL %v", method, url)
 	request, err := c.createRequest(method, url, body, &header, nil)
 	if err != nil {
 		c.config.Logger.Tracef("Unable to create request: %s", err)
 		return nil, err
 	}
+	request = request.WithContext(ctx)
 
 	return c.handleHTTPResponse(request)
 }
@@ -165,12 +174,12 @@ func (c *Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, e
 		request.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	}
 	response, err := c.config.HttpClient.Do(request)
-	if err != nil || (response.StatusCode >= 500 && response.StatusCode < 600) {
+	if err != nil || isRetryableStatus(response.StatusCode) {
 		response, err = c.handleRetries(request, response, err)
 	}
 
 	if err != nil {
-		if err.Error()[len(err.Error())-27:] == "net/http: use last response" {
+		if errors.Is(err, http.ErrUseLastResponse) || strings.HasSuffix(err.Error(), http.ErrUseLastResponse.Error()) {
 			return response, nil
 		} else {
 			c.config.Logger.Tracef("Failed HTTP request: '%s'", err)
@@ -196,35 +205,32 @@ func (c *Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, e
 	if response.StatusCode >= 400 {
 		resBody, _ := io.ReadAll(response.Body)
 		//c.recordRequestDetailsInErrorCase(bodyBytes, resBody)
-		var msg map[string]interface{}
-		err = json.Unmarshal(resBody, &msg)
-		if err == nil {
-			var str string
-			if msg["message"] != nil {
-				str = msg["message"].(string)
-			} else if msg["error_description"] != nil {
-				str = msg["error_description"].(string)
-			} else if msg["error"] != nil {
-				str = msg["error"].(string)
-			} else if msg["errorMessage"] != nil {
-				str = msg["errorMessage"].(string)
-			} else {
-				if len(str) > 20 {
-					str = string(resBody)[:20]
-				} else {
-					str = string(resBody)
-				}
-			}
-			return response, fmt.Errorf("HTTP %v: %v", response.Status, str)
-		} else {
-			str := string(resBody)
-			if len(str) > 20 {
-				str = str[:20]
-			}
-			return response, fmt.Errorf("HTTP %v: %s", response.Status, str)
-		}
+		return response, fmt.Errorf("HTTP %v: %v", response.Status, httpErrorMessage(resBody))
 	}
 	return response, nil
+}
+
+// maxErrorBodyLength limits how much of an unparsed error response body is included in an error message.
+const maxErrorBodyLength = 200
+
+// httpErrorMessage extracts a human-readable message from an HTTP error response body.
+// It never panics: if none of the known JSON fields contains a string (eg. the gateway returned
+// {"error":{"code":403}}), it falls back to a truncated copy of the raw body.
+func httpErrorMessage(resBody []byte) string {
+	var msg map[string]interface{}
+	if err := json.Unmarshal(resBody, &msg); err == nil {
+		for _, key := range []string{"message", "error_description", "error", "errorMessage"} {
+			if s, ok := msg[key].(string); ok && s != "" {
+				return s
+			}
+		}
+	}
+
+	str := string(resBody)
+	if len(str) > maxErrorBodyLength {
+		str = str[:maxErrorBodyLength] + "..."
+	}
+	return str
 }
 
 // handleUnauthorized reacts to an HTTP 401 by forcing a fresh access token and retrying
@@ -261,11 +267,19 @@ func (c *Cx1Client) handleRetries(request *http.Request, response *http.Response
 
 	delay := *c.config.RetryDelay
 	attempt := 1
-	for err != nil && attempt <= *c.config.MaxRetries && ((response != nil && response.StatusCode >= 500 && response.StatusCode < 600) || isRetryableError(err)) {
+	for shouldRetry(response, err) && attempt <= *c.config.MaxRetries {
+		wait := time.Duration(delay) * time.Second
 		if response != nil {
-			c.config.Logger.Warnf("Response status %v: waiting %d seconds for retry attempt %d", response.Status, delay, attempt)
+			// Honor Retry-After (typically sent with 429), capped so a bad value can't stall the caller
+			if ra := parseRetryAfter(response.Header.Get("Retry-After")); ra > 0 {
+				wait = min(ra, maxRetryAfter)
+			}
+			c.config.Logger.Warnf("Response status %v: waiting %v for retry attempt %d", response.Status, wait, attempt)
+			// the previous response is discarded, release its connection
+			io.Copy(io.Discard, response.Body)
+			response.Body.Close()
 		} else {
-			c.config.Logger.Warnf("Request failed with %v: waiting %d seconds for retry attempt %d", err, delay, attempt)
+			c.config.Logger.Warnf("Request failed with %v: waiting %v for retry attempt %d", err, wait, attempt)
 		}
 
 		attempt++
@@ -280,12 +294,47 @@ func (c *Cx1Client) handleRetries(request *http.Request, response *http.Response
 		}
 
 		jitter := time.Duration(rand.Intn(1000)) * time.Millisecond // Up to 1 second of jitter
-		time.Sleep(time.Duration(delay)*time.Second + jitter)
+		select {
+		case <-request.Context().Done():
+			return nil, request.Context().Err()
+		case <-time.After(wait + jitter):
+		}
 		response, err = c.config.HttpClient.Do(request)
 		delay *= 2
 	}
 
 	return response, err
+}
+
+// maxRetryAfter is the longest wait honored from a Retry-After header.
+const maxRetryAfter = 60 * time.Second
+
+func isRetryableStatus(code int) bool {
+	return code == http.StatusTooManyRequests || (code >= 500 && code < 600)
+}
+
+func shouldRetry(response *http.Response, err error) bool {
+	if err != nil {
+		return isRetryableError(err)
+	}
+	return response != nil && isRetryableStatus(response.StatusCode)
+}
+
+// parseRetryAfter parses a Retry-After header (delay-seconds or HTTP-date). Returns 0 if absent or invalid.
+func parseRetryAfter(v string) time.Duration {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return 0
+	}
+	if secs, err := strconv.Atoi(v); err == nil && secs > 0 {
+		return time.Duration(secs) * time.Second
+	}
+	if t, err := http.ParseTime(v); err == nil {
+		if d := time.Until(t); d > 0 {
+			return d
+		}
+	}
+	return 0
 }
 
 func isRetryableError(err error) bool {
@@ -321,8 +370,12 @@ func (c *Cx1Client) sendRequest(method, url string, body io.Reader, header http.
 }
 
 func (c *Cx1Client) sendRequestRawCx1(method, url string, body io.Reader, header http.Header) (*http.Response, error) {
+	return c.sendRequestRawCx1Context(context.Background(), method, url, body, header)
+}
+
+func (c *Cx1Client) sendRequestRawCx1Context(ctx context.Context, method, url string, body io.Reader, header http.Header) (*http.Response, error) {
 	cx1url := fmt.Sprintf("%v/api%v", c.config.Cx1Url, url)
-	return c.sendRequestRaw(method, cx1url, body, header)
+	return c.sendRequestRawContext(ctx, method, cx1url, body, header)
 }
 
 func (c *Cx1Client) sendRequestIAM(method, base, url string, body io.Reader, header http.Header) ([]byte, error) {
