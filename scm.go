@@ -46,12 +46,13 @@ type SCMProjectScanInfo struct {
 	IsIncrementalScan bool     `json:"isIncrementalScan"`
 }
 
-// ScanProjectBySCM triggers a scan of an SCM-imported project through the repos-manager.
-// The raw response body is returned as the response format is not defined.
-func (c *Cx1Client) ScanProjectBySCM(scmID uint64, org string, request SCMProjectScanRequest) ([]byte, error) {
+// ScanProjectSCMByID triggers a scan of an SCM-imported project through the repos-manager.
+// There is no response - it is up to the caller to check most-recent scans to find the scan triggered by this call.
+func (c *Cx1Client) ScanProjectSCMByID(scmID int, org string, request SCMProjectScanRequest) error {
 	body, err := json.Marshal(request)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return c.sendRequest(http.MethodPost, fmt.Sprintf("/repos-manager/scms/%d/orgs/%s/repo/projectScan?projectId=%s", scmID, url.PathEscape(org), url.QueryEscape(request.Project.ProjectID)), bytes.NewReader(body), http.Header{})
+	_, err = c.sendRequest(http.MethodPost, fmt.Sprintf("/repos-manager/scms/%d/orgs/%s/repo/projectScan?projectId=%s", scmID, url.PathEscape(org), url.QueryEscape(request.Project.ProjectID)), bytes.NewReader(body), http.Header{})
+	return err // no response from this api
 }
