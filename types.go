@@ -2033,39 +2033,54 @@ type SCMIntegration struct {
 	OnPrem      bool   `json:"onPrem"`
 }
 
+// SCMSetting is a repository setting returned as {"value": ..., "isEditable": ...}
+type SCMSetting[T any] struct {
+	Value      T    `json:"value"`
+	IsEditable bool `json:"isEditable"`
+}
+
+type SCMFusionScanConfig struct {
+	Enabled    bool `json:"enabled"`
+	IsEditable bool `json:"isEditable"`
+}
+
 type SCMRepository struct {
-	ID                             string `json:"id"`
-	URL                            string `json:"url"`
-	WebhookID                      string `json:"webhookId"`
-	WebhookEnabled                 bool   `json:"webhookEnabled"`
-	PrDecorationEnabled            bool   `json:"prDecorationEnabled"`
-	IsRepoAdmin                    bool   `json:"isRepoAdmin"`
-	SastIncrementalScan            bool   `json:"sastIncrementalScan"`
-	SastScannerEnabled             bool   `json:"sastScannerEnabled"`
-	ScaScannerEnabled              bool   `json:"scaScannerEnabled"`
-	KicsScannerEnabled             bool   `json:"kicsScannerEnabled"`
-	APISecScannerEnabled           bool   `json:"apiSecScannerEnabled"`
-	ContainerScannerEnabled        bool   `json:"containerScannerEnabled"`
-	OssfScoreCardScannerEnabled    bool   `json:"ossfScoreCardScannerEnabled"`
-	SecretsDetectionScannerEnabled bool   `json:"secretsDetectionScannerEnabled"`
-	PrivatePackage                 bool   `json:"privatePackage"`
-	Criticality                    int    `json:"criticality"`
+	ID                             string              `json:"id"`
+	URL                            string              `json:"url"`
+	WebhookID                      string              `json:"webhookId"`
+	WebhookEnabled                 bool                `json:"webhookEnabled"`
+	PrDecorationEnabled            SCMSetting[bool]    `json:"prDecorationEnabled"`
+	IsRepoAdmin                    bool                `json:"isRepoAdmin"`
+	SastIncrementalScan            SCMSetting[bool]    `json:"sastIncrementalScan"`
+	SastScannerEnabled             SCMSetting[bool]    `json:"sastScannerEnabled"`
+	ScaScannerEnabled              SCMSetting[bool]    `json:"scaScannerEnabled"`
+	KicsScannerEnabled             SCMSetting[bool]    `json:"kicsScannerEnabled"`
+	APISecScannerEnabled           SCMSetting[bool]    `json:"apiSecScannerEnabled"`
+	ContainerScannerEnabled        SCMSetting[bool]    `json:"containerScannerEnabled"`
+	OssfScoreCardScannerEnabled    SCMSetting[bool]    `json:"ossfScoreCardScannerEnabled"`
+	SecretsDetectionScannerEnabled SCMSetting[bool]    `json:"secretsDetectionScannerEnabled"`
+	AISCScannerEnabled             SCMSetting[bool]    `json:"aiscScannerEnabled"`
+	CommitIDScanTagEnabled         SCMSetting[bool]    `json:"commitIdScanTagEnabled"`
+	FusionScanConfig               SCMFusionScanConfig `json:"fusionScanConfig"`
+	OrgIdentity                    string              `json:"orgIdentity"`
+	PrivatePackage                 bool                `json:"privatePackage"`
+	Criticality                    int                 `json:"criticality"`
 	Branches                       []struct {
 		Pattern         string `json:"pattern"`
 		IsDefaultBranch bool   `json:"isDefaultBranch"`
 		Tags            struct {
 		} `json:"tags,omitempty"`
 	} `json:"branches"`
-	RemediationSeverities []interface{} `json:"remediationSeverities"`
-	SSHRepoURL            string        `json:"sshRepoUrl"`
-	ScmID                 int           `json:"scmId"`
+	RemediationSeverities SCMSetting[[]string] `json:"remediationSeverities"`
+	SSHRepoURL            string               `json:"sshRepoUrl"`
+	ScmID                 int                  `json:"scmId"`
 	Scm                   struct {
 		TypeName string `json:"typeName"`
 	} `json:"scm"`
-	OrgID             int  `json:"orgId"`
-	ScaAutoPrEnabled  bool `json:"scaAutoPrEnabled"`
-	KicsAutoPrEnabled bool `json:"kicsAutoPrEnabled"`
-	SastAutoPrEnabled bool `json:"sastAutoPrEnabled"`
+	OrgID             int              `json:"orgId"`
+	ScaAutoPrEnabled  SCMSetting[bool] `json:"scaAutoPrEnabled"`
+	KicsAutoPrEnabled SCMSetting[bool] `json:"kicsAutoPrEnabled"`
+	SastAutoPrEnabled SCMSetting[bool] `json:"sastAutoPrEnabled"`
 }
 
 type Status struct {
