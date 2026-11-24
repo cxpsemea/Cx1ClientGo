@@ -77,7 +77,9 @@ func (c *Cx1Client) sendTokenRequest(body io.Reader) (access_token string, err e
 	}
 	request.Header = header
 
-	response, err := c.handleHTTPResponse(request)
+	// A 401 from the token endpoint means the credentials themselves are bad: don't try to
+	// "refresh" the token in response, that would call back into this function forever.
+	response, err := c.handleHTTPResponse(request, false)
 	if err != nil {
 		return
 	}
@@ -119,6 +121,7 @@ func (c *Cx1Client) refreshAccessToken() error {
 
 		access_token, err := c.sendTokenRequest(strings.NewReader(data.Encode()))
 		if err != nil {
+			c.config.Logger.Errorf("Failed to retrieve new token: %s", err)
 			return err
 		}
 		c.config.Auth.AccessToken = access_token
@@ -159,10 +162,13 @@ func (c *Cx1Client) sendRequestRawContext(ctx context.Context, method, url strin
 	}
 	request = request.WithContext(ctx)
 
-	return c.handleHTTPResponse(request)
+	return c.handleHTTPResponse(request, true)
 }
 
-func (c *Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, error) {
+// handleHTTPResponse sends the request, handling retries and error statuses. If
+// refreshOnUnauthorized is true, an HTTP 401 triggers one token refresh and retry; this
+// must be false for the token request itself to avoid infinite recursion.
+func (c *Cx1Client) handleHTTPResponse(request *http.Request, refreshOnUnauthorized bool) (*http.Response, error) {
 	// If the request has a body, we need to buffer it so it can be read multiple times for retries.
 	var bodyBytes []byte
 	if request.Body != nil {
@@ -191,7 +197,7 @@ func (c *Cx1Client) handleHTTPResponse(request *http.Request) (*http.Response, e
 		return nil, fmt.Errorf("nil response")
 	}
 
-	if response.StatusCode == http.StatusUnauthorized {
+	if refreshOnUnauthorized && response.StatusCode == http.StatusUnauthorized {
 		response, err = c.handleUnauthorized(request, response, bodyBytes)
 		if err != nil {
 			c.config.Logger.Tracef("Failed to recover from HTTP 401: %s", err)
