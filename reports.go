@@ -10,7 +10,7 @@ import (
 )
 
 var ReportV2Engines = []string{"SAST", "SCA", "KICS", "Microengines", "Containers", "Apisec"}
-var ReportV2Sections = []string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details", "scs-vulnerabilities"}
+var ReportV2Sections = []string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details"}
 
 // Request a v1 report - this may eventually be deprecated
 // Engine options: "SAST","SCA","KICS","Microengines","Containers","Apisec"
@@ -77,12 +77,6 @@ func (c *Cx1Client) RequestNewReportByScanIDv2(scanID string, scanners, emails, 
 		severities = append(severities, "critical")
 	}
 	sections := []string{"scan-information", "results-overview", "scan-results", "categories", "resolved-results", "vulnerability-details"}
-
-	for _, e := range scanners {
-		if strings.ToLower(e) == "microengines" {
-			sections = append(sections, "scs-vulnerabilities")
-		}
-	}
 
 	return c.RequestNewReportByIDsv2(ReportRequest{
 		EntityType: "scan",
