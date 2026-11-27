@@ -405,7 +405,7 @@ type AnalyticsDistributionBlock struct {
 	Values []AnalyticsDistributionEntry `json:"values"`
 }
 type AnalyticsDistributionStats struct {
-	Distribution []AnalyticsDistributionBlock `json:"distribution"`
+	Distribution []AnalyticsDistributionEntry `json:"distribution"`
 	LOC          uint64                       `json:"loc"`
 	Total        uint64                       `json:"total"`
 }

@@ -161,7 +161,7 @@ func (c *Cx1Client) auditCreateSessionByID(engine, projectId, scanId string) (Au
 	}
 	session.Engine = engine
 
-	switch engine {
+	switch strings.ToLower(engine) {
 	case "sast":
 		if session.Data.Status != "ALLOCATED" {
 			return session, fmt.Errorf("failed to allocate audit session: %v", session.Data.Status)
@@ -181,8 +181,8 @@ func (c *Cx1Client) auditCreateSessionByID(engine, projectId, scanId string) (Au
 		} else {
 			return session, fmt.Errorf("failed to get languages from response: %v", languageResponse)
 		}
-	case "iac":
-		if session.Data.Status != "RUNNING" {
+	case "iac", "kics":
+		if strings.ToUpper(session.Data.Status) != "RUNNING" && strings.ToUpper(session.Data.Status) != "PENDING" {
 			return session, fmt.Errorf("failed to start audit session: %v", session.Data.Status)
 		}
 		session.Platforms = session.Data.QueryFilters
